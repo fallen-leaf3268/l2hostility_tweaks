@@ -1,0 +1,11 @@
+{
+  "enchantment.l2hostilityfix.reprint_counter": "Reprint Counter",
+  "enchantment.l2hostilityfix.reprint_counter.desc": "On armor: reduces Reprint mob damage by %s%%. On any slot: reverses Reprint enchantment factor.",
+  "enchantment.l2hostilityfix.reprint_counter.desc_any": "Reverses Reprint enchantment factor on any slot.",
+
+  "trait.l2hostilityfix.adaptive.linear_info.prefix": "Adaptation: -",
+  "trait.l2hostilityfix.adaptive.linear_info.mid": " per stack (max -",
+  "trait.l2hostilityfix.adaptive.linear_info.suffix": ")",
+  "trait.l2hostilityfix.reprint.linear_info.prefix": "Reprint factor is now linear (+",
+  "trait.l2hostilityfix.reprint.linear_info.suffix": " damage per point)"
+}
