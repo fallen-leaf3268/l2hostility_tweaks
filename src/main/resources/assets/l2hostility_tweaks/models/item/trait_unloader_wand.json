@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "l2hostility_tweaks:item/trait_unloader_wand"
+  }
+}

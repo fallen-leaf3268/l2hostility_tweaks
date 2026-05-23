@@ -1,1 +1,1 @@
-com.l2hostilityfix.compat.kubejs.L2HFKJSPlugin
+com.l2hostility_tweaks.compat.kubejs.L2HFKJSPlugin

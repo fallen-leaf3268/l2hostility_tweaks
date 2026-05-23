@@ -1,6 +1,7 @@
 plugins {
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
     id 'org.spongepowered.mixin' version '0.7.+'
+    id 'me.modmuss50.mod-publish-plugin' version '0.8.0'
 }
 
 version = mod_version
@@ -33,6 +34,7 @@ dependencies {
     implementation fg.deobf("curse.maven:l2library-620203:5275597")
     implementation fg.deobf("curse.maven:l2hostility-909207:6497957")
     implementation fg.deobf("curse.maven:curios-309927:4834490")
+    implementation fg.deobf(files("libs/l2tabs-0.3.3.jar"))
     compileOnly files("libs/kubejs-forge-2001.6.5-build.26.jar")
     compileOnly files("libs/[犀牛] rhino-forge-2001.2.3-build.10.jar")
     compileOnly files("libs/architectury-9.2.14-forge.jar")
@@ -67,4 +69,21 @@ jar {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.compilerArgs << '-Xlint:-deprecation' << '-Xlint:-removal'
+}
+
+publishMods {
+    file = jar.archiveFile
+    changelog = file("CHANGELOG.md").exists() ? file("CHANGELOG.md").text : "Initial release"
+    type = BETA
+    modLoaders.add("forge")
+
+//	    curseforge {
+//	        accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
+//	        projectId = "000000"  // TODO: 替换为 CurseForge 项目 ID
+//	        minecraftVersions.add("1.20.1")
+//	        requires("l2hostility")
+//	        requires("l2library")
+//	        optional("curios")
+//	    }
 }
