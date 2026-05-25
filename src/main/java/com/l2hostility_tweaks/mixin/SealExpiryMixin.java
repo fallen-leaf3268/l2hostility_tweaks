@@ -2,7 +2,6 @@ package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.util.TraitDisableHelper;
 import net.minecraft.world.entity.LivingEntity;
-import com.l2hostility_tweaks.util.TraitDisableHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,11 +16,13 @@ import java.util.List;
 public class SealExpiryMixin {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger("l2htweaks:seal_expiry");
+	private static final int CHECK_INTERVAL = 20;
 
 	@Inject(method = "tick", at = @At("HEAD"))
 	private void l2fix$checkSealExpiry(CallbackInfo ci) {
 		LivingEntity self = (LivingEntity) (Object) this;
 		if (self.level().isClientSide()) return;
+		if (self.tickCount % CHECK_INTERVAL != 0) return;
 		var data = self.getPersistentData();
 		List<String> toRemove = null;
 		long gameTime = self.level().getGameTime();

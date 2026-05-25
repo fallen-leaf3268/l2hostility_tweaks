@@ -7,10 +7,9 @@
   "trait.l2hostility_tweaks.adaptive.linear_info": "Adaptation: -%s per stack (max %s)",
   "trait.l2hostility_tweaks.reprint.linear_info": "Reprint factor is now linear (+%s damage per point)",
 
-  "trait.l2hostility_tweaks.dispell.immunity": "Immune to all magic damage",
-  "trait.l2hostility_tweaks.dementor.immunity": "Immune to all non-magic damage",
-
   "trait.l2hostility_tweaks.reality.modified": "Grants %s Reality Index per level",
+  "trait.l2hostility_tweaks.dispell.immunity": "Modified to grant immunity to all magic damage",
+  "trait.l2hostility_tweaks.dementor.immunity": "Modified to grant immunity to all non-magic damage",
 
   "tooltip.l2hostility_tweaks.glow_enabled": "Glow Outline: ON",
   "tooltip.l2hostility_tweaks.glow_disabled": "Glow Outline: OFF",
@@ -46,7 +45,10 @@
 
   "tooltip.l2hostility_tweaks.abrahadabra_minion": "When worn, your minions are also considered to be wearing Abrahadabra",
 
-  "item.l2hostility_tweaks.dimension_breaker": "Dimension Breaker",
+  "item.l2hostility_tweaks.tranquil_belt": "Tranquil Belt",
+  "tooltip.l2hostility_tweaks.tranquil_belt": "When worn in the Belt slot: immune to Repulsion, Attraction and Gravity traits, immune to knockback and screen shake",
+
+  "item.l2hostility_tweaks.dimension_breaker": "Dimension Claw",
   "tooltip.l2hostility_tweaks.dimension_breaker": "When equipped: bare-hand mining speed +50%, Netherite harvest tier, acts as Pickaxe/Axe/Shovel. Bypasses AntiBuild effect.",
   "tooltip.l2hostility_tweaks.dimension_breaker.protect_on": "Mining Protection: ON",
   "tooltip.l2hostility_tweaks.dimension_breaker.protect_off": "Mining Protection: OFF",
@@ -85,5 +87,15 @@
   "gui.l2hostility_tweaks.max_level": "This trait has reached max level",
   "key.l2hostility_tweaks.trait_screen": "Trait Panel",
   "key.categories.l2hostility_tweaks": "L2Hostility Tweaks",
-  "itemGroup.l2hostility_tweaks": "L2Hostility Tweaks"
+  "itemGroup.l2hostility_tweaks": "L2Hostility Tweaks",
+
+  "item.l2hostility_tweaks.dispell_ring": "Ring of Dispell",
+  "item.l2hostility_tweaks.dispell_ring.desc": "When worn, your attacks bypass Dispell trait damage reduction",
+  "item.l2hostility_tweaks.dementor_ring": "Ring of Dementor",
+  "item.l2hostility_tweaks.dementor_ring.desc": "When worn, your attacks bypass Dementor trait damage reduction",
+  "item.l2hostility_tweaks.adaptive_ring": "Ring of Adaptation",
+  "item.l2hostility_tweaks.adaptive_ring.desc": "When worn, your attacks bypass Adapting trait damage reduction",
+
+  "trait.l2hostility_tweaks.seal": "Seal",
+  "trait.l2hostility_tweaks.seal.desc": "On attack, randomly seals one of the target's traits for %s seconds."
 }

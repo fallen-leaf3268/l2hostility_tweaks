@@ -14,8 +14,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(AbstractContainerScreen.class)
 public class ContainerScreenMixin {
 
-	private static final String TAG_GLOW_DISABLED = "DetectorGlowDisabled";
-
 	@Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
 	private void l2fix$toggleGlowOnRightClick(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
 		if (button != 1) return;

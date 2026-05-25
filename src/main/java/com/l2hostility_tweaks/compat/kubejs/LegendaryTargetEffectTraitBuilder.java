@@ -7,10 +7,14 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraftforge.registries.ForgeRegistries;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.Function;
 
 public class LegendaryTargetEffectTraitBuilder extends AbstractTraitBuilder<LegendaryTargetEffectTraitBuilder> {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger("l2htweaks:kubejs");
 
 	private Function<Integer, MobEffectInstance> func;
 
@@ -19,16 +23,26 @@ public class LegendaryTargetEffectTraitBuilder extends AbstractTraitBuilder<Lege
 	}
 
 	public LegendaryTargetEffectTraitBuilder fixedLevel(String effect, int duration, int amplifier) {
-		this.func = i -> new MobEffectInstance(
-				ForgeRegistries.MOB_EFFECTS.getValue(new ResourceLocation(effect)),
-				duration * i, amplifier);
+		this.func = i -> {
+			var mobEffect = ForgeRegistries.MOB_EFFECTS.getValue(new ResourceLocation(effect));
+			if (mobEffect == null) {
+				LOGGER.error("Unknown mob effect: {}", effect);
+				return new MobEffectInstance(MobEffects.WEAKNESS, 100, i - 1);
+			}
+			return new MobEffectInstance(mobEffect, duration * i, amplifier);
+		};
 		return this;
 	}
 
 	public LegendaryTargetEffectTraitBuilder fixedDuration(String effect, int duration) {
-		this.func = i -> new MobEffectInstance(
-				ForgeRegistries.MOB_EFFECTS.getValue(new ResourceLocation(effect)),
-				duration, i - 1);
+		this.func = i -> {
+			var mobEffect = ForgeRegistries.MOB_EFFECTS.getValue(new ResourceLocation(effect));
+			if (mobEffect == null) {
+				LOGGER.error("Unknown mob effect: {}", effect);
+				return new MobEffectInstance(MobEffects.WEAKNESS, 100, i - 1);
+			}
+			return new MobEffectInstance(mobEffect, duration, i - 1);
+		};
 		return this;
 	}
 

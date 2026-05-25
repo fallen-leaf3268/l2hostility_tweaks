@@ -44,12 +44,18 @@ public class ImmunityHelper {
         }
     }
 
+    public static boolean hasCurioWithTag(LivingEntity entity, TagKey<Item> tag) {
+        return hasItemWithTag(entity, tag);
+    }
+
     private static boolean hasItemWithTag(LivingEntity entity, TagKey<Item> tag) {
         return CuriosApi.getCuriosInventory(entity).resolve().map(handler -> {
             for (var stacksHandler : handler.getCurios().values()) {
                 var stacks = stacksHandler.getStacks();
-                for (int i = 0; i < stacks.getSlots(); i++) {
-                    if (stacks.getStackInSlot(i).is(tag)) return true;
+                int slots = stacks.getSlots();
+                for (int i = 0; i < slots; i++) {
+                    var stack = stacks.getStackInSlot(i);
+                    if (stack.is(tag)) return true;
                 }
             }
             return false;

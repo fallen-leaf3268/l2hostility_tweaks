@@ -5,14 +5,10 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.util.Map;
 
 public class NbtCondition extends SpecialConfigCondition<LivingEntity> {
-
-	private static final Logger LOG = LogManager.getLogger("L2HostilityFix/NbtCondition");
 
 	private final Map<String, Object> expectedNbt;
 

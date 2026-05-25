@@ -1,6 +1,5 @@
 package com.l2hostility_tweaks.content;
 
-import dev.xkmc.l2hostility.compat.curios.CurioCompat;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.tags.BlockTags;
@@ -108,7 +107,7 @@ public class DimensionBreakerItem extends Item {
 
 	@Override
 	public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> list, TooltipFlag flag) {
-		list.add(Component.translatable("tooltip.l2hostility_tweaks.dimension_breaker"));
+		list.add(Component.translatable("tooltip.l2hostility_tweaks.dimension_breaker").withStyle(ChatFormatting.GOLD));
 		boolean protect = isProtectMode(stack);
 		list.add(Component.translatable(protect
 				? "tooltip.l2hostility_tweaks.dimension_breaker.protect_on"

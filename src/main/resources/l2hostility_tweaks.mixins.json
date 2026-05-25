@@ -13,8 +13,7 @@
         "DetectorGlassesTooltipMixin",
         "AntibuildBlockImmuneMixin",
         "AntibuildPlaceBypassMixin",
-        "PushPullTraitMixin",
-        "GravityTraitMixin",
+                "GravityTraitMixin",
         "EntityConfigConfigMixin",
         "ConfigAccessor",
         "EntityConfigMixin",
@@ -49,7 +48,9 @@
         "ArenaTraitMixin",
         "CounterStrikeTraitMixin",
         "DimensionBreakerToolMixin",
-        "DimensionBreakerHarvestMixin"
+        "DimensionBreakerHarvestMixin",
+        "PushCancelMixin",
+        "TranquilBeltMixin"
     ],
     "client": [
         "DifficultyScreenMixin",
@@ -60,7 +61,8 @@
         "ClientGlowingHandlerMixin",
         "ContainerScreenMixin",
         "ClientEventsMixin",
-        "DimensionBreakerItemStackMixin"
+        "DimensionBreakerItemStackMixin",
+        "LocalPlayerHurtMixin"
     ],
     "server": []
 }

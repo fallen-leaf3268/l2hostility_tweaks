@@ -2,6 +2,7 @@ package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.L2HFBypassTags;
 import com.l2hostility_tweaks.config.L2HConfig;
+import com.l2hostility_tweaks.util.ImmunityHelper;
 import dev.xkmc.l2damagetracker.contents.attack.AttackCache;
 import dev.xkmc.l2damagetracker.contents.attack.DamageModifier;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
@@ -23,15 +24,23 @@ public class AdaptingTraitMixin {
 
 	@Inject(method = "onDamaged", at = @At("HEAD"), cancellable = true, remap = false)
 	private void l2fix$adaptiveAdditiveReduction(int level, LivingEntity entity, AttackCache cache, CallbackInfo ci) {
+		var event = cache.getLivingDamageEvent();
+		if (event != null) {
+			var attacker = event.getSource().getEntity();
+			if (attacker instanceof LivingEntity living && ImmunityHelper.hasCurioWithTag(living, L2HFBypassTags.BYPASSES_ADAPTIVE_ITEM)) {
+				ci.cancel();
+				return;
+			}
+		}
+
 		if (!L2HConfig.isAdaptiveLinearEnabled()) return;
 
 		ci.cancel();
 
-		var event = cache.getLivingDamageEvent();
 		if (event == null) return;
 
 		DamageSource source = event.getSource();
-		if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY) || source.is(DamageTypeTags.BYPASSES_EFFECTS) || source.is(L2HFBypassTags.BYPASSES_ADAPTIVE)) return;
+		if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY) || source.is(DamageTypeTags.BYPASSES_EFFECTS)) return;
 
 		AdaptingTrait self = (AdaptingTrait) (Object) this;
 		var cap = MobTraitCap.HOLDER.get(entity);

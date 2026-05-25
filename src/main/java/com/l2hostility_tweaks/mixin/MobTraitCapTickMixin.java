@@ -41,7 +41,7 @@ public abstract class MobTraitCapTickMixin {
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Ldev/xkmc/l2hostility/content/traits/base/MobTrait;tick(Lnet/minecraft/world/entity/LivingEntity;I)V"), remap = false)
 	public void l2fix$skipPlayerTraitTick(MobTrait trait, LivingEntity entity, int level) {
 		if (ImmunityHelper.isImmuneToTraitTick(entity, trait)) {
-			LOG.debug("[TraitTick] BLOCKED {} for {}", trait.getID(), entity.getName().getString());
+			LOG.info("[TraitTick] BLOCKED {} for {}", trait.getID(), entity.getName().getString());
 		} else {
 			trait.tick(entity, level);
 		}

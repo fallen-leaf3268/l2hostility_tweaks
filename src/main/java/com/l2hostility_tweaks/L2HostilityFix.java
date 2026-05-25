@@ -6,25 +6,34 @@ import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.content.DimensionBreakerItem;
 import com.l2hostility_tweaks.init.L2HFEnchantments;
 import com.l2hostility_tweaks.init.L2HFItems;
+import com.l2hostility_tweaks.init.L2HFTraits;
 import com.l2hostility_tweaks.network.NetworkHandler;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
+
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+
 import net.minecraft.world.level.GameRules;
 import net.minecraftforge.common.MinecraftForge;
+
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.InterModComms;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import top.theillusivec4.curios.api.SlotTypeMessage;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -41,13 +50,21 @@ public class L2HostilityFix {
     private static final Set<java.util.UUID> pendingTraitSync = Collections.synchronizedSet(new HashSet<>());
 
     public L2HostilityFix() {
+        LOGGER.info("CONSTRUCTOR: L2HostilityFix init start");
         L2HConfig.init();
         NetworkHandler.init();
+        L2HFItems.register();
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientL2HConfig.CLIENT_SPEC, "l2_configs/l2hostility_tweaks-client.toml");
         L2HFEnchantments.REGISTRY.register(FMLJavaModLoadingContext.get().getModEventBus());
-        L2HFItems.ITEMS.register(FMLJavaModLoadingContext.get().getModEventBus());
-        L2HFItems.CREATIVE_TABS.register(FMLJavaModLoadingContext.get().getModEventBus());
+        L2HFTraits.register();
         MinecraftForge.EVENT_BUS.register(this);
+        InterModComms.sendTo("curios", SlotTypeMessage.REGISTER_TYPE,
+                () -> new SlotTypeMessage.Builder("belt")
+                        .size(1)
+                        .icon(new ResourceLocation("curios", "slot/empty_belt_slot"))
+                        .priority(180)
+                        .build());
+        LOGGER.info("CONSTRUCTOR: L2HostilityFix init done");
     }
 
     @SubscribeEvent
@@ -94,6 +111,15 @@ public class L2HostilityFix {
                 }
             }
         }
+    }
+
+    @SubscribeEvent
+    public void onPlayerLoggedOut(PlayerLoggedOutEvent event) {
+        java.util.UUID uuid = event.getEntity().getUUID();
+        deathSnapshots.remove(uuid);
+        deathSealExpiry.remove(uuid);
+        deathMeta.remove(uuid);
+        pendingTraitSync.remove(uuid);
     }
 
     @SubscribeEvent
@@ -211,4 +237,5 @@ public class L2HostilityFix {
 			event.setCanHarvest(true);
 		}
 	}
+
 }

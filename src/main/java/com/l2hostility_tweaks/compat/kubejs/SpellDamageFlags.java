@@ -1,6 +1,5 @@
 package com.l2hostility_tweaks.compat.kubejs;
 
-import com.l2hostility_tweaks.L2HFBypassTags;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.damagesource.DamageType;
@@ -19,9 +18,6 @@ public class SpellDamageFlags {
 			case "bypass_cooldown" -> DamageTypeTags.BYPASSES_COOLDOWN;
 			case "bypass_resistance" -> DamageTypeTags.BYPASSES_RESISTANCE;
 			case "bypass_enchantments" -> DamageTypeTags.BYPASSES_ENCHANTMENTS;
-			case "bypass_adaptive" -> L2HFBypassTags.BYPASSES_ADAPTIVE;
-			case "bypass_dispell" -> L2HFBypassTags.BYPASSES_DISPELL;
-			case "bypass_dementor" -> L2HFBypassTags.BYPASSES_DEMENTOR;
 			default -> null;
 		};
 		if (tag != null) {

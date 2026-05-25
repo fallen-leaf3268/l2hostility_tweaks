@@ -2,6 +2,7 @@ package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.L2HFBypassTags;
 import com.l2hostility_tweaks.config.L2HConfig;
+import com.l2hostility_tweaks.util.ImmunityHelper;
 import dev.xkmc.l2damagetracker.contents.attack.AttackCache;
 import dev.xkmc.l2damagetracker.contents.attack.CreateSourceEvent;
 import dev.xkmc.l2damagetracker.contents.attack.DamageModifier;
@@ -26,7 +27,8 @@ public class DispellTraitMixin {
 	private void l2fix$dispellDefense(int level, LivingEntity entity, AttackCache cache, CallbackInfo ci) {
 		var event = cache.getLivingDamageEvent();
 		if (event == null) return;
-		if (event.getSource().is(L2HFBypassTags.BYPASSES_DISPELL)) {
+		var attacker = event.getSource().getEntity();
+		if (attacker instanceof LivingEntity living && ImmunityHelper.hasCurioWithTag(living, L2HFBypassTags.BYPASSES_DISPELL_ITEM)) {
 			ci.cancel();
 			return;
 		}

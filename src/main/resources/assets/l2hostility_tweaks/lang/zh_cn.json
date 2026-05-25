@@ -7,10 +7,9 @@
   "trait.l2hostility_tweaks.adaptive.linear_info": "已修改为每层减少 %s 受到的伤害（上限 %s）",
   "trait.l2hostility_tweaks.reprint.linear_info": "增伤已修改为线性叠加（每级附魔 +%s 伤害）",
 
+  "trait.l2hostility_tweaks.reality.modified": "每级为生物提供 %s 点现实指数",
   "trait.l2hostility_tweaks.dispell.immunity": "已修改为免疫所有魔法伤害",
   "trait.l2hostility_tweaks.dementor.immunity": "已修改为免疫所有非魔法伤害",
-
-  "trait.l2hostility_tweaks.reality.modified": "每级为生物提供 %s 点现实指数",
 
   "tooltip.l2hostility_tweaks.glow_enabled": "发光轮廓: 开启",
   "tooltip.l2hostility_tweaks.glow_disabled": "发光轮廓: 关闭",
@@ -46,8 +45,11 @@
 
   "tooltip.l2hostility_tweaks.abrahadabra_minion": "佩戴后，仆从也将被视为佩戴了扭曲之魂",
 
-  "item.l2hostility_tweaks.dimension_breaker": "破界锥",
-  "tooltip.l2hostility_tweaks.dimension_breaker": "佩戴时，采掘速度+50%，采掘等级为下界合金，可兼作镐/斧/锹。可在领域压制状态下正常破坏，放置方块。",
+  "item.l2hostility_tweaks.tranquil_belt": "恒静腰带",
+  "tooltip.l2hostility_tweaks.tranquil_belt": "佩戴后免疫排斥、吸引、重力词条效果，同时免疫击退和屏幕摇晃",
+
+  "item.l2hostility_tweaks.dimension_breaker": "破界爪",
+  "tooltip.l2hostility_tweaks.dimension_breaker": "玩家采掘速度+50%，并将装备者的基础挖掘等级提升至下界合金。可在领域压制状态下正常破坏，放置方块。",
   "tooltip.l2hostility_tweaks.dimension_breaker.protect_on": "挖掘保护模式: 开",
   "tooltip.l2hostility_tweaks.dimension_breaker.protect_off": "挖掘保护模式: 关",
 
@@ -85,5 +87,15 @@
   "gui.l2hostility_tweaks.max_level": "该词条已达到最高值",
   "key.l2hostility_tweaks.trait_screen": "词条面板",
   "key.categories.l2hostility_tweaks": "莱特兰恶意-调整",
-  "itemGroup.l2hostility_tweaks": "莱特兰恶意-调整"
+  "itemGroup.l2hostility_tweaks": "莱特兰恶意-调整",
+
+  "item.l2hostility_tweaks.dispell_ring": "破魔之戒",
+  "item.l2hostility_tweaks.dispell_ring.desc": "佩戴后，你的攻击将穿透破魔词条的防御效果",
+  "item.l2hostility_tweaks.dementor_ring": "摄魂之戒",
+  "item.l2hostility_tweaks.dementor_ring.desc": "佩戴后，你的攻击将穿透摄魂词条的防御效果",
+  "item.l2hostility_tweaks.adaptive_ring": "适应之戒",
+  "item.l2hostility_tweaks.adaptive_ring.desc": "佩戴后，你的攻击将穿透适应词条的减伤效果",
+
+  "trait.l2hostility_tweaks.seal": "封印",
+  "trait.l2hostility_tweaks.seal.desc": "攻击时随机封印目标的一个词条，持续 %s 秒。封印期间目标无法使用该词条的能力。"
 }

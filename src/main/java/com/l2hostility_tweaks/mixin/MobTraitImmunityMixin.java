@@ -2,10 +2,9 @@ package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.L2HFBypassTags;
 import com.l2hostility_tweaks.config.L2HConfig;
+import com.l2hostility_tweaks.util.ImmunityHelper;
 import dev.xkmc.l2damagetracker.init.data.L2DamageTypes;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
-import dev.xkmc.l2hostility.content.traits.legendary.DementorTrait;
-import dev.xkmc.l2hostility.content.traits.legendary.DispellTrait;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.tags.DamageTypeTags;
@@ -25,18 +24,26 @@ public class MobTraitImmunityMixin {
 	private void l2fix$legendaryImmunity(int level, LivingEntity entity, LivingAttackEvent event, CallbackInfo ci) {
 		var source = event.getSource();
 		if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY) ||
-				source.is(DamageTypeTags.BYPASSES_EFFECTS) ||
-				source.is(L2HFBypassTags.BYPASSES_DISPELL) ||
-				source.is(L2HFBypassTags.BYPASSES_DEMENTOR))
+				source.is(DamageTypeTags.BYPASSES_EFFECTS))
 			return;
 
 		String id = ((MobTrait) (Object) this).getID();
 
 		if ("l2hostility:dispell".equals(id) && L2HConfig.isOldDispellEnabled()) {
-			if (source.is(L2DamageTypes.MAGIC)) event.setCanceled(true);
+			if (source.is(L2DamageTypes.MAGIC)) {
+				var attacker = source.getEntity();
+				if (!(attacker instanceof LivingEntity living && ImmunityHelper.hasCurioWithTag(living, L2HFBypassTags.BYPASSES_DISPELL_ITEM))) {
+					event.setCanceled(true);
+				}
+			}
 		}
 		if ("l2hostility:dementor".equals(id) && L2HConfig.isOldDementorEnabled()) {
-			if (!source.is(L2DamageTypes.MAGIC)) event.setCanceled(true);
+			if (!source.is(L2DamageTypes.MAGIC)) {
+				var attacker = source.getEntity();
+				if (!(attacker instanceof LivingEntity living && ImmunityHelper.hasCurioWithTag(living, L2HFBypassTags.BYPASSES_DEMENTOR_ITEM))) {
+					event.setCanceled(true);
+				}
+			}
 		}
 	}
 
