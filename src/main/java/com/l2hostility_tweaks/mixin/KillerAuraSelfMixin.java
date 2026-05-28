@@ -18,28 +18,29 @@ import java.util.List;
 @Mixin(value = KillerAuraTrait.class, remap = false)
 public class KillerAuraSelfMixin {
 
-	@Unique
-	private LivingEntity l2fix$holder;
+	private static final ThreadLocal<LivingEntity> l2fix$holder = new ThreadLocal<>();
 
 	@Inject(method = "tick", at = @At("HEAD"))
 	public void l2fix$captureHolder(LivingEntity mob, int level, CallbackInfo ci) {
-		l2fix$holder = mob;
+		l2fix$holder.set(mob);
 	}
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE",
 			target = "Lnet/minecraft/world/level/Level;getEntitiesOfClass(Ljava/lang/Class;Lnet/minecraft/world/phys/AABB;)Ljava/util/List;"))
 	public List<LivingEntity> l2fix$excludeSelf(Level level, Class<LivingEntity> cls, AABB box) {
+		LivingEntity holder = l2fix$holder.get();
 		return level.getEntitiesOfClass(cls, box).stream()
-				.filter(e -> e != l2fix$holder)
+				.filter(e -> e != holder)
 				.toList();
 	}
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE",
 			target = "Lnet/minecraft/world/entity/Mob;getTarget()Lnet/minecraft/world/entity/LivingEntity;"))
 	public LivingEntity l2fix$playerAttackingTarget(Mob entity) {
-		if (l2fix$holder instanceof Player
-				&& entity.getLastHurtByMob() == l2fix$holder) {
-			return l2fix$holder;
+		LivingEntity holder = l2fix$holder.get();
+		if (holder instanceof Player
+				&& entity.getLastHurtByMob() == holder) {
+			return holder;
 		}
 		return entity.getTarget();
 	}

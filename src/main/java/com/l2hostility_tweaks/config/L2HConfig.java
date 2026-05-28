@@ -17,6 +17,7 @@ public class L2HConfig {
     private static List<int[]> parsedLegendaryThresholds;
     private static Set<String> parsedExtraLegendaryIds;
     private static List<ExclusionGroup> parsedExclusionGroups;
+    private static List<Integer> parsedSealDurationArray;
     private static Map<String, PlayerTraitOverride> parsedPlayerTraitOverrides;
 
     static {
@@ -61,6 +62,11 @@ public class L2HConfig {
         public final ForgeConfigSpec.IntValue levelCapUnlimited;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> levelCapThresholds;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> levelCapPerTrait;
+
+        // === 封印词条 ===
+        public final ForgeConfigSpec.IntValue sealDurationMode;
+        public final ForgeConfigSpec.IntValue sealDurationLinear;
+        public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> sealDurationArray;
 
         // === 传奇限制 ===
         public final ForgeConfigSpec.BooleanValue legendaryEnabled;
@@ -127,6 +133,17 @@ public class L2HConfig {
             oldDementor = builder.comment("启用摄魂词条（Dementor）的旧版免疫机制",
                     "开启后: 摄魂词条的生物免疫非魔法伤害")
                     .define("old_dementor", false);
+            builder.pop();
+
+            builder.push("seal_trait");
+            sealDurationMode = builder.comment("封印词条持续时间模式",
+                    "范围: 1或2")
+                    .defineInRange("duration_mode", 1, 1, 2);
+            sealDurationLinear = builder.comment("线性模式: 每级封印时间",
+                    "范围: 1 ~ 3600")
+                    .defineInRange("duration_linear", 3, 1, 3600);
+            sealDurationArray = builder.comment("数组模式: 每级对应的封印时间")
+                    .defineList("duration_array", List.of(), e -> e instanceof Integer);
             builder.pop();
 
             builder.push("undying");
@@ -366,6 +383,21 @@ public class L2HConfig {
 
     public static int getTraitSealDuration() {
         return COMMON.traitSealDuration.get();
+    }
+
+    public static int getSealDurationMode() {
+        return COMMON.sealDurationMode.get();
+    }
+
+    public static int getSealDurationLinear() {
+        return COMMON.sealDurationLinear.get();
+    }
+
+    public static List<Integer> getSealDurationArray() {
+        if (parsedSealDurationArray == null) {
+            parsedSealDurationArray = new ArrayList<>(COMMON.sealDurationArray.get());
+        }
+        return parsedSealDurationArray;
     }
 
     public static boolean isExclusionEnabled() {

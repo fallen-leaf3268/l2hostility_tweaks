@@ -4,24 +4,34 @@ import com.l2hostility_tweaks.client.config.ClientL2HConfig;
 import com.l2hostility_tweaks.compat.kubejs.SpellDamageFlags;
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.content.DimensionBreakerItem;
+import com.l2hostility_tweaks.content.RingDamageListener;
+import dev.xkmc.l2damagetracker.contents.attack.AttackEventHandler;
 import com.l2hostility_tweaks.init.L2HFEnchantments;
 import com.l2hostility_tweaks.init.L2HFItems;
-import com.l2hostility_tweaks.init.L2HFTraits;
+
 import com.l2hostility_tweaks.network.NetworkHandler;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
+import dev.xkmc.l2hostility.content.capability.mob.MinionData;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
+import dev.xkmc.l2hostility.init.data.LHConfig;
+import dev.xkmc.l2hostility.init.registrate.LHItems;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
-
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
 import net.minecraftforge.common.MinecraftForge;
 
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -50,22 +60,27 @@ public class L2HostilityFix {
     private static final Set<java.util.UUID> pendingTraitSync = Collections.synchronizedSet(new HashSet<>());
 
     public L2HostilityFix() {
-        LOGGER.info("CONSTRUCTOR: L2HostilityFix init start");
         L2HConfig.init();
         NetworkHandler.init();
         L2HFItems.register();
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientL2HConfig.CLIENT_SPEC, "l2_configs/l2hostility_tweaks-client.toml");
         L2HFEnchantments.REGISTRY.register(FMLJavaModLoadingContext.get().getModEventBus());
-        L2HFTraits.register();
+        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onBuildCreativeTab);
         MinecraftForge.EVENT_BUS.register(this);
+        AttackEventHandler.register(4500, new RingDamageListener());
         InterModComms.sendTo("curios", SlotTypeMessage.REGISTER_TYPE,
                 () -> new SlotTypeMessage.Builder("belt")
                         .size(1)
                         .icon(new ResourceLocation("curios", "slot/empty_belt_slot"))
                         .priority(180)
                         .build());
-        LOGGER.info("CONSTRUCTOR: L2HostilityFix init done");
     }
+
+	private void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {
+		if (event.getTabKey().location().equals(new ResourceLocation("l2library", "hostility"))) {
+			event.accept(L2HFItems.SEAL_SYMBOL.get());
+		}
+	}
 
     @SubscribeEvent
     public void onLivingDeath(LivingDeathEvent event) {
@@ -124,7 +139,7 @@ public class L2HostilityFix {
 
     @SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase == TickEvent.Phase.END || pendingTraitSync.isEmpty()) return;
+        if (event.phase != TickEvent.Phase.END || pendingTraitSync.isEmpty()) return;
         Iterator<java.util.UUID> it = pendingTraitSync.iterator();
         while (it.hasNext()) {
             java.util.UUID uuid = it.next();
@@ -236,6 +251,38 @@ public class L2HostilityFix {
 		if (DimensionBreakerItem.canHarvest(event.getEntity(), event.getTargetBlock())) {
 			event.setCanHarvest(true);
 		}
+	}
+
+	@SubscribeEvent
+	public void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
+		if (!(event.getTarget() instanceof LivingEntity target)) return;
+		Player player = event.getEntity();
+		if (player.level().isClientSide()) return;
+		ItemStack stack = event.getItemStack();
+		if (!stack.is(LHItems.HOSTILITY_ESSENCE.get())) return;
+		if (!MobTraitCap.HOLDER.isProper(target)) return;
+
+		MobTraitCap cap = MobTraitCap.HOLDER.get(target);
+		boolean isCreative = player.getAbilities().instabuild;
+
+		if (!isCreative) {
+			boolean isMinion = cap.minion && cap.asMinion != null
+					&& cap.asMinion.uuid != null
+					&& cap.asMinion.uuid.equals(player.getUUID());
+			if (!isMinion) return;
+		}
+
+		int inc = LHConfig.COMMON.bottleOfCurseLevel.get();
+		if (inc <= 0) return;
+		cap.setLevel(target, cap.lv + inc);
+		cap.syncToClient(target);
+		target.setHealth(target.getMaxHealth());
+
+		if (!isCreative) {
+			stack.shrink(1);
+		}
+		event.setCancellationResult(InteractionResult.SUCCESS);
+		event.setCanceled(true);
 	}
 
 }

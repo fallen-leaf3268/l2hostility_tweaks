@@ -47,6 +47,7 @@ public class AbrahadabraReflectMixin {
 	@Inject(method = "getTargets", at = @At("RETURN"), remap = false)
 	public void l2fix$filterReflectedTargets(CallbackInfoReturnable<List<Mob>> cir) {
 		List<Mob> targets = cir.getReturnValue();
+		if (targets == null) return;
 		Item item = ForgeRegistries.ITEMS.getValue(ABRAHADABRA_ID);
 		if (item == null) return;
 		targets.removeIf(mob -> isImmune(mob, item));

@@ -133,4 +133,9 @@ public class MobTraitCapMixin {
 			if (v > 0) cons.accept(k, v);
 		});
 	}
+
+	@Inject(method = "getTraitLevel", at = @At("RETURN"), cancellable = true, remap = false)
+	private void l2fix$absTraitLevel(MobTrait trait, CallbackInfoReturnable<Integer> cir) {
+		cir.setReturnValue(Math.abs(cir.getReturnValue()));
+	}
 }

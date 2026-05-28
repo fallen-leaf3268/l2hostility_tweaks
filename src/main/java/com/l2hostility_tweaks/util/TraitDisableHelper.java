@@ -11,22 +11,29 @@ public class TraitDisableHelper {
 	public static final String SEAL_EXPIRY_PREFIX = "l2htweaks_seal_expiry_";
 	private static final ThreadLocal<LivingEntity> DISPLAY_ENTITY = new ThreadLocal<>();
 	private static final ThreadLocal<Boolean> HIDE_REALITY_DETAIL = ThreadLocal.withInitial(() -> false);
-	private static Registry<dev.xkmc.l2hostility.content.traits.base.MobTrait> traitRegistry;
+	private static volatile Registry<dev.xkmc.l2hostility.content.traits.base.MobTrait> traitRegistry;
 	public static String sealExpiryKey(String traitId) {
 		return SEAL_EXPIRY_PREFIX + traitId;
 	}
 
 	public static Registry<dev.xkmc.l2hostility.content.traits.base.MobTrait> getTraitRegistry() {
-		if (traitRegistry == null) {
-			for (String key : new String[]{"l2hostility:trait", "l2hostility:mob_trait", "l2hostility:traits"}) {
-				Registry<?> reg = BuiltInRegistries.REGISTRY.get(new ResourceLocation(key));
-				if (reg != null) {
-					traitRegistry = (Registry<dev.xkmc.l2hostility.content.traits.base.MobTrait>) reg;
-					break;
+		Registry<dev.xkmc.l2hostility.content.traits.base.MobTrait> reg = traitRegistry;
+		if (reg == null) {
+			synchronized (TraitDisableHelper.class) {
+				reg = traitRegistry;
+				if (reg == null) {
+					for (String key : new String[]{"l2hostility:trait", "l2hostility:mob_trait", "l2hostility:traits"}) {
+						Registry<?> r = BuiltInRegistries.REGISTRY.get(new ResourceLocation(key));
+						if (r != null) {
+							traitRegistry = (Registry<dev.xkmc.l2hostility.content.traits.base.MobTrait>) r;
+							reg = traitRegistry;
+							break;
+						}
+					}
 				}
 			}
 		}
-		return traitRegistry;
+		return reg;
 	}
 
 	public static void setDisplayEntity(LivingEntity entity) {

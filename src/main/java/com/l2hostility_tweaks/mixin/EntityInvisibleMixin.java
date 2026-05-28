@@ -76,6 +76,18 @@ public class EntityInvisibleMixin {
 		boolean has = glasses != null && CurioCompat.hasItemInCurioOrSlot(player, glasses);
 		playerGlassesCache.put(id, has);
 		playerGlassesTick.put(id, player.tickCount);
+
+		if (playerGlassesCache.size() > 200) {
+			var server = player.getServer();
+			if (server != null) {
+				var online = new java.util.HashSet<>();
+				for (var p : server.getPlayerList().getPlayers()) {
+					online.add(p.getUUID());
+				}
+				playerGlassesCache.keySet().removeIf(k -> !online.contains(k));
+				playerGlassesTick.keySet().removeIf(k -> !online.contains(k));
+			}
+		}
 		return has;
 	}
 

@@ -90,12 +90,23 @@
   "itemGroup.l2hostility_tweaks": "L2Hostility Tweaks",
 
   "item.l2hostility_tweaks.dispell_ring": "Ring of Dispell",
-  "item.l2hostility_tweaks.dispell_ring.desc": "When worn, your attacks bypass Dispell trait damage reduction",
+  "item.l2hostility_tweaks.dispell_ring.desc": "When worn, your attacks bypass Dispell trait damage reduction, but damage dealt is reduced by 35%",
   "item.l2hostility_tweaks.dementor_ring": "Ring of Dementor",
-  "item.l2hostility_tweaks.dementor_ring.desc": "When worn, your attacks bypass Dementor trait damage reduction",
+  "item.l2hostility_tweaks.dementor_ring.desc": "When worn, your attacks bypass Dementor trait damage reduction, but damage dealt is reduced by 35%",
   "item.l2hostility_tweaks.adaptive_ring": "Ring of Adaptation",
-  "item.l2hostility_tweaks.adaptive_ring.desc": "When worn, your attacks bypass Adapting trait damage reduction",
+  "item.l2hostility_tweaks.adaptive_ring.desc": "When worn, your attacks bypass Adapting trait damage reduction, but damage dealt is reduced by 35%",
+  "item.l2hostility_tweaks.unification_ring": "Ring of Unification",
+  "item.l2hostility_tweaks.unification_ring.desc": "Grants the piercing effects of all three rings, and increases damage dealt by 25%",
 
-  "trait.l2hostility_tweaks.seal": "Seal",
-  "trait.l2hostility_tweaks.seal.desc": "On attack, randomly seals one of the target's traits for %s seconds."
+  "trait.l2hostility.seal": "Seal",
+  "trait.l2hostility.seal.desc": "On attack, randomly seals one of the target's traits for %s seconds.",
+  "enchantment.l2hostility_tweaks.abyss_pocket": "Abyss Pocket",
+  "enchantment.l2hostility_tweaks.abyss_pocket.desc": "Increases unsealing speed and durability cost per level",
+  "enchantment.l2hostility_tweaks.gluttony_pocket": "Gluttony Pocket",
+  "enchantment.l2hostility_tweaks.gluttony_pocket.desc": "Increases sealed item capacity by 1 per level",
+"item.l2hostility_tweaks.miracle_twisted_pocket": "Miracle Twisted Pocket",
+  "tooltip.l2hostility_tweaks.miracle_twisted_pocket": "Reduces seal time of sealed items by %s s every %s s",
+  "enchantment.l2hostility.split_suppressor.desc": "Permanently seals the Split trait on hit",
+
+  "tooltip.l2hostility_tweaks.essence_use": "Right-click your minion to increase difficulty level by %s (Creative: works on any mob, no consumption)"
 }

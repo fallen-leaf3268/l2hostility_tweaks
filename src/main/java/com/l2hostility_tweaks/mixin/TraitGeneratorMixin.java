@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -26,6 +27,9 @@ public class TraitGeneratorMixin {
     private static final ResourceLocation NBT_CONDITION_ID = new ResourceLocation("l2hostility_tweaks", "nbt");
 
     private static Registry<MobTrait> TRAIT_REGISTRY;
+    private static Field traitField;
+    private static Field minField;
+    private static boolean fieldsResolved;
 
     @SuppressWarnings("unchecked")
     private static Registry<MobTrait> getTraitRegistry() {
@@ -64,26 +68,23 @@ public class TraitGeneratorMixin {
 
             int appliedCount = 0;
             for (Object tb : presets) {
-                String s = tb.toString();
-                int start = s.indexOf("trait=");
-                int end = s.indexOf(",", start);
-                if (start < 0 || end <= start) {
-                    LOG.warn("[NbtPresetGen] Failed to parse traitId from preset: {}", s);
+                if (!resolveFields(tb)) continue;
+
+                String traitId;
+                int minLevel;
+                try {
+                    Object traitVal = traitField.get(tb);
+                    traitId = traitVal instanceof ResourceLocation ? traitVal.toString() : String.valueOf(traitVal);
+                    minLevel = minField.getInt(tb);
+                } catch (Exception e) {
+                    LOG.warn("[NbtPresetGen] Reflection failed for {}", tb.getClass().getName());
                     continue;
                 }
-                String traitId = s.substring(start + 6, end);
+
                 MobTrait mt = traitReg.get(new ResourceLocation(traitId));
                 if (mt == null) {
                     LOG.warn("[NbtPresetGen] Trait '{}' not found in registry, skipping", traitId);
                     continue;
-                }
-
-                int minLevel = 1;
-                int minIdx = s.indexOf("min=");
-                if (minIdx >= 0) {
-                    int minEnd = s.indexOf(",", minIdx);
-                    if (minEnd < 0) minEnd = s.indexOf("]", minIdx);
-                    try { minLevel = Integer.parseInt(s.substring(minIdx + 4, minEnd)); } catch (NumberFormatException ignored) {}
                 }
 
                 mt.initialize(entity, minLevel);
@@ -102,6 +103,32 @@ public class TraitGeneratorMixin {
             }
         } catch (Exception e) {
             LOG.error("[NbtPresetGen] Failed to apply NBT presets", e);
+        }
+    }
+
+    private static boolean resolveFields(Object tb) {
+        if (fieldsResolved) return traitField != null;
+        Class<?> clazz = tb.getClass();
+        try {
+            for (Field f : clazz.getDeclaredFields()) {
+                f.setAccessible(true);
+                String name = f.getName();
+                if (name.equals("trait") || name.equals("id") || name.equals("traitId")) {
+                    traitField = f;
+                } else if (name.equals("min") || name.equals("minLevel") || name.equals("min_rank")) {
+                    minField = f;
+                }
+            }
+            fieldsResolved = true;
+            if (traitField == null || minField == null) {
+                LOG.error("[NbtPresetGen] Could not find trait/min fields on {}", clazz.getName());
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            LOG.error("[NbtPresetGen] Failed to resolve fields on {}", clazz.getName(), e);
+            fieldsResolved = true;
+            return false;
         }
     }
 }

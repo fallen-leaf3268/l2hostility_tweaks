@@ -90,12 +90,23 @@
   "itemGroup.l2hostility_tweaks": "莱特兰恶意-调整",
 
   "item.l2hostility_tweaks.dispell_ring": "破魔之戒",
-  "item.l2hostility_tweaks.dispell_ring.desc": "佩戴后，你的攻击将穿透破魔词条的防御效果",
+  "item.l2hostility_tweaks.dispell_ring.desc": "佩戴后，你的攻击将穿透破魔词条的防御效果，但造成的伤害减少35%",
   "item.l2hostility_tweaks.dementor_ring": "摄魂之戒",
-  "item.l2hostility_tweaks.dementor_ring.desc": "佩戴后，你的攻击将穿透摄魂词条的防御效果",
+  "item.l2hostility_tweaks.dementor_ring.desc": "佩戴后，你的攻击将穿透摄魂词条的防御效果，但造成的伤害减少35%",
   "item.l2hostility_tweaks.adaptive_ring": "适应之戒",
-  "item.l2hostility_tweaks.adaptive_ring.desc": "佩戴后，你的攻击将穿透适应词条的减伤效果",
+  "item.l2hostility_tweaks.adaptive_ring.desc": "佩戴后，你的攻击将穿透适应词条的防御效果，但造成的伤害减少35%",
+  "item.l2hostility_tweaks.unification_ring": "统合之戒",
+  "item.l2hostility_tweaks.unification_ring.desc": "同时拥有三种戒指的穿透能力，且造成的伤害提升25%",
 
-  "trait.l2hostility_tweaks.seal": "封印",
-  "trait.l2hostility_tweaks.seal.desc": "攻击时随机封印目标的一个词条，持续 %s 秒。封印期间目标无法使用该词条的能力。"
+  "trait.l2hostility.seal": "封印",
+  "trait.l2hostility.seal.desc": "攻击时随机封印目标的一个词条，持续 %s 秒。封印期间目标无法使用该词条的能力。",
+  "enchantment.l2hostility_tweaks.abyss_pocket": "深渊口袋",
+  "enchantment.l2hostility_tweaks.abyss_pocket.desc": "每级提升1倍解封速度和1倍耐久消耗",
+  "enchantment.l2hostility_tweaks.gluttony_pocket": "饕餮口袋",
+  "enchantment.l2hostility_tweaks.gluttony_pocket.desc": "每级额外增加1个收纳的封印物品",
+"item.l2hostility_tweaks.miracle_twisted_pocket": "奇迹扭曲口袋",
+  "tooltip.l2hostility_tweaks.miracle_twisted_pocket": "佩戴后每隔 %s 秒会减少封印物品 %s 秒的封印时间",
+  "enchantment.l2hostility.split_suppressor.desc": "击中目标时永久封印目标分裂词条",
+
+  "tooltip.l2hostility_tweaks.essence_use": "右键属于你的仆从时为仆从提升%s级难度等级"
 }

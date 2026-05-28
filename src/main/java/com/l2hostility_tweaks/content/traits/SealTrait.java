@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.content.traits;
 
+import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
@@ -38,7 +39,7 @@ public class SealTrait extends LegendaryTrait {
 
 		MobTrait trait = available.get(target.getRandom().nextInt(available.size()));
 		String traitId = trait.getID();
-		int duration = 3 * level * 20;
+		int duration = getSealDurationTicks(level);
 		long expiry = target.level().getGameTime() + duration;
 		String key = TraitDisableHelper.sealExpiryKey(traitId);
 		target.getPersistentData().putLong(key, expiry);
@@ -48,8 +49,27 @@ public class SealTrait extends LegendaryTrait {
 	@Override
 	public void addDetail(List<Component> list) {
 		list.add(Component.translatable(getDescriptionId() + ".desc",
-						mapLevel(i -> Component.literal(i * 3 + "")
+						mapLevel(i -> Component.literal(getSealDurationSeconds(i) + "")
 								.withStyle(ChatFormatting.AQUA)))
 				.withStyle(ChatFormatting.GRAY));
+	}
+
+	private int getSealDurationSeconds(int level) {
+		int mode = L2HConfig.getSealDurationMode();
+		int linear = L2HConfig.getSealDurationLinear();
+		if (mode == 2) {
+			List<Integer> array = L2HConfig.getSealDurationArray();
+			if (array.isEmpty()) return level * linear;
+			if (level <= array.size()) {
+				return array.get(level - 1);
+			}
+			int lastValue = array.get(array.size() - 1);
+			return lastValue + (level - array.size()) * linear;
+		}
+		return level * linear;
+	}
+
+	private int getSealDurationTicks(int level) {
+		return getSealDurationSeconds(level) * 20;
 	}
 }

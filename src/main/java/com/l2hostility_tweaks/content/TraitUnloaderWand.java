@@ -104,6 +104,7 @@ public class TraitUnloaderWand extends Item {
 
 	private void unloadSingle(Player player, MobTraitCap cap, ItemStack stack) {
 		MobTrait trait = get(stack);
+		if (trait == null) return;
 		Integer currentLevel = cap.traits.get(trait);
 		if (currentLevel == null || currentLevel == 0) {
 			player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_NO_SELECTED_TRAIT,
@@ -133,6 +134,7 @@ public class TraitUnloaderWand extends Item {
 
 	private void unloadGroup(Player player, MobTraitCap cap, ItemStack stack) {
 		MobTrait trait = get(stack);
+		if (trait == null) return;
 		Integer currentLevel = cap.traits.get(trait);
 		if (currentLevel == null || currentLevel == 0) {
 			player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_NO_SELECTED_TRAIT,

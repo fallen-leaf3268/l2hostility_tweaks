@@ -32,11 +32,13 @@ public class DifficultyScreenMixin {
 
 		int diff = getDifficulty(player);
 
-		if (RANK_CAP_IDX < list.size()) {
+		boolean levelCapOn = L2HConfig.COMMON.levelCapEnabled.get();
+		boolean legendaryOn = L2HConfig.COMMON.legendaryEnabled.get();
+		if ((levelCapOn || legendaryOn) && RANK_CAP_IDX < list.size()) {
 			list.remove(RANK_CAP_IDX);
 		}
 
-		if (L2HConfig.COMMON.levelCapEnabled.get()) {
+		if (levelCapOn) {
 			MutableComponent text;
 			if (diff >= L2HConfig.COMMON.levelCapUnlimited.get()) {
 				text = L2HTweaksLang.translate(L2HTweaksLang.LEVEL_CAP_UNLIMITED);
@@ -47,7 +49,7 @@ public class DifficultyScreenMixin {
 			list.add(RANK_CAP_IDX, Pair.of(text, null));
 		}
 
-		if (L2HConfig.COMMON.legendaryEnabled.get()) {
+		if (legendaryOn) {
 			MutableComponent text;
 			if (diff >= L2HConfig.COMMON.legendaryUnlimited.get()) {
 				text = L2HTweaksLang.translate(L2HTweaksLang.LEGENDARY_UNLIMITED);

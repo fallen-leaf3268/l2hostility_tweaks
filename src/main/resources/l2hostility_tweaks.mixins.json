@@ -50,6 +50,8 @@
         "DimensionBreakerToolMixin",
         "DimensionBreakerHarvestMixin",
         "PushCancelMixin",
+        "RemoveTraitEnchantmentMixin",
+        "PocketOfRestorationMixin",
         "TranquilBeltMixin"
     ],
     "client": [

@@ -30,6 +30,7 @@ public class TraitWandHelper {
 	public static MobTrait nextTrait(MobTrait mod) {
 		ArrayList<MobTrait> list = new ArrayList<>(LHTraits.TRAITS.get().getValues());
 		int idx = list.indexOf(mod);
+		if (idx < 0) return mod;
 		if (idx + 1 < list.size()) {
 			return list.get(idx + 1);
 		}
@@ -39,6 +40,7 @@ public class TraitWandHelper {
 	public static MobTrait prevTrait(MobTrait mod) {
 		ArrayList<MobTrait> list = new ArrayList<>(LHTraits.TRAITS.get().getValues());
 		int idx = list.indexOf(mod);
+		if (idx < 0) return mod;
 		if (idx != 0) {
 			return list.get(idx - 1);
 		}

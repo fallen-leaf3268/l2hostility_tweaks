@@ -76,7 +76,9 @@ public class ConfigMergerMixin {
         int totalFound = 0;
 
         // Use listResources — exactly how SimpleJsonResourceReloadListener finds JSON files
-        Map<ResourceLocation, Resource> found = server.getResourceManager()
+        var resourceManager = server.getResourceManager();
+        if (resourceManager == null) return new LinkedHashMap<>();
+        Map<ResourceLocation, Resource> found = resourceManager
                 .listResources("l2hostility_config/entity", path -> path.getPath().endsWith(".json"));
 
         LOG.info("[ConfigMergerMixin] listResources found {} entity config files", found.size());

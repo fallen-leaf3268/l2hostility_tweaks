@@ -1,4 +1,6 @@
 {
   "replace": false,
-  "values": ["l2hostility_tweaks:adaptive_ring"]
+  "values": ["l2hostility_tweaks:adaptive_ring",
+                 "l2hostility_tweaks:unification_ring"
+]
 }

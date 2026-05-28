@@ -1,7 +1,0 @@
-{
-  "parent": "minecraft:item/generated",
-  "textures": {
-    "layer0": "l2hostility_tweaks:item/bg",
-    "layer1": "l2hostility_tweaks:item/trait/seal"
-  }
-}

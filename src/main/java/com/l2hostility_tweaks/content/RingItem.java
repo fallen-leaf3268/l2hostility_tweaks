@@ -13,8 +13,15 @@ import java.util.List;
 
 public class RingItem extends Item implements ICurioItem {
 
-	public RingItem(Properties properties) {
+	private final float damageMultiplier;
+
+	public RingItem(Properties properties, float damageMultiplier) {
 		super(properties);
+		this.damageMultiplier = damageMultiplier;
+	}
+
+	public float getDamageMultiplier() {
+		return damageMultiplier;
 	}
 
 	@Override

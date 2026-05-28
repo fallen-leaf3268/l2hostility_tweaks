@@ -69,6 +69,7 @@ public class TraitSeal extends Item {
 
 		MobTraitCap cap = MobTraitCap.HOLDER.get(target);
 		MobTrait trait = get(stack);
+		if (trait == null) return InteractionResult.FAIL;
 		String id = trait.getID();
 
 		if (!cap.traits.containsKey(trait)) {
@@ -116,6 +117,7 @@ public class TraitSeal extends Item {
 
 	private void cycleAndNotify(ItemStack stack, Player player) {
 		MobTrait old = get(stack);
+		if (old == null) return;
 		MobTrait nextTrait = player.isShiftKeyDown() ? prev(old) : next(old);
 		set(stack, nextTrait);
 		player.sendSystemMessage(L2HTweaksLang.translate(L2HTweaksLang.SEAL_SELECTED,
@@ -126,7 +128,8 @@ public class TraitSeal extends Item {
 	public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> list, TooltipFlag flag) {
 		list.add(L2HTweaksLang.translate(L2HTweaksLang.SEAL_TOOLTIP).withStyle(ChatFormatting.GRAY));
 		MobTrait trait = get(stack);
-		list.add(L2HTweaksLang.translate(L2HTweaksLang.SEAL_CURRENT,
-				trait.getDesc().withStyle(ChatFormatting.AQUA)).withStyle(ChatFormatting.GRAY));
+		if (trait != null)
+			list.add(L2HTweaksLang.translate(L2HTweaksLang.SEAL_CURRENT,
+					trait.getDesc().withStyle(ChatFormatting.AQUA)).withStyle(ChatFormatting.GRAY));
 	}
 }

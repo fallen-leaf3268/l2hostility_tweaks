@@ -1,4 +1,6 @@
 {
   "replace": false,
-  "values": ["l2hostility_tweaks:dementor_ring"]
+  "values": ["l2hostility_tweaks:dementor_ring",
+                 "l2hostility_tweaks:unification_ring"
+]
 }
