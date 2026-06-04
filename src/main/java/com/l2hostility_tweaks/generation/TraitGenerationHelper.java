@@ -25,7 +25,7 @@ public class TraitGenerationHelper {
     private static Field MOB_LEVEL_FIELD;
     private static Field LEVEL_FIELD;
     private static Field INS_FIELD;
-    private static boolean fieldsDiscovered;
+    private static volatile boolean fieldsDiscovered;
 
     public static LivingEntity getEntity(TraitGenerator self) {
         try {

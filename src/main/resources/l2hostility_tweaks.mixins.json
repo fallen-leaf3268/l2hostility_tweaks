@@ -6,6 +6,7 @@
     "compatibilityLevel": "JAVA_17",
     "refmap": "l2hostility_tweaks.refmap.json",
     "mixins": [
+        "GetTraitLevelMixin",
         "AbrahadabraReflectMixin",
         "AbrahadabraTooltipMixin",
         "AntiBuildBeneficialMixin",
@@ -18,7 +19,6 @@
         "ConfigAccessor",
         "EntityConfigMixin",
         "ConfigMergerMixin",
-        "MobTraitCapMixin",
         "TraitGeneratorMixin",
         "TraitPostRollMixin",
         "LegendaryAllowMixin",
@@ -38,21 +38,28 @@
         "TraitRomanMixin",
         "EntityInvisibleMixin",
         "InvisibleTraitMixin",
-        "SealExpiryMixin",
         "UndyingTraitMixin",
         "LHAttackListenerMixin",
         "MobTraitDescMixin",
+        "GetTitleMixin",
+        "TraitLootConditionMixin",
+        "TraitLootModifierMixin",
+        "TraitManagerMixin",
+        "KillerAuraTraitMixin",
+        "DrainTraitMixin",
+        "EnvyLootModifierMixin",
+
         "TraitAdderWandMixin",
         "ShulkerTraitMixin",
         "HostilityBulletMixin",
         "ArenaTraitMixin",
         "CounterStrikeTraitMixin",
         "DimensionBreakerToolMixin",
-        "DimensionBreakerHarvestMixin",
         "PushCancelMixin",
+        "RagnarokTraitMixin",
         "RemoveTraitEnchantmentMixin",
+        "TraitSealFilterMixin",
         "PocketOfRestorationMixin",
-        "TranquilBeltMixin"
     ],
     "client": [
         "DifficultyScreenMixin",
@@ -63,8 +70,7 @@
         "ClientGlowingHandlerMixin",
         "ContainerScreenMixin",
         "ClientEventsMixin",
-        "DimensionBreakerItemStackMixin",
-        "LocalPlayerHurtMixin"
+        "DimensionBreakerItemStackMixin"
     ],
     "server": []
 }

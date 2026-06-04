@@ -36,7 +36,7 @@ public class AbrahadabraReflectMixin {
 	public void l2fix$minionReflect(MobTrait trait, CallbackInfoReturnable<Boolean> cir) {
 		if (cir.getReturnValue()) return;
 		if (!(target instanceof Mob mob)) return;
-		LivingEntity owner = getOwner(mob);
+		LivingEntity owner = l2fix$getOwner(mob);
 		if (owner == null) return;
 		Item abrahadabra = ForgeRegistries.ITEMS.getValue(ABRAHADABRA_ID);
 		if (abrahadabra != null && CurioCompat.hasItemInCurioChecked(owner, abrahadabra)) {
@@ -50,16 +50,16 @@ public class AbrahadabraReflectMixin {
 		if (targets == null) return;
 		Item item = ForgeRegistries.ITEMS.getValue(ABRAHADABRA_ID);
 		if (item == null) return;
-		targets.removeIf(mob -> isImmune(mob, item));
+		targets.removeIf(mob -> l2fix$isImmune(mob, item));
 	}
 
-	private static boolean isImmune(Mob mob, Item item) {
+	private static boolean l2fix$isImmune(Mob mob, Item item) {
 		if (CurioCompat.hasItemInCurioChecked(mob, item)) return true;
-		LivingEntity owner = getOwner(mob);
+		LivingEntity owner = l2fix$getOwner(mob);
 		return owner != null && CurioCompat.hasItemInCurioChecked(owner, item);
 	}
 
-	private static LivingEntity getOwner(Mob mob) {
+	private static LivingEntity l2fix$getOwner(Mob mob) {
 		if (mob instanceof TamableAnimal tamable) {
 			LivingEntity owner = tamable.getOwner();
 			if (owner != null) return owner;
@@ -69,7 +69,7 @@ public class AbrahadabraReflectMixin {
 			uuid = ownable.getOwnerUUID();
 		}
 		if (uuid == null) {
-			uuid = getOwnerFromNbt(mob);
+			uuid = l2fix$getOwnerFromNbt(mob);
 		}
 		if (uuid != null && mob.level() instanceof ServerLevel sl) {
 			Entity e = sl.getEntity(uuid);
@@ -78,7 +78,7 @@ public class AbrahadabraReflectMixin {
 		return null;
 	}
 
-	private static UUID getOwnerFromNbt(Mob mob) {
+	private static UUID l2fix$getOwnerFromNbt(Mob mob) {
 		try {
 			CompoundTag nbt = mob.getPersistentData();
 			if (nbt.contains("Owner")) {

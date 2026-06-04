@@ -1,6 +1,5 @@
 package com.l2hostility_tweaks.content;
 
-import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.init.L2HTweaksLang;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
 import com.l2hostility_tweaks.util.TraitWandHelper;
@@ -84,20 +83,12 @@ public class TraitSeal extends Item {
 			LOGGER.info("SEAL_UNSEAL entity={} traitId={} key={}",
 					target.getName().getString(), id, sealKey);
 			target.getPersistentData().remove(sealKey);
-			TraitDisableHelper.setDisabled(target, id, false, false);
+			TraitDisableHelper.setDisabled(target, id, false);
 		} else {
-			int duration = L2HConfig.getTraitSealDuration();
-			if (duration > 0) {
-				long expiry = target.level().getGameTime() + duration * 20L;
-				LOGGER.info("SEAL_TIMED entity={} traitId={} key={} duration={} expiry={} gameTime={}",
-						target.getName().getString(), id, sealKey, duration, expiry, target.level().getGameTime());
-				target.getPersistentData().putLong(sealKey, expiry);
-			} else {
-				LOGGER.info("SEAL_PERMANENT entity={} traitId={} key={}",
-						target.getName().getString(), id, sealKey);
-				target.getPersistentData().putLong(sealKey, -1);
-			}
-			TraitDisableHelper.setDisabled(target, id, true, false);
+			LOGGER.info("SEAL_PERMANENT entity={} traitId={} key={}",
+					target.getName().getString(), id, sealKey);
+			target.getPersistentData().putLong(sealKey, -1);
+			TraitDisableHelper.setDisabled(target, id, true);
 		}
 
 		String key = disabled ? L2HTweaksLang.SEAL_UNSEALED : L2HTweaksLang.SEAL_SEALED;

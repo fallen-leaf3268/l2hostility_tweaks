@@ -25,6 +25,7 @@ public class TraitAdderWandMixin {
 
 		int abs = Math.abs(level);
 		target.getPersistentData().remove(TraitDisableHelper.sealExpiryKey(trait.getID()));
+		target.getPersistentData().remove("l2htweaks_sealed_level_" + trait.getID());
 
 		if (!player.isShiftKeyDown() && abs >= trait.getMaxLevel()) {
 			ci.cancel();
@@ -32,5 +33,8 @@ public class TraitAdderWandMixin {
 		}
 
 		cap.traits.put(trait, abs);
+		trait.initialize(target, abs);
+		trait.postInit(target, abs);
+		cap.syncToClient(target);
 	}
 }

@@ -36,6 +36,7 @@ public abstract class ShulkerTraitMixin {
 	@Inject(method = "tick", at = @At("HEAD"), cancellable = true)
 	private void l2fix$playerTick(LivingEntity e, int level, CallbackInfo ci) {
 		if (!(e instanceof Player player)) return;
+		ci.cancel();
 		if (e.level().isClientSide()) return;
 
 		var cap = MobTraitCap.HOLDER.get(e);
@@ -56,7 +57,7 @@ public abstract class ShulkerTraitMixin {
 		if (data.tickCount < intervalVal) return;
 		if ((e.tickCount + offset) % intervalVal != 0) return;
 
-		LivingEntity target = findTargetInCone(player);
+		LivingEntity target = l2fix$findTargetInCone(player);
 		if (target == null) return;
 
 		var bullet = new HostilityBullet(e.level(), e, target,
@@ -67,11 +68,9 @@ public abstract class ShulkerTraitMixin {
 		e.level().addFreshEntity(bullet);
 		e.playSound(SoundEvents.SHULKER_SHOOT, 2.0F,
 				(e.getRandom().nextFloat() - e.getRandom().nextFloat()) * 0.2F + 1.0F);
-
-		ci.cancel();
 	}
 
-	private static LivingEntity findTargetInCone(Player player) {
+	private static LivingEntity l2fix$findTargetInCone(Player player) {
 		Vec3 eye = player.getEyePosition();
 		Vec3 look = player.getLookAngle();
 

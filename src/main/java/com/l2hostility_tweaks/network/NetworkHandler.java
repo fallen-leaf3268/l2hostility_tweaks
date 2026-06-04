@@ -1,10 +1,8 @@
 package com.l2hostility_tweaks.network;
 
-import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.content.DimensionBreakerItem;
 import com.l2hostility_tweaks.content.TraitUnloaderWand;
 import com.l2hostility_tweaks.init.L2HTweaksLang;
-import com.l2hostility_tweaks.util.TraitDisableHelper;
 import dev.xkmc.l2hostility.compat.curios.CurioCompat;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.item.tool.DetectorGlasses;
@@ -164,52 +162,10 @@ public class NetworkHandler {
 				if (currentLevel == null || currentLevel == 0) return;
 
 				int absLevel = Math.abs(currentLevel);
-				float hpRatio = player.getHealth() / player.getMaxHealth();
-
 				if (msg.unloadAll) {
-					cap.traits.remove(trait);
-					trait.initialize(player, 0);
-					trait.postInit(player, 0);
-					player.getPersistentData().remove(TraitDisableHelper.sealExpiryKey(msg.traitId));
-
-					cap.syncToClient(player);
-					cap.syncToPlayer(player, (ServerPlayer) player);
-					player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
-
-					int totalRefund = L2HConfig.getTotalUnloadRefund(absLevel);
-					ItemStack symbol = new ItemStack(trait.asItem(), totalRefund);
-					player.addItem(symbol);
-					player.displayClientMessage(
-							L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_GROUP,
-									trait.getDesc(), absLevel, totalRefund)
-									.withStyle(ChatFormatting.GREEN),
-							true);
+					TraitUnloaderWand.unloadGroupTrait(player, cap, trait, absLevel);
 				} else {
-					int newLevel = absLevel - 1;
-					if (newLevel <= 0) {
-						cap.traits.remove(trait);
-						trait.initialize(player, 0);
-						trait.postInit(player, 0);
-					} else {
-						cap.traits.put(trait, newLevel);
-						trait.initialize(player, newLevel);
-						trait.postInit(player, newLevel);
-					}
-
-					player.getPersistentData().remove(TraitDisableHelper.sealExpiryKey(msg.traitId));
-
-					cap.syncToClient(player);
-					cap.syncToPlayer(player, (ServerPlayer) player);
-					player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
-
-					int refund = L2HConfig.getUnloadRefund(absLevel);
-					ItemStack symbol = new ItemStack(trait.asItem(), refund);
-					player.addItem(symbol);
-					player.displayClientMessage(
-							L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_SINGLE,
-									trait.getDesc(), absLevel, Math.max(0, newLevel))
-									.withStyle(ChatFormatting.GREEN),
-							true);
+					TraitUnloaderWand.unloadSingleTrait(player, cap, trait, absLevel);
 				}
 			});
 			ctx.setPacketHandled(true);

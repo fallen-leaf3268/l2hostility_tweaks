@@ -53,7 +53,7 @@ public class NbtCondition extends SpecialConfigCondition<LivingEntity> {
 		}
 		if (expected instanceof Number n) {
 			return actual instanceof net.minecraft.nbt.NumericTag num
-					&& num.getAsInt() == n.intValue();
+					&& num.getAsDouble() == n.doubleValue();
 		}
 		if (expected instanceof String s) {
 			return actual.getAsString().equals(s);

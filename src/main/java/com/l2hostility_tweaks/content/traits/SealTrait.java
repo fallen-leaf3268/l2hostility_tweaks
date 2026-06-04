@@ -43,7 +43,7 @@ public class SealTrait extends LegendaryTrait {
 		long expiry = target.level().getGameTime() + duration;
 		String key = TraitDisableHelper.sealExpiryKey(traitId);
 		target.getPersistentData().putLong(key, expiry);
-		TraitDisableHelper.setDisabled(target, traitId, true, false);
+		TraitDisableHelper.setDisabled(target, traitId, true);
 	}
 
 	@Override

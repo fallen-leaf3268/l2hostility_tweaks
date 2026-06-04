@@ -30,7 +30,7 @@ public class DifficultyScreenMixin {
 		Player player = mc.player;
 		if (player == null) return;
 
-		int diff = getDifficulty(player);
+		int diff = l2fix$getDifficulty(player);
 
 		boolean levelCapOn = L2HConfig.COMMON.levelCapEnabled.get();
 		boolean legendaryOn = L2HConfig.COMMON.legendaryEnabled.get();
@@ -46,7 +46,7 @@ public class DifficultyScreenMixin {
 				int cap = L2HConfig.getThreshold(L2HConfig.getLevelThresholds(), diff);
 				text = L2HTweaksLang.translate(L2HTweaksLang.LEVEL_CAP, cap);
 			}
-			list.add(RANK_CAP_IDX, Pair.of(text, null));
+			list.add(RANK_CAP_IDX, Pair.of(text, () -> java.util.List.of()));
 		}
 
 		if (legendaryOn) {
@@ -62,11 +62,11 @@ public class DifficultyScreenMixin {
 					text = L2HTweaksLang.translate(L2HTweaksLang.LEGENDARY_COUNT, limit);
 				}
 			}
-			list.add(RANK_CAP_IDX + 1, Pair.of(text, null));
+			list.add(RANK_CAP_IDX + 1, Pair.of(text, () -> java.util.List.of()));
 		}
 	}
 
-	private static int getDifficulty(Player player) {
+	private static int l2fix$getDifficulty(Player player) {
 		PlayerDifficulty playerDiff = PlayerDifficulty.HOLDER.get(player);
 		DifficultyLevel diffLevel = playerDiff.getLevel();
 		return diffLevel.getLevel();

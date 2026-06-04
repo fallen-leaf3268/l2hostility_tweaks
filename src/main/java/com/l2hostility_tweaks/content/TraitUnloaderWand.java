@@ -46,6 +46,53 @@ public class TraitUnloaderWand extends Item {
 		return TraitWandHelper.prevTrait(mod);
 	}
 
+	// ============ 公开静态卸载方法（NetworkHandler 也调用） ============
+
+	public static void syncCap(Player player, MobTraitCap cap) {
+		cap.syncToClient(player);
+		if (player instanceof ServerPlayer sp) {
+			cap.syncToPlayer(player, sp);
+		}
+	}
+
+	public static void unloadSingleTrait(Player player, MobTraitCap cap, MobTrait trait, int absLevel) {
+		float hpRatio = player.getHealth() / player.getMaxHealth();
+		int newLevel = absLevel - 1;
+		cap.traits.put(trait, Math.max(0, newLevel));
+		trait.initialize(player, Math.max(0, newLevel));
+		trait.postInit(player, Math.max(0, newLevel));
+		if (newLevel <= 0) {
+			cap.traits.remove(trait);
+		}
+		player.getPersistentData().remove(TraitDisableHelper.sealExpiryKey(trait.getID()));
+		syncCap(player, cap);
+		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
+
+		int refund = L2HConfig.getUnloadRefund(absLevel);
+		ItemStack symbol = new ItemStack(trait.asItem(), refund);
+		player.addItem(symbol);
+		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_SINGLE,
+				trait.getDesc(), absLevel, Math.max(0, newLevel)).withStyle(ChatFormatting.GREEN), true);
+	}
+
+	public static void unloadGroupTrait(Player player, MobTraitCap cap, MobTrait trait, int absLevel) {
+		float hpRatio = player.getHealth() / player.getMaxHealth();
+		cap.traits.remove(trait);
+		trait.initialize(player, 0);
+		trait.postInit(player, 0);
+		player.getPersistentData().remove(TraitDisableHelper.sealExpiryKey(trait.getID()));
+		syncCap(player, cap);
+		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
+
+		int totalRefund = L2HConfig.getTotalUnloadRefund(absLevel);
+		ItemStack symbol = new ItemStack(trait.asItem(), totalRefund);
+		player.addItem(symbol);
+		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_GROUP,
+				trait.getDesc(), absLevel, totalRefund).withStyle(ChatFormatting.GREEN), true);
+	}
+
+	// ============ 实例方法 ============
+
 	public TraitUnloaderWand(Properties properties) {
 		super(properties);
 	}
@@ -95,13 +142,6 @@ public class TraitUnloaderWand extends Item {
 		}
 	}
 
-	private void sync(Player player, MobTraitCap cap) {
-		cap.syncToClient(player);
-		if (player instanceof ServerPlayer sp) {
-			cap.syncToPlayer(player, sp);
-		}
-	}
-
 	private void unloadSingle(Player player, MobTraitCap cap, ItemStack stack) {
 		MobTrait trait = get(stack);
 		if (trait == null) return;
@@ -111,25 +151,7 @@ public class TraitUnloaderWand extends Item {
 					trait.getDesc()).withStyle(ChatFormatting.RED), true);
 			return;
 		}
-
-		int absLevel = Math.abs(currentLevel);
-		float hpRatio = player.getHealth() / player.getMaxHealth();
-		int newLevel = absLevel - 1;
-		cap.traits.put(trait, Math.max(0, newLevel));
-		trait.initialize(player, Math.max(0, newLevel));
-		trait.postInit(player, Math.max(0, newLevel));
-		if (newLevel <= 0) {
-			cap.traits.remove(trait);
-		}
-		player.getPersistentData().remove(TraitDisableHelper.sealExpiryKey(trait.getID()));
-		sync(player, cap);
-		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
-
-		int refund = L2HConfig.getUnloadRefund(absLevel);
-		ItemStack symbol = new ItemStack(trait.asItem(), refund);
-		player.addItem(symbol);
-		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_SINGLE,
-				trait.getDesc(), absLevel, Math.max(0, newLevel)).withStyle(ChatFormatting.GREEN), true);
+		unloadSingleTrait(player, cap, trait, Math.abs(currentLevel));
 	}
 
 	private void unloadGroup(Player player, MobTraitCap cap, ItemStack stack) {
@@ -141,26 +163,12 @@ public class TraitUnloaderWand extends Item {
 					trait.getDesc()).withStyle(ChatFormatting.RED), true);
 			return;
 		}
-		int absLevel = Math.abs(currentLevel);
-		float hpRatio = player.getHealth() / player.getMaxHealth();
-		cap.traits.put(trait, 0);
-		trait.initialize(player, 0);
-		trait.postInit(player, 0);
-		cap.traits.remove(trait);
-		player.getPersistentData().remove(TraitDisableHelper.sealExpiryKey(trait.getID()));
-		sync(player, cap);
-		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
-
-		int totalRefund = L2HConfig.getTotalUnloadRefund(absLevel);
-		ItemStack symbol = new ItemStack(trait.asItem(), totalRefund);
-		player.addItem(symbol);
-		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_GROUP,
-				trait.getDesc(), absLevel, totalRefund).withStyle(ChatFormatting.GREEN), true);
+		unloadGroupTrait(player, cap, trait, Math.abs(currentLevel));
 	}
 
 	private void unloadFull(Player player, MobTraitCap cap) {
 		List<Map.Entry<MobTrait, Integer>> entries = new ArrayList<>(cap.traits.entrySet());
-	float hpRatio = player.getHealth() / player.getMaxHealth();
+		float hpRatio = player.getHealth() / player.getMaxHealth();
 		int total = 0;
 		for (var entry : entries) {
 			MobTrait trait = entry.getKey();
@@ -175,7 +183,7 @@ public class TraitUnloaderWand extends Item {
 			ItemStack symbol = new ItemStack(trait.asItem(), refund);
 			player.addItem(symbol);
 		}
-		sync(player, cap);
+		syncCap(player, cap);
 		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
 		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_FULL,
 				entries.size(), total).withStyle(ChatFormatting.GREEN), true);
@@ -188,8 +196,9 @@ public class TraitUnloaderWand extends Item {
 		list.add(Component.translatable(L2HTweaksLang.UNLOADER_MODE, getModeDisplay(mode))
 				.withStyle(ChatFormatting.AQUA));
 		MobTrait trait = get(stack);
-		list.add(L2HTweaksLang.translate(L2HTweaksLang.SEAL_CURRENT,
-				trait.getDesc().withStyle(ChatFormatting.AQUA)).withStyle(ChatFormatting.GRAY));
+		if (trait != null)
+			list.add(L2HTweaksLang.translate(L2HTweaksLang.SEAL_CURRENT,
+					trait.getDesc().withStyle(ChatFormatting.AQUA)).withStyle(ChatFormatting.GRAY));
 	}
 
 	private static Component getModeDisplay(int mode) {

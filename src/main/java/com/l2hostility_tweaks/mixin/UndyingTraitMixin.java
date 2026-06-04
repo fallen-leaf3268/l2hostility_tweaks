@@ -36,7 +36,8 @@ public class UndyingTraitMixin {
 		pd.putInt(COUNT_KEY, count);
 
 		if (count >= max) {
-			int duration = L2HConfig.getTraitSealDuration();
+			int duration = L2HConfig.getUndyingSealDuration();
+			if (duration == 0) return;
 			String sealKey = TraitDisableHelper.sealExpiryKey(TRAIT_ID);
 			if (duration > 0) {
 				long expiry = entity.level().getGameTime() + duration * 20L;
@@ -44,7 +45,7 @@ public class UndyingTraitMixin {
 			} else {
 				pd.putLong(sealKey, -1);
 			}
-			TraitDisableHelper.setDisabled(entity, TRAIT_ID, true, false);
+			TraitDisableHelper.setDisabled(entity, TRAIT_ID, true);
 		}
 	}
 

@@ -3,6 +3,7 @@ package com.l2hostility_tweaks.client;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.l2hostility_tweaks.config.L2HConfig;
+import com.l2hostility_tweaks.init.L2HTweaksLang;
 import com.l2hostility_tweaks.network.NetworkHandler;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
@@ -270,9 +271,9 @@ public class PlayerTraitScreen extends BaseTextScreen {
 					} else if (curLevel >= e.trait().getMaxLevel()) {
 						lines.add(Component.translatable("gui.l2hostility_tweaks.max_level").withStyle(ChatFormatting.GOLD));
 						if (hasShiftDown()) {
-							lines.add(Component.translatable("gui.l2hostility_tweaks.unload_all_hint").withStyle(ChatFormatting.GOLD));
+							lines.add(Component.translatable(L2HTweaksLang.UNLOAD_ALL_HINT).withStyle(ChatFormatting.GOLD));
 						} else {
-							lines.add(Component.translatable("gui.l2hostility_tweaks.unload_hint").withStyle(ChatFormatting.GOLD));
+							lines.add(Component.translatable(L2HTweaksLang.UNLOAD_HINT).withStyle(ChatFormatting.GOLD));
 						}
 					} else {
 						int mode = L2HConfig.getPlayerSelfTraitCostMode();
@@ -284,11 +285,11 @@ public class PlayerTraitScreen extends BaseTextScreen {
 						} else {
 							upgradeCost = 1;
 						}
-						lines.add(Component.translatable("gui.l2hostility_tweaks.upgrade_cost", upgradeCost).withStyle(ChatFormatting.GOLD));
+						lines.add(Component.translatable(L2HTweaksLang.UPGRADE_COST, upgradeCost).withStyle(ChatFormatting.GOLD));
 						if (hasShiftDown()) {
-							lines.add(Component.translatable("gui.l2hostility_tweaks.unload_all_hint").withStyle(ChatFormatting.GOLD));
+							lines.add(Component.translatable(L2HTweaksLang.UNLOAD_ALL_HINT).withStyle(ChatFormatting.GOLD));
 						} else {
-							lines.add(Component.translatable("gui.l2hostility_tweaks.unload_hint").withStyle(ChatFormatting.GOLD));
+							lines.add(Component.translatable(L2HTweaksLang.UNLOAD_HINT).withStyle(ChatFormatting.GOLD));
 						}
 					}
 					g.renderTooltip(font, lines, stack.getTooltipImage(), mx, my);
@@ -304,17 +305,12 @@ public class PlayerTraitScreen extends BaseTextScreen {
 		int curWidth = 0;
 		int sepWidth = font.width("  ");
 		int maxW = config.getComp("traits").w;
+	for (var entry : cap.traits.entrySet()) {
 
-		for (var entry : cap.traits.entrySet()) {
-			int level = entry.getValue();
-			MutableComponent tc;
-			if (level < 0) {
-				tc = entry.getKey().getFullDesc(-level);
-				tc = tc.copy().withStyle(ChatFormatting.GRAY, ChatFormatting.STRIKETHROUGH);
-			} else {
-				tc = entry.getKey().getFullDesc(level);
-			}
-			int tw = font.width(tc);
+			MutableComponent tc = entry.getValue() < 0 ?
+					entry.getKey().getFullDesc(-entry.getValue()).copy().withStyle(net.minecraft.ChatFormatting.GRAY, net.minecraft.ChatFormatting.STRIKETHROUGH) :
+					entry.getKey().getFullDesc(entry.getValue());
+		int tw = font.width(tc);
 			int needed = curWidth > 0 ? sepWidth + tw : tw;
 			if (curWidth + needed > maxW) {
 				result.add(curLine);

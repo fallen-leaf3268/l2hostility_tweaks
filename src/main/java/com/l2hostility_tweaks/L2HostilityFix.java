@@ -10,8 +10,9 @@ import com.l2hostility_tweaks.init.L2HFEnchantments;
 import com.l2hostility_tweaks.init.L2HFItems;
 
 import com.l2hostility_tweaks.network.NetworkHandler;
+import dev.xkmc.l2complements.content.feature.CurioFeaturePredicate;
+import dev.xkmc.l2complements.content.feature.EntityFeature;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
-import dev.xkmc.l2hostility.content.capability.mob.MinionData;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.init.data.LHConfig;
 import dev.xkmc.l2hostility.init.registrate.LHItems;
@@ -27,6 +28,7 @@ import net.minecraft.world.level.GameRules;
 import net.minecraftforge.common.MinecraftForge;
 
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -74,6 +76,7 @@ public class L2HostilityFix {
                         .icon(new ResourceLocation("curios", "slot/empty_belt_slot"))
                         .priority(180)
                         .build());
+        EntityFeature.STABLE_BODY.add(new CurioFeaturePredicate(() -> L2HFItems.TRANQUIL_BELT.get()));
     }
 
 	private void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {
@@ -82,6 +85,42 @@ public class L2HostilityFix {
 		}
 	}
 
+    @SubscribeEvent
+    public void onLivingTick(LivingEvent.LivingTickEvent event) {
+        var self = event.getEntity();
+        if (self.level().isClientSide()) return;
+        if ((self.tickCount + self.getId()) % 20 != 0) return;
+        var data = self.getPersistentData();
+        java.util.List<String> toRemove = null;
+        long gameTime = self.level().getGameTime();
+        boolean hasCap = dev.xkmc.l2hostility.content.capability.mob.MobTraitCap.HOLDER.isProper(self);
+        var cap = hasCap ? dev.xkmc.l2hostility.content.capability.mob.MobTraitCap.HOLDER.get(self) : null;
+        for (String key : data.getAllKeys()) {
+            if (!key.startsWith(com.l2hostility_tweaks.util.TraitDisableHelper.SEAL_EXPIRY_PREFIX)) continue;
+            String traitId = key.substring(com.l2hostility_tweaks.util.TraitDisableHelper.SEAL_EXPIRY_PREFIX.length());
+            boolean traitGone = cap == null || cap.traits.keySet().stream().noneMatch(t -> t.getID().equals(traitId));
+            if (traitGone) {
+                if (toRemove == null) toRemove = new java.util.ArrayList<>();
+                toRemove.add(key);
+                continue;
+            }
+            long expiry = data.getLong(key);
+            if (expiry <= 0) continue;
+            if (gameTime >= expiry) {
+                if (toRemove == null) toRemove = new java.util.ArrayList<>();
+                toRemove.add(key);
+            }
+        }
+        if (toRemove != null) {
+            for (String key : toRemove) {
+                String traitId = key.substring(com.l2hostility_tweaks.util.TraitDisableHelper.SEAL_EXPIRY_PREFIX.length());
+                data.remove(key);
+                if (cap != null) {
+                    com.l2hostility_tweaks.util.TraitDisableHelper.setDisabled(self, traitId, false);
+                }
+            }
+        }
+    }
     @SubscribeEvent
     public void onLivingDeath(LivingDeathEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;

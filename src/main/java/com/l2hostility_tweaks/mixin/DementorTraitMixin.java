@@ -40,6 +40,6 @@ public class DementorTraitMixin {
 
 	@Inject(method = "onCreateSource", at = @At("HEAD"), cancellable = true, remap = false)
 	private void l2fix$dementorPlayerAttack(int level, LivingEntity attacker, CreateSourceEvent event, CallbackInfo ci) {
-		if (attacker instanceof Player) ci.cancel();
+		if (attacker instanceof Player && L2HConfig.isOldDementorEnabled()) ci.cancel();
 	}
 }

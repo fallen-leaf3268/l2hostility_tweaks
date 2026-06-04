@@ -45,7 +45,7 @@ public class EntityInvisibleMixin {
 		if (!L2HConfig.isDetectorGlassesRevealEnabled()) return;
 		if (!((Object) this instanceof LivingEntity entity)) return;
 
-		if (playerHasDetectorGlasses(player) && isInRevealRange(entity, player)) {
+		if (l2fix$playerHasDetectorGlasses(player) && l2fix$isInRevealRange(entity, player)) {
 			cir.setReturnValue(false);
 		}
 	}
@@ -60,13 +60,13 @@ public class EntityInvisibleMixin {
 		Player player = Proxy.getClientPlayer();
 		if (player == null) return;
 
-		if (playerHasDetectorGlasses(player) && isInRevealRange(entity, player)) {
+		if (l2fix$playerHasDetectorGlasses(player) && l2fix$isInRevealRange(entity, player)) {
 			cir.setReturnValue(false);
 		}
 	}
 
 	@Unique
-	private static boolean playerHasDetectorGlasses(Player player) {
+	private static boolean l2fix$playerHasDetectorGlasses(Player player) {
 		UUID id = player.getUUID();
 		Integer cachedTick = playerGlassesTick.get(id);
 		if (cachedTick != null && cachedTick == player.tickCount) {
@@ -92,7 +92,7 @@ public class EntityInvisibleMixin {
 	}
 
 	@Unique
-	private static boolean isInRevealRange(LivingEntity entity, Player player) {
+	private static boolean l2fix$isInRevealRange(LivingEntity entity, Player player) {
 		int range = L2HConfig.getDetectorGlassesRange();
 		double distSqr = entity.distanceToSqr(player);
 		return distSqr <= (double) range * range;

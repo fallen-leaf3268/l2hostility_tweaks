@@ -12,8 +12,12 @@ import net.minecraft.world.item.enchantment.EnchantmentCategory;
 
 public class GluttonyPocketEnchantment extends Enchantment {
 
+	private static final ResourceLocation POCKET_ID = new ResourceLocation("l2hostility", "pocket_of_restoration");
+	private static final ResourceLocation MIRACLE_ID = new ResourceLocation("l2hostility_tweaks", "miracle_twisted_pocket");
+
 	private static final EnchantmentCategory CATEGORY = EnchantmentCategory.create("L2HTWEAKS_GLUTTONY_POCKET",
-			item -> BuiltInRegistries.ITEM.getKey(item).equals(new ResourceLocation("l2hostility", "pocket_of_restoration")));
+			item -> BuiltInRegistries.ITEM.getKey(item).equals(POCKET_ID)
+					|| BuiltInRegistries.ITEM.getKey(item).equals(MIRACLE_ID));
 
 	public GluttonyPocketEnchantment() {
 		super(Rarity.RARE, CATEGORY, new EquipmentSlot[]{EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND});
@@ -26,8 +30,8 @@ public class GluttonyPocketEnchantment extends Enchantment {
 
 	@Override
 	public boolean canEnchant(ItemStack stack) {
-		return stack.is(BuiltInRegistries.ITEM.get(new ResourceLocation("l2hostility", "pocket_of_restoration")))
-			|| stack.is(BuiltInRegistries.ITEM.get(new ResourceLocation("l2hostility_tweaks", "miracle_twisted_pocket")));
+		ResourceLocation key = BuiltInRegistries.ITEM.getKey(stack.getItem());
+		return key.equals(POCKET_ID) || key.equals(MIRACLE_ID);
 	}
 
 	@Override

@@ -53,27 +53,32 @@ public class PocketOfRestorationMixin {
 		l2fix$gluttonyLevel.remove();
 	}
 
+	private static int l2fix$abyss() {
+		Integer v = l2fix$abyssLevel.get();
+		return v != null ? v : 0;
+	}
+
 	@Redirect(method = "curioTick", remap = false,
 			at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/ItemStack;hurtAndBreak(ILnet/minecraft/world/entity/LivingEntity;Ljava/util/function/Consumer;)V"))
 	private void l2fix$extraDurability(ItemStack stack, int amount, LivingEntity entity, Consumer<LivingEntity> callback) {
-		stack.hurtAndBreak(amount * (1 + l2fix$abyssLevel.get()), entity, callback);
+		stack.hurtAndBreak(amount * (1 + l2fix$abyss()), entity, callback);
 	}
 
 	@Redirect(method = "curioTick", remap = false,
 			at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/ItemStack;getDamageValue()I"))
 	private int l2fix$adjustGuard(ItemStack stack) {
-		return stack.getDamageValue() + l2fix$abyssLevel.get();
+		return stack.getDamageValue() + l2fix$abyss();
 	}
 
 	@Inject(method = "curioTick", remap = false,
 			at = @At(value = "INVOKE", target = "Ldev/xkmc/l2hostility/content/item/curio/misc/PocketOfRestoration;setData(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemStack;Ljava/lang/String;J)V", remap = false, shift = At.Shift.AFTER))
 	private void l2fix$speedUp(SlotContext slotContext, ItemStack stack, CallbackInfo ci) {
-		if (l2fix$abyssLevel.get() <= 0) return;
+		if (l2fix$abyss() <= 0) return;
 		var tag = stack.getOrCreateTagElement(PocketOfRestoration.ROOT);
 		int original = tag.getInt(SealedItem.TIME);
-		int reduced = original / (l2fix$abyssLevel.get() + 1);
+		int reduced = original / (l2fix$abyss() + 1);
 		tag.putInt(SealedItem.TIME, reduced);
-		LOGGER.info("speedUp original={} reduced={} level={}", original, reduced, l2fix$abyssLevel.get());
+		LOGGER.info("speedUp original={} reduced={} level={}", original, reduced, l2fix$abyss());
 	}
 
 	@Unique

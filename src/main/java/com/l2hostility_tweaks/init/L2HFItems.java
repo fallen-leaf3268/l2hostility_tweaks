@@ -15,8 +15,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Rarity;
+import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -54,30 +57,30 @@ public class L2HFItems {
 
     static {
         DIMENSION_BREAKER = ITEMS.register("dimension_breaker",
-                () -> new DimensionBreakerItem(new Item.Properties().stacksTo(1)));
+                () -> new DimensionBreakerItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
         TRAIT_SEAL = ITEMS.register("trait_seal",
                 () -> new TraitSeal(new Item.Properties()));
         TRAIT_UNLOADER = ITEMS.register("trait_unloader_wand",
                 () -> new TraitUnloaderWand(new Item.Properties()));
         TRANQUIL_BELT = ITEMS.register("tranquil_belt",
-                () -> new TranquilBeltItem(new Item.Properties().stacksTo(1)));
+                () -> new TranquilBeltItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
         DISPELL_RING = ITEMS.register("dispell_ring",
-                () -> new RingItem(new Item.Properties().stacksTo(1), 0.65f));
+                () -> new RingItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC), 0.65f));
         DEMENTOR_RING = ITEMS.register("dementor_ring",
-                () -> new RingItem(new Item.Properties().stacksTo(1), 0.65f));
+                () -> new RingItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC), 0.65f));
         ADAPTIVE_RING = ITEMS.register("adaptive_ring",
-                () -> new RingItem(new Item.Properties().stacksTo(1), 0.65f));
+                () -> new RingItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC), 0.65f));
         UNIFICATION_RING = ITEMS.register("unification_ring",
-                () -> new RingItem(new Item.Properties().stacksTo(1), 1.25f));
+                () -> new RingItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC), 1.25f));
         MIRACLE_TWISTED_POCKET = ITEMS.register("miracle_twisted_pocket",
-                () -> new MiracleTwistedPocket(new Item.Properties().stacksTo(1)));
+                () -> new MiracleTwistedPocket(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
         SEAL_SYMBOL = L2H_ITEMS.register("seal",
                 () -> new TraitSymbol(new Item.Properties()));
         TRAITS.register("seal",
                 () -> new SealTrait(ChatFormatting.DARK_PURPLE));
         TAB = TABS.register("tab", () -> CreativeModeTab.builder()
                 .title(Component.translatable("itemGroup.l2hostility_tweaks"))
-                .icon(() -> new ItemStack(DIMENSION_BREAKER.get()))
+                .icon(() -> new ItemStack(TRAIT_SEAL.get()))
                 .displayItems((params, output) -> {
                     output.accept(DIMENSION_BREAKER.get());
                     output.accept(TRAIT_SEAL.get());
@@ -88,6 +91,15 @@ public class L2HFItems {
                     output.accept(ADAPTIVE_RING.get());
                     output.accept(UNIFICATION_RING.get());
                     output.accept(MIRACLE_TWISTED_POCKET.get());
+                    for (int i = 1; i <= 5; i++)
+                        output.accept(EnchantedBookItem.createForEnchantment(
+                                new EnchantmentInstance(L2HFEnchantments.REPRINT_COUNTER.get(), i)));
+                    for (int i = 1; i <= 3; i++)
+                        output.accept(EnchantedBookItem.createForEnchantment(
+                                new EnchantmentInstance(L2HFEnchantments.ABYSS_POCKET.get(), i)));
+                    for (int i = 1; i <= 3; i++)
+                        output.accept(EnchantedBookItem.createForEnchantment(
+                                new EnchantmentInstance(L2HFEnchantments.GLUTTONY_POCKET.get(), i)));
                 })
                 .build());
     }

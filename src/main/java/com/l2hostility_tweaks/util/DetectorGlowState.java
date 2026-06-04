@@ -8,6 +8,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import java.lang.ref.WeakReference;
 import java.util.List;
 
 public class DetectorGlowState {
@@ -17,16 +18,16 @@ public class DetectorGlowState {
 
 	private static Item cachedGlasses;
 	private static int cacheTick = -1;
-	private static Player cachedPlayer;
+	private static WeakReference<Player> cachedPlayerRef = new WeakReference<>(null);
 	private static boolean cachedValue;
 
 	public static boolean isGlowDisabled(Player player) {
-		if (player.tickCount == cacheTick && player == cachedPlayer) {
+		if (player.tickCount == cacheTick && player == cachedPlayerRef.get()) {
 			return cachedValue;
 		}
 		cachedValue = readFromPlayer(player);
 		cacheTick = player.tickCount;
-		cachedPlayer = player;
+		cachedPlayerRef = new WeakReference<>(player);
 		return cachedValue;
 	}
 

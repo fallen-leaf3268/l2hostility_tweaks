@@ -11,6 +11,7 @@ import net.minecraft.core.registries.Registries;
 import org.slf4j.Logger;
 import top.theillusivec4.curios.api.CuriosApi;
 
+import java.lang.ref.WeakReference;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ImmunityHelper {
@@ -26,11 +27,11 @@ public class ImmunityHelper {
     private static final TagKey<Item> IMMUNE_TO_FORCE_ITEM = TagKey.create(Registries.ITEM, new ResourceLocation("l2hostility_tweaks", "immune_to_force"));
     private static final TagKey<Item> IMMUNE_TO_GRAVITY_ITEM = TagKey.create(Registries.ITEM, new ResourceLocation("l2hostility_tweaks", "immune_to_gravity"));
 
-    private static LivingEntity cachedEntityForce;
+    private static WeakReference<LivingEntity> cachedEntityForceRef = new WeakReference<>(null);
     private static int cacheTickForce = -1;
     private static boolean cachedImmuneToForce;
 
-    private static LivingEntity cachedEntityGravity;
+    private static WeakReference<LivingEntity> cachedEntityGravityRef = new WeakReference<>(null);
     private static int cacheTickGravity = -1;
     private static boolean cachedImmuneToGravity;
 
@@ -91,23 +92,23 @@ public class ImmunityHelper {
     }
 
     public static boolean isImmuneToForce(LivingEntity entity) {
-        if (entity.tickCount == cacheTickForce && entity == cachedEntityForce) {
+        if (entity.tickCount == cacheTickForce && entity == cachedEntityForceRef.get()) {
             return cachedImmuneToForce;
         }
         boolean result = computeImmuneToForce(entity);
         cacheTickForce = entity.tickCount;
-        cachedEntityForce = entity;
+        cachedEntityForceRef = new WeakReference<>(entity);
         cachedImmuneToForce = result;
         return result;
     }
 
     public static boolean isImmuneToGravity(LivingEntity entity) {
-        if (entity.tickCount == cacheTickGravity && entity == cachedEntityGravity) {
+        if (entity.tickCount == cacheTickGravity && entity == cachedEntityGravityRef.get()) {
             return cachedImmuneToGravity;
         }
         boolean result = computeImmuneToGravity(entity);
         cacheTickGravity = entity.tickCount;
-        cachedEntityGravity = entity;
+        cachedEntityGravityRef = new WeakReference<>(entity);
         cachedImmuneToGravity = result;
         return result;
     }

@@ -1,4 +1,5 @@
 {
-  "replace": false,
-  "values": ["l2hostility_tweaks:tranquil_belt"]
+    "values": [
+        "l2hostility_tweaks:tranquil_belt"
+    ]
 }

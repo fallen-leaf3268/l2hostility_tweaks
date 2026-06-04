@@ -32,12 +32,12 @@ public class L2HConfig {
 
     public static class Common {
 
-        // === Reprint ===
+        // === 复印 ===
         public final ForgeConfigSpec.BooleanValue reprintLinearEnabled;
         public final ForgeConfigSpec.DoubleValue reprintDamageFactor;
         public final ForgeConfigSpec.DoubleValue antiReprintReduction;
 
-        // === Adaptive ===
+        // === 适应 ===
         public final ForgeConfigSpec.BooleanValue adaptiveLinearEnabled;
         public final ForgeConfigSpec.DoubleValue adaptiveReductionPerStack;
         public final ForgeConfigSpec.DoubleValue adaptiveMaxReduction;
@@ -52,7 +52,7 @@ public class L2HConfig {
 
         // === 不死 ===
         public final ForgeConfigSpec.IntValue undyingMaxResurrections;
-        public final ForgeConfigSpec.IntValue traitSealDuration;
+        public final ForgeConfigSpec.IntValue undyingSealDuration;
 
         // === HUD ===
         public final ForgeConfigSpec.BooleanValue showHud;
@@ -67,7 +67,17 @@ public class L2HConfig {
         public final ForgeConfigSpec.IntValue sealDurationMode;
         public final ForgeConfigSpec.IntValue sealDurationLinear;
         public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> sealDurationArray;
+		public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> ragnarokCountArray;
+		public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> ragnarokTimeArray;
 
+		public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> killerAuraDamageArray;
+		public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> killerAuraIntervalArray;
+		public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> dispellTimeArray;
+		public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> drainDamageArray;
+		public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> drainDurationArray;
+		public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> drainDurationMaxArray;
+		public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> drainCountArray;
+		public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> dispellCountArray;
         // === 传奇限制 ===
         public final ForgeConfigSpec.BooleanValue legendaryEnabled;
         public final ForgeConfigSpec.IntValue legendaryUnlimited;
@@ -96,81 +106,106 @@ public class L2HConfig {
         Common(ForgeConfigSpec.Builder builder) {
 
             builder.push("reprint");
-            reprintLinearEnabled = builder.comment("启用 Reprint 词条线性化",
-                    "开启后: 附魔点数 = 附魔等级之和 (而非 2^(等级-1))")
+            reprintLinearEnabled = builder.comment("启用 复印 词条线性伤害")
                     .define("linear_enabled", false);
-            reprintDamageFactor = builder.comment("每点附魔点数的增伤比例",
-                    "默认 0.05 (每点 +5% 伤害)")
+            reprintDamageFactor = builder.comment("每级附魔等级的增伤比例")
                     .defineInRange("damage_factor", 0.05, 0.0, 1.0);
-            antiReprintReduction = builder.comment("复印抵抗附魔每级减伤比例",
-                    "默认 0.02 (每级 -2% 受到 Reprint 生物的伤害)")
+            antiReprintReduction = builder.comment("复印抵抗附魔每级减伤比例")
                     .defineInRange("counter_reduction", 0.02, 0.0, 1.0);
             builder.pop();
 
             builder.push("adaptive");
-            adaptiveLinearEnabled = builder.comment("启用 Adaptive 词条线性叠加减伤",
-                    "开启后: 每次受到同种伤害增加减伤，而非原版的 Math.pow 指数计算")
+            adaptiveLinearEnabled = builder.comment("启用 适应 词条线性减伤")
                     .define("enabled", true);
-            adaptiveReductionPerStack = builder.comment("每层适应提供的减伤比例",
-                    "默认 0.25 (每层 +25% 减伤，加法叠加)")
+            adaptiveReductionPerStack = builder.comment("每层适应的减伤比例")
                     .defineInRange("reduction_per_stack", 0.25, 0.0, 1.0);
-            adaptiveMaxReduction = builder.comment("适应词条最大减伤上限",
-                    "默认 0.95 (最高 95% 减伤)")
+            adaptiveMaxReduction = builder.comment("适应的最大减伤上限")
                     .defineInRange("max_reduction", 0.95, 0.0, 1.0);
             builder.pop();
 
             builder.push("detector_glasses");
-            detectorGlassesReveal = builder.comment("佩戴探测目镜时直接显示隐身生物（而非仅发光轮廓）")
+            detectorGlassesReveal = builder.comment("佩戴探测目镜时直接显示隐身生物")
                     .define("reveal_invisible", true);
             detectorGlassesRange = builder.comment("探测目镜显示隐身生物的范围（格）")
                     .defineInRange("reveal_range", 48, 1, 256);
             builder.pop();
 
             builder.push("legendary_defense");
-            oldDispell = builder.comment("启用破魔词条（Dispell）的旧版免疫机制",
-                    "开启后: 破魔词条的生物免疫魔法伤害")
+            oldDispell = builder.comment("启用破魔词条旧版免疫魔法伤害")
                     .define("old_dispell", false);
-            oldDementor = builder.comment("启用摄魂词条（Dementor）的旧版免疫机制",
-                    "开启后: 摄魂词条的生物免疫非魔法伤害")
+            oldDementor = builder.comment("启用摄魂词条旧版免疫非魔法伤害")
                     .define("old_dementor", false);
             builder.pop();
 
             builder.push("seal_trait");
             sealDurationMode = builder.comment("封印词条持续时间模式",
-                    "范围: 1或2")
+                    "1 = 线性: duration = level x duration_linear",
+                    "2 = 数组: 每级取自 duration_array，超出后线性补齐")
                     .defineInRange("duration_mode", 1, 1, 2);
-            sealDurationLinear = builder.comment("线性模式: 每级封印时间",
-                    "范围: 1 ~ 3600")
+            sealDurationLinear = builder.comment("线性模式每级封印时间")
                     .defineInRange("duration_linear", 3, 1, 3600);
-            sealDurationArray = builder.comment("数组模式: 每级对应的封印时间")
+            sealDurationArray = builder.comment("数组模式每级对应的封印时间")
                     .defineList("duration_array", List.of(), e -> e instanceof Integer);
             builder.pop();
 
+            builder.push("ragnarok");
+            ragnarokCountArray = builder.comment("诸神黄昏数组模式配置",
+                    "每级封印物品数量")
+                    .defineList("count_array", List.of(), e -> e instanceof Integer);
+            ragnarokTimeArray = builder.comment("每级封印时长 (tick)")
+                    .defineList("time_array", List.of(), e -> e instanceof Integer);
+            builder.pop();
+
+            builder.push("killer_aura");
+            killerAuraDamageArray = builder.comment("Killer Aura 数组配置",
+                    "每级伤害")
+                    .defineList("damage_array", List.of(), e -> e instanceof Integer);
+            killerAuraIntervalArray = builder.comment("每级攻击间隔 (tick)")
+                    .defineList("interval_array", List.of(), e -> e instanceof Integer);
+            builder.pop();
+
+            builder.push("dispell");
+            dispellTimeArray = builder.comment("Dispell 数组配置",
+                    "每级封印时长 (tick)")
+                    .defineList("time_array", List.of(), e -> e instanceof Integer);
+            dispellCountArray = builder.comment("每级封印物品数量")
+                    .defineList("count_array", List.of(), e -> e instanceof Integer);
+            builder.pop();
+
+            builder.push("drain");
+            drainDamageArray = builder.comment("Drain 数组配置",
+                    "每级伤害加成")
+                    .defineList("damage_array", List.of(), e -> e instanceof Integer);
+            drainDurationArray = builder.comment("每级时长时间")
+                    .defineList("duration_array", List.of(), e -> e instanceof Integer);
+            drainDurationMaxArray = builder.comment("每级最高延长时间 (s)")
+                    .defineList("duration_max_array", List.of(), e -> e instanceof Integer);
+            drainCountArray = builder.comment("每级剥夺效果数量")
+                    .defineList("count_array", List.of(), e -> e instanceof Integer);
+            builder.pop();
+
             builder.push("undying");
-            undyingMaxResurrections = builder.comment("不死词条（Undying）最大重生次数",
-                    "-1 = 无限制，正数 = 该生物最多重生的次数")
+            undyingMaxResurrections = builder.comment("不死词条最大重生次数，-1 无限制")
                     .defineInRange("max_resurrections", -1, -1, 114514);
-            traitSealDuration = builder.comment("词条封印持续时间（秒）",
-                    "-1 = 永久封印，正数 = 经过该时间后自动解封")
-                    .defineInRange("seal_duration", 60, -1, 3600);
+            undyingSealDuration = builder.comment("不死词条耗尽后封印时长（秒），-1 永久，0 不封印")
+                    .defineInRange("seal_duration", 0, -1, 3600);
             builder.pop();
 
             builder.push("hud");
-            showHud = builder.comment("是否显示自定义血条 HUD（仅对非玩家实体生效）")
+            showHud = builder.comment("显示自定义血条 HUD")
                     .define("enabled", false);
             builder.pop();
 
             builder.push("level_cap");
             levelCapEnabled = builder.comment("启用词条等级阶梯限制")
                     .define("enabled", false);
-            levelCapUnlimited = builder.comment("难度 >= 该值时取消所有词条等级上限")
+            levelCapUnlimited = builder.comment("超过此难度取消等级上限")
                     .defineInRange("unlimited_threshold", 1000, 0, Integer.MAX_VALUE);
-            levelCapThresholds = builder.comment("格式: \"难度,最高等级\"",
+            levelCapThresholds = builder.comment("全局难度阶梯限制",
                     "例: \"200,2\" = 难度 >= 200 时最高等级为 2")
                     .defineList("thresholds", List.of(),
                             e -> e instanceof String s && s.matches("\\d+,\\d+"));
-            levelCapPerTrait = builder.comment("格式: \"词条id,等级2所需难度,等级3所需难度,...\"",
-                    "每个数字表示该等级需要的最低难度",
+            levelCapPerTrait = builder.comment("独立难度阶梯限制",
                     "例: \"l2hostility:repelling,100,200\" = lv2需难度100, lv3需难度200")
                     .defineList("per_trait", List.of(),
                             e -> e instanceof String s && s.matches("[a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+(,\\d+)+"));
@@ -179,14 +214,13 @@ public class L2HConfig {
             builder.push("legendary_limit");
             legendaryEnabled = builder.comment("启用传奇词条数量限制")
                     .define("enabled", false);
-            legendaryUnlimited = builder.comment("难度 >= 该值时传奇词条数量无限制")
+            legendaryUnlimited = builder.comment("超过此难度取消传奇数量限制")
                     .defineInRange("unlimited_threshold", 2000, 0, Integer.MAX_VALUE);
             legendaryThresholds = builder.comment("格式: \"难度,最大数量\"",
                     "例: \"200,1\" = 难度 >= 200 时允许 1 个传奇词条")
                     .defineList("thresholds", List.of(),
                             e -> e instanceof String s && s.matches("\\d+,\\d+"));
-            extraLegendaryIds = builder.comment("视为传奇词条的额外词条ID",
-                    "这些词条将被视为传奇词条")
+            extraLegendaryIds = builder.comment("额外视为传奇的词条 ID")
                     .defineList("extra_legendary_ids", List.of(), e -> e instanceof String);
             builder.pop();
 
@@ -194,56 +228,41 @@ public class L2HConfig {
             exclusionEnabled = builder.comment("启用词条互斥")
                     .define("enabled", true);
             exclusionGroups = builder.comment("格式: \"规则,词条1,词条2,...\"",
-                    "规则 = \"roll\" (随机保留一个) 或 \"first\" (存在时保留第一个)")
+                    "规则 = \"roll\" (随机保留) 或 \"first\" (保留第一个)")
                     .defineList("groups",
                             List.of("first,l2hostility:moonwalk,l2hostility:gravity"),
                             e -> e instanceof String s && s.contains(","));
             builder.pop();
 
             builder.push("trait_generation");
-            disableNonPresetTraits = builder.comment("关闭非预设词条生成",
-                    "开启后: 仅保留数据包预设词条，随机生成的词条将被移除")
+            disableNonPresetTraits = builder.comment("仅保留预设词条")
                     .define("disable_non_preset_traits", false);
-            disableAllTraits = builder.comment("关闭所有词条生成",
-                    "开启后: 生物不获得任何词条（包括预设）")
+            disableAllTraits = builder.comment("禁用所有词条生成")
                     .define("disable_all_traits", false);
-            disableMobLevel = builder.comment("关闭生物等级",
-                    "开启后: 生物不获得等级和词条")
+            disableMobLevel = builder.comment("禁用生物等级")
                     .define("disable_mob_level", false);
             builder.pop();
 
             builder.push("player_trait");
-            playerMaxTraits = builder.comment("玩家最大词条数量",
-                            "-1 = 无上限，0 = 禁止添加，正数 = 最大词条种类数")
-                            .defineInRange("max_traits", -1, -1, 114514);
-            playerSelfTraitEnabled = builder.comment("启用玩家自我词条功能",
-                    "开启后: 玩家手持 TraitSymbol 蹲下右键给自己添加词条")
+            playerMaxTraits = builder.comment("玩家最大词条种类数，-1 无上限")
+                    .defineInRange("max_traits", -1, -1, 114514);
+            playerSelfTraitEnabled = builder.comment("启用玩家自我词条")
                     .define("self_enabled", true);
-            playerSelfTraitBalanceEnabled = builder.comment("启用玩家自我词条平衡模式",
-                    "开启后: 添加词条受玩家难度等级限制",
-                    "词条最低等级: 玩家难度等级 >= 词条配置的 min_level 才可添加",
-                    "词条消耗: 玩家所有词条总 cost 不得超过 玩家等级 × 预算倍率")
+            playerSelfTraitBalanceEnabled = builder.comment("启用自我词条平衡模式")
                     .define("self_balance_mode", false);
-            playerSelfTraitBudgetRatio = builder.comment("自我词条预算倍率",
-                    "预算 = 玩家难度等级 × 该倍率")
+            playerSelfTraitBudgetRatio = builder.comment("自我词条预算倍率")
                     .defineInRange("self_budget_ratio", 1.0, 0.0, 10.0);
             playerSelfTraitCostMode = builder.comment("自我词条消耗模式",
-                    "1 = 正常模式: 每次消耗 1 个词条物品",
-                    "2 = 叠加模式: 消耗 (当前等级+1) 个词条物品",
-                    "3 = 指数模式: 消耗 2^(当前等级-1) 个词条物品")
+                    "1 = 正常: 每次消耗 1 个",
+                    "2 = 叠加: 消耗 (当前等级 + 1) 个",
+                    "3 = 指数: 消耗 2^(当前等级 - 1) 个")
                     .defineInRange("self_cost_mode", 1, 1, 3);
-            playerTraitOverrides = builder.comment("玩家词条独立配置",
-                            "格式: \"词条id,最低等级要求,消耗\"",
-                            "例: \"l2hostility:reprint,100,200\"",
-                            "配置后的词条在玩家使用时将使用此配置替代原版 min_level 和 cost",
-                            "互斥使用下方 trait_exclusion 统一配置")
-                            .defineList("overrides", List.of(), e -> e instanceof String s && s.contains(","));
-            playerTraitLimitEnabled = builder.comment("启用玩家给生物添加词条的消耗上限",
-                    "开启后: 玩家右键给生物添加词条时，检测生物等级和已有词条消耗",
-                    "若总消耗超过生物等级则无法添加")
+            playerTraitOverrides = builder.comment("格式: \"词条id,最低等级,消耗\"",
+                    "例: \"l2hostility:reprint,100,200\"")
+                    .defineList("overrides", List.of(), e -> e instanceof String s && s.contains(","));
+            playerTraitLimitEnabled = builder.comment("启用生物词条消耗上限")
                     .define("mob_limit_enabled", false);
-            playerTraitBudgetRatio = builder.comment("生物添加词条预算倍率",
-                    "实际预算 = 生物等级 × 该倍率")
+            playerTraitBudgetRatio = builder.comment("生物词条预算倍率")
                     .defineInRange("mob_limit_budget_ratio", 1.0, 0.0, 10.0);
             builder.pop();
         }
@@ -381,8 +400,8 @@ public class L2HConfig {
         return COMMON.undyingMaxResurrections.get();
     }
 
-    public static int getTraitSealDuration() {
-        return COMMON.traitSealDuration.get();
+    public static int getUndyingSealDuration() {
+        return COMMON.undyingSealDuration.get();
     }
 
     public static int getSealDurationMode() {
@@ -400,6 +419,74 @@ public class L2HConfig {
         return parsedSealDurationArray;
     }
 
+    // ==================== Ragnarok ====================
+
+    public static int getRagnarokCount(int level) {
+        List<? extends Integer> arr = COMMON.ragnarokCountArray.get();
+        if (!arr.isEmpty()) {
+            int idx = Math.min(level, arr.size()) - 1;
+            return arr.get(Math.max(0, idx));
+        }
+        return level;
+    }
+
+    public static int getRagnarokTime(int level) {
+        List<? extends Integer> arr = COMMON.ragnarokTimeArray.get();
+        if (!arr.isEmpty()) {
+            if (level <= arr.size()) return arr.get(level - 1);
+            int last = arr.get(arr.size() - 1);
+            return last + (level - arr.size()) * 100;
+        }
+        return dev.xkmc.l2hostility.init.data.LHConfig.COMMON.ragnarokTime.get() * level;
+    }
+
+	public static int getKillerAuraDamage(int level) {
+		List<? extends Integer> arr = COMMON.killerAuraDamageArray.get();
+		if (!arr.isEmpty()) return arr.get(Math.min(level, arr.size()) - 1);
+		return dev.xkmc.l2hostility.init.data.LHConfig.COMMON.killerAuraDamage.get() * level;
+	}
+
+	public static int getKillerAuraInterval(int level) {
+		List<? extends Integer> arr = COMMON.killerAuraIntervalArray.get();
+		if (!arr.isEmpty()) return arr.get(Math.min(level, arr.size()) - 1);
+		return dev.xkmc.l2hostility.init.data.LHConfig.COMMON.killerAuraInterval.get() / level;
+	}
+
+	public static int getDispellTime(int level) {
+		List<? extends Integer> arr = COMMON.dispellTimeArray.get();
+		if (!arr.isEmpty()) return arr.get(Math.min(level, arr.size()) - 1);
+		return dev.xkmc.l2hostility.init.data.LHConfig.COMMON.dispellTime.get() * level;
+	}
+
+	public static int getDispellCount(int level) {
+		List<? extends Integer> arr = COMMON.dispellCountArray.get();
+		if (!arr.isEmpty()) return arr.get(Math.min(level, arr.size()) - 1);
+		return level;
+	}
+
+	public static double getDrainDamage(int level) {
+		List<? extends Integer> arr = COMMON.drainDamageArray.get();
+		if (!arr.isEmpty()) return arr.get(Math.min(level, arr.size()) - 1) / 100.0;
+		return dev.xkmc.l2hostility.init.data.LHConfig.COMMON.drainDamage.get() * level;
+	}
+
+	public static double getDrainDuration(int level) {
+		List<? extends Integer> arr = COMMON.drainDurationArray.get();
+		if (!arr.isEmpty()) return arr.get(Math.min(level, arr.size()) - 1) / 100.0;
+		return dev.xkmc.l2hostility.init.data.LHConfig.COMMON.drainDuration.get() * level;
+	}
+
+	public static int getDrainDurationMax(int level) {
+		List<? extends Integer> arr = COMMON.drainDurationMaxArray.get();
+		if (!arr.isEmpty()) return arr.get(Math.min(level, arr.size()) - 1) * 20;
+		return level * dev.xkmc.l2hostility.init.data.LHConfig.COMMON.drainDurationMax.get();
+	}
+
+	public static int getDrainCount(int level) {
+		List<? extends Integer> arr = COMMON.drainCountArray.get();
+		if (!arr.isEmpty()) return arr.get(Math.min(level, arr.size()) - 1);
+		return level;
+	}
     public static boolean isExclusionEnabled() {
         return COMMON.exclusionEnabled.get();
     }
@@ -431,30 +518,32 @@ public class L2HConfig {
     public static double getPlayerSelfTraitBudgetRatio() {
         return COMMON.playerSelfTraitBudgetRatio.get();
     }
-	public static int getPlayerSelfTraitCostMode() {
-		return COMMON.playerSelfTraitCostMode.get();
-	}
 
-	public static int getUnloadRefund(int currentLevel) {
-		int mode = getPlayerSelfTraitCostMode();
-		if (mode == 2) {
-			return currentLevel;
-		} else if (mode == 3) {
-			return 1 << (currentLevel - 1);
-		}
-		return 1;
-	}
+    public static int getPlayerSelfTraitCostMode() {
+        return COMMON.playerSelfTraitCostMode.get();
+    }
 
-	public static int getTotalUnloadRefund(int currentLevel) {
-		int mode = getPlayerSelfTraitCostMode();
-		if (mode == 2) {
-			return currentLevel * (currentLevel + 1) / 2;
-		} else if (mode == 3) {
-			return (1 << currentLevel) - 1;
-		}
-		return currentLevel;
-	}
+    public static int getUnloadRefund(int currentLevel) {
+        int lv = Math.abs(currentLevel);
+        int mode = getPlayerSelfTraitCostMode();
+        if (mode == 2) {
+            return lv;
+        } else if (mode == 3) {
+            return lv > 0 ? 1 << (lv - 1) : 0;
+        }
+        return lv > 0 ? 1 : 0;
+    }
 
+    public static int getTotalUnloadRefund(int currentLevel) {
+        int lv = Math.abs(currentLevel);
+        int mode = getPlayerSelfTraitCostMode();
+        if (mode == 2) {
+            return lv * (lv + 1) / 2;
+        } else if (mode == 3) {
+            return lv > 0 ? (1 << lv) - 1 : 0;
+        }
+        return lv;
+    }
 
     public static boolean isPlayerTraitLimitEnabled() {
         return COMMON.playerTraitLimitEnabled.get();

@@ -40,7 +40,7 @@ public class EntityConfigMixin {
     private static volatile Field NBT_FIELD;
     private static volatile boolean NBT_FIELD_LOOKED_UP;
 
-    private static Map<String, Object> getNbt(EntityConfig.Config config) {
+    private static Map<String, Object> l2fix$getNbt(EntityConfig.Config config) {
         if (!NBT_FIELD_LOOKED_UP) {
             try {
                 NBT_FIELD = EntityConfig.Config.class.getField("nbt");
@@ -61,11 +61,11 @@ public class EntityConfigMixin {
     }
 
     @Inject(method = "postMerge", at = @At("TAIL"))
-    private void onPostMerge(CallbackInfo ci) {
+    private void l2fix$onPostMerge(CallbackInfo ci) {
         // Collect non-NBT defaults per entity type (for restoration)
         Map<EntityType<?>, EntityConfig.Config> defaultConfigs = new LinkedHashMap<>();
         for (EntityConfig.Config config : list) {
-            Map<String, Object> nbt = getNbt(config);
+            Map<String, Object> nbt = l2fix$getNbt(config);
             if (nbt == null || nbt.isEmpty()) {
                 for (EntityType<?> type : config.entities) {
                     defaultConfigs.put(type, config);
@@ -75,7 +75,7 @@ public class EntityConfigMixin {
 
         // Register NBT configs and remove from simple cache
         for (EntityConfig.Config config : list) {
-            Map<String, Object> nbt = getNbt(config);
+            Map<String, Object> nbt = l2fix$getNbt(config);
             if (nbt == null || nbt.isEmpty()) continue;
 
             NbtCondition nbtCondition = new NbtCondition(nbt);

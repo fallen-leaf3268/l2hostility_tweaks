@@ -11,8 +11,8 @@ import dev.xkmc.l2hostility.init.registrate.LHItems;
 import dev.xkmc.l2tabs.tabs.core.TabRegistry;
 import dev.xkmc.l2tabs.tabs.core.TabToken;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.world.item.ArmorItem;
@@ -29,6 +29,7 @@ import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+
 @Mod.EventBusSubscriber(value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.MOD, modid = "l2hostility_tweaks")
 public class ClientEventHandler {
 
@@ -106,7 +107,7 @@ public class ClientEventHandler {
 				event.getToolTip().add(tip);
 			}
 
-			if (stack.is(BuiltInRegistries.ITEM.get(new ResourceLocation("l2hostility", "pocket_of_restoration")))) {
+			if (BuiltInRegistries.ITEM.getKey(stack.getItem()).equals(new ResourceLocation("l2hostility", "pocket_of_restoration"))) {
 				int gluttonyLevel = EnchantmentHelper.getTagEnchantmentLevel(L2HFEnchantments.GLUTTONY_POCKET.get(), stack);
 				if (gluttonyLevel > 0 && stack.getTag() != null) {
 					int sealPos = -1;

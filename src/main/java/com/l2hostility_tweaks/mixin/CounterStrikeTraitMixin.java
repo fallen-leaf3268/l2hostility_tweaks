@@ -58,6 +58,10 @@ public class CounterStrikeTraitMixin {
 			return;
 		}
 		Vec3 diff = target.position().subtract(le.position());
+		if (diff.lengthSqr() < 1e-8) {
+			ci.cancel();
+			return;
+		}
 		diff = diff.normalize().scale(3);
 		if (diff.y <= 0.2)
 			diff = diff.add(0, 0.2, 0);

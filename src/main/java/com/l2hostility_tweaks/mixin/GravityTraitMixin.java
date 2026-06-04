@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class GravityTraitMixin {
 
 	@Inject(method = "canApply", at = @At("HEAD"), cancellable = true, remap = false)
-	private void preventGravityAuraIfImmune(LivingEntity e, CallbackInfoReturnable<Boolean> cir) {
+	private void l2fix$preventGravityAuraIfImmune(LivingEntity e, CallbackInfoReturnable<Boolean> cir) {
 		if (ImmunityHelper.isImmuneToGravity(e)) {
 			cir.setReturnValue(false);
 		}

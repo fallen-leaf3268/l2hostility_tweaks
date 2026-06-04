@@ -1,6 +1,7 @@
 package com.l2hostility_tweaks.util;
 
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
+import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -9,15 +10,21 @@ import net.minecraft.world.entity.LivingEntity;
 public class TraitDisableHelper {
 
 	public static final String SEAL_EXPIRY_PREFIX = "l2htweaks_seal_expiry_";
+	private static final String SEALED_LEVEL_PREFIX = "l2htweaks_sealed_level_";
 	private static final ThreadLocal<LivingEntity> DISPLAY_ENTITY = new ThreadLocal<>();
 	private static final ThreadLocal<Boolean> HIDE_REALITY_DETAIL = ThreadLocal.withInitial(() -> false);
-	private static volatile Registry<dev.xkmc.l2hostility.content.traits.base.MobTrait> traitRegistry;
+	private static volatile Registry<MobTrait> traitRegistry;
+
 	public static String sealExpiryKey(String traitId) {
 		return SEAL_EXPIRY_PREFIX + traitId;
 	}
 
-	public static Registry<dev.xkmc.l2hostility.content.traits.base.MobTrait> getTraitRegistry() {
-		Registry<dev.xkmc.l2hostility.content.traits.base.MobTrait> reg = traitRegistry;
+	private static String sealedLevelKey(String traitId) {
+		return SEALED_LEVEL_PREFIX + traitId;
+	}
+
+	public static Registry<MobTrait> getTraitRegistry() {
+		Registry<MobTrait> reg = traitRegistry;
 		if (reg == null) {
 			synchronized (TraitDisableHelper.class) {
 				reg = traitRegistry;
@@ -25,7 +32,7 @@ public class TraitDisableHelper {
 					for (String key : new String[]{"l2hostility:trait", "l2hostility:mob_trait", "l2hostility:traits"}) {
 						Registry<?> r = BuiltInRegistries.REGISTRY.get(new ResourceLocation(key));
 						if (r != null) {
-							traitRegistry = (Registry<dev.xkmc.l2hostility.content.traits.base.MobTrait>) r;
+							traitRegistry = (Registry<MobTrait>) r;
 							reg = traitRegistry;
 							break;
 						}
@@ -57,15 +64,9 @@ public class TraitDisableHelper {
 	}
 
 	public static boolean isDisabled(LivingEntity entity, String traitId) {
-		if (!MobTraitCap.HOLDER.isProper(entity)) return false;
-		MobTraitCap cap = MobTraitCap.HOLDER.get(entity);
-		for (var entry : cap.traits.entrySet()) {
-			if (traitId.equals(entry.getKey().getID())) {
-				return entry.getValue() < 0;
-			}
-		}
-		return false;
+		return entity.getPersistentData().contains(sealedLevelKey(traitId));
 	}
+
 
 	public static void setDisabled(LivingEntity entity, String traitId, boolean disabled) {
 		setDisabled(entity, traitId, disabled, true);
@@ -74,27 +75,36 @@ public class TraitDisableHelper {
 	public static void setDisabled(LivingEntity entity, String traitId, boolean disabled, boolean heal) {
 		if (!MobTraitCap.HOLDER.isProper(entity)) return;
 		MobTraitCap cap = MobTraitCap.HOLDER.get(entity);
-		for (var entry : cap.traits.entrySet()) {
-			if (traitId.equals(entry.getKey().getID())) {
-				int level = entry.getValue();
-				int absLevel = Math.abs(level);
-				boolean isDisabled = level < 0;
-				if (disabled == isDisabled) return;
-				var trait = entry.getKey();
-				if (disabled) {
-					trait.initialize(entity, 0);
-					entry.setValue(-absLevel);
-				} else {
-					entry.setValue(absLevel);
-					trait.initialize(entity, absLevel);
-					trait.postInit(entity, absLevel);
+		boolean isDisabled = entity.getPersistentData().contains(sealedLevelKey(traitId));
+		if (disabled == isDisabled) return;
+		float oldHealth = entity.getHealth();
+		float oldMax = entity.getMaxHealth();
+		if (disabled) {
+			var opt = cap.traits.entrySet().stream().filter(e -> traitId.equals(e.getKey().getID())).findFirst();
+			if (opt.isEmpty()) return;
+			var entry = opt.get();
+			entity.getPersistentData().putInt(sealedLevelKey(traitId), Math.abs(entry.getValue()));
+			entry.setValue(-Math.abs(entry.getValue()));
+			entry.getKey().initialize(entity, 0);
+		} else {
+			int restore = entity.getPersistentData().getInt(sealedLevelKey(traitId));
+			if (restore <= 0) return;
+			entity.getPersistentData().remove(sealedLevelKey(traitId));
+			entity.getPersistentData().remove(sealExpiryKey(traitId));
+			for (var e : cap.traits.entrySet()) {
+				if (traitId.equals(e.getKey().getID())) {
+					e.setValue(restore);
+					e.getKey().initialize(entity, restore);
+					e.getKey().postInit(entity, restore);
+					break;
 				}
-				if (heal) {
-					entity.setHealth(entity.getMaxHealth());
-				}
-				cap.syncToClient(entity);
-				return;
 			}
 		}
+		if (heal) {
+			float ratio = oldMax > 0 ? oldHealth / oldMax : 1.0f;
+			entity.setHealth(Math.max(1, entity.getMaxHealth() * ratio));
+		}
+		cap.syncToClient(entity);
 	}
+
 }

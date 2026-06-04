@@ -142,7 +142,11 @@ public class TraitSymbolSelfUseMixin {
 			return;
 		}
 
-		player.getPersistentData().remove(com.l2hostility_tweaks.util.TraitDisableHelper.sealExpiryKey(trait.getID()));
+		float oldHealth = player.getHealth();
+		float oldMax = player.getMaxHealth();
+		player.getPersistentData().remove(com.l2hostility_tweaks.util.TraitDisableHelper.SEAL_EXPIRY_PREFIX + trait.getID());
+		player.getPersistentData().remove("l2htweaks_sealed_level_" + trait.getID());
+		player.getPersistentData().remove("l2htweaks_disabled_" + trait.getID());
 		int val = cap.traits.compute(trait, (k, v) -> {
 			int base = (v == null) ? 0 : Math.abs(v);
 			return Math.min(base + 1, trait.getMaxLevel());
@@ -150,7 +154,8 @@ public class TraitSymbolSelfUseMixin {
 		trait.initialize(player, val);
 		trait.postInit(player, val);
 		cap.syncToClient(player);
-		player.setHealth(player.getMaxHealth());
+		float ratio = oldMax > 0 ? oldHealth / oldMax : 1.0f;
+		player.setHealth(Math.max(1, player.getMaxHealth() * ratio));
 
 		if (player instanceof ServerPlayer sp) {
 			sp.sendSystemMessage(L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_ADDED, trait.getDesc(), val, cost).withStyle(ChatFormatting.GREEN), true);

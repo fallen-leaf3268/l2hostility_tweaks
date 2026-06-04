@@ -395,15 +395,10 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		int curWidth = 0;
 
 		for (var entry : cap.traits.entrySet()) {
-			int level = entry.getValue();
-				MutableComponent tc;
-				if (level < 0) {
-					tc = entry.getKey().getFullDesc(-level);
-					tc = tc.copy().withStyle(net.minecraft.ChatFormatting.GRAY, net.minecraft.ChatFormatting.STRIKETHROUGH);
-				} else {
-					tc = entry.getKey().getFullDesc(level);
-				}
-			int tw = mc.font.width(tc);
+		MutableComponent tc = entry.getValue() < 0 ?
+				entry.getKey().getFullDesc(-entry.getValue()).copy().withStyle(net.minecraft.ChatFormatting.GRAY, net.minecraft.ChatFormatting.STRIKETHROUGH) :
+				entry.getKey().getFullDesc(entry.getValue());
+		int tw = mc.font.width(tc);
 			int needed = curWidth > 0 ? sepWidth + tw : tw;
 			if (curWidth + needed > maxW) {
 				cachedTraitLines.add(curLine);

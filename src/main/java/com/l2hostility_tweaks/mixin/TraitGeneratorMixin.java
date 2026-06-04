@@ -29,7 +29,7 @@ public class TraitGeneratorMixin {
     private static Registry<MobTrait> TRAIT_REGISTRY;
     private static Field traitField;
     private static Field minField;
-    private static boolean fieldsResolved;
+    private static volatile boolean fieldsResolved;
 
     @SuppressWarnings("unchecked")
     private static Registry<MobTrait> getTraitRegistry() {
@@ -47,7 +47,7 @@ public class TraitGeneratorMixin {
 
     @SuppressWarnings("unchecked")
     @Inject(method = "generate", at = @At("TAIL"))
-    private void afterGenerate(CallbackInfo ci) {
+    private void l2fix$afterGenerate(CallbackInfo ci) {
         try {
             TraitGenerator self = (TraitGenerator) (Object) this;
             LivingEntity entity = TraitGenerationHelper.getEntity(self);
@@ -68,7 +68,7 @@ public class TraitGeneratorMixin {
 
             int appliedCount = 0;
             for (Object tb : presets) {
-                if (!resolveFields(tb)) continue;
+                if (!l2fix$resolveFields(tb)) continue;
 
                 String traitId;
                 int minLevel;
@@ -106,7 +106,7 @@ public class TraitGeneratorMixin {
         }
     }
 
-    private static boolean resolveFields(Object tb) {
+    private static boolean l2fix$resolveFields(Object tb) {
         if (fieldsResolved) return traitField != null;
         Class<?> clazz = tb.getClass();
         try {
