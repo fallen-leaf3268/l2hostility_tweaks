@@ -56,12 +56,16 @@ import java.util.Set;
 public class L2HostilityFix {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("l2htweaks:main");
+    public static com.l2hostility_tweaks.proxy.IProxy PROXY;
     private static final java.util.Map<java.util.UUID, java.util.LinkedHashMap<dev.xkmc.l2hostility.content.traits.base.MobTrait, Integer>> deathSnapshots = new java.util.HashMap<>();
     private static final java.util.Map<java.util.UUID, java.util.Map<String, Long>> deathSealExpiry = new java.util.HashMap<>();
     private static final java.util.Map<java.util.UUID, int[]> deathMeta = new java.util.HashMap<>();
     private static final Set<java.util.UUID> pendingTraitSync = Collections.synchronizedSet(new HashSet<>());
 
     public L2HostilityFix() {
+        PROXY = net.minecraftforge.fml.DistExecutor.safeRunForDist(
+            () -> com.l2hostility_tweaks.proxy.ClientProxy::new,
+            () -> com.l2hostility_tweaks.proxy.ServerProxy::new);
         L2HConfig.init();
         NetworkHandler.init();
         L2HFItems.register();

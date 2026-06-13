@@ -24,12 +24,12 @@ public class ContainerScreenMixin {
 
 		ItemStack stack = slot.getItem();
 		if (stack.getItem() instanceof DetectorGlasses) {
-			NetworkHandler.sendToggleToServer();
+			NetworkHandler.sendToggleToServer(slot.index);
 			cir.setReturnValue(true);
 			return;
 		}
 		if (stack.getItem() instanceof DimensionBreakerItem) {
-			NetworkHandler.sendToggleProtectToServer();
+			NetworkHandler.sendToggleProtectToServer(slot.index);
 			cir.setReturnValue(true);
 		}
 	}

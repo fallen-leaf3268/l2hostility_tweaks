@@ -53,12 +53,12 @@ public class NetworkHandler {
 				ToggleProtectPacket::handle);
 	}
 
-	public static void sendToggleToServer() {
-		CHANNEL.sendToServer(new ToggleGlowPacket());
+	public static void sendToggleToServer(int slotIndex) {
+		CHANNEL.sendToServer(new ToggleGlowPacket(slotIndex));
 	}
 
-	public static void sendToggleProtectToServer() {
-		CHANNEL.sendToServer(new ToggleProtectPacket());
+	public static void sendToggleProtectToServer(int slotIndex) {
+		CHANNEL.sendToServer(new ToggleProtectPacket(slotIndex));
 	}
 
 	public static void sendCycleToServer(boolean reverse) {
@@ -69,12 +69,14 @@ public class NetworkHandler {
 		CHANNEL.sendToServer(new UnloadTraitPacket(traitId, unloadAll));
 	}
 
-	public record ToggleGlowPacket() {
+	public record ToggleGlowPacket(int slotIndex) {
 
-		public static void encode(ToggleGlowPacket msg, FriendlyByteBuf buf) {}
+		public static void encode(ToggleGlowPacket msg, FriendlyByteBuf buf) {
+			buf.writeInt(msg.slotIndex);
+		}
 
 		public static ToggleGlowPacket decode(FriendlyByteBuf buf) {
-			return new ToggleGlowPacket();
+			return new ToggleGlowPacket(buf.readInt());
 		}
 
 		public static void handle(ToggleGlowPacket msg, Supplier<NetworkEvent.Context> ctxSupplier) {
@@ -83,8 +85,9 @@ public class NetworkHandler {
 				ServerPlayer player = ctx.getSender();
 				if (player == null) return;
 
-				for (EquipmentSlot slot : EquipmentSlot.values()) {
-					ItemStack stack = player.getItemBySlot(slot);
+				// 按槽位索引精确切换
+				if (player.containerMenu != null && msg.slotIndex >= 0 && msg.slotIndex < player.containerMenu.slots.size()) {
+					ItemStack stack = player.containerMenu.getSlot(msg.slotIndex).getItem();
 					if (stack.getItem() instanceof DetectorGlasses) {
 						boolean disabled = !stack.getOrCreateTag().getBoolean(TAG_GLOW_DISABLED);
 						stack.getOrCreateTag().putBoolean(TAG_GLOW_DISABLED, disabled);
@@ -92,11 +95,14 @@ public class NetworkHandler {
 					}
 				}
 
-				List<ItemStack> curioStacks = CurioCompat.getItems(player, s -> s.getItem() instanceof DetectorGlasses);
-				for (ItemStack stack : curioStacks) {
-					boolean disabled = !stack.getOrCreateTag().getBoolean(TAG_GLOW_DISABLED);
-					stack.getOrCreateTag().putBoolean(TAG_GLOW_DISABLED, disabled);
-					return;
+				// Fallback: 扫装备栏
+				for (EquipmentSlot slot : EquipmentSlot.values()) {
+					ItemStack stack = player.getItemBySlot(slot);
+					if (stack.getItem() instanceof DetectorGlasses) {
+						boolean disabled = !stack.getOrCreateTag().getBoolean(TAG_GLOW_DISABLED);
+						stack.getOrCreateTag().putBoolean(TAG_GLOW_DISABLED, disabled);
+						return;
+					}
 				}
 			});
 			ctx.setPacketHandled(true);
@@ -172,12 +178,14 @@ public class NetworkHandler {
 		}
 	}
 
-	public record ToggleProtectPacket() {
+	public record ToggleProtectPacket(int slotIndex) {
 
-		public static void encode(ToggleProtectPacket msg, FriendlyByteBuf buf) {}
+		public static void encode(ToggleProtectPacket msg, FriendlyByteBuf buf) {
+			buf.writeInt(msg.slotIndex);
+		}
 
 		public static ToggleProtectPacket decode(FriendlyByteBuf buf) {
-			return new ToggleProtectPacket();
+			return new ToggleProtectPacket(buf.readInt());
 		}
 
 		public static void handle(ToggleProtectPacket msg, Supplier<NetworkEvent.Context> ctxSupplier) {
@@ -185,6 +193,17 @@ public class NetworkHandler {
 			ctx.enqueueWork(() -> {
 				ServerPlayer player = ctx.getSender();
 				if (player == null) return;
+
+				// 按槽位索引精确切换
+				if (player.containerMenu != null && msg.slotIndex >= 0 && msg.slotIndex < player.containerMenu.slots.size()) {
+					ItemStack stack = player.containerMenu.getSlot(msg.slotIndex).getItem();
+					if (stack.getItem() instanceof DimensionBreakerItem) {
+						DimensionBreakerItem.toggleProtect(stack);
+						return;
+					}
+				}
+
+				// Fallback
 				ItemStack stack = DimensionBreakerItem.findEquipped(player);
 				if (stack.isEmpty()) return;
 				DimensionBreakerItem.toggleProtect(stack);
