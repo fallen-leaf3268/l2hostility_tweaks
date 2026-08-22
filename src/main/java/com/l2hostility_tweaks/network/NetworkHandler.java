@@ -161,7 +161,9 @@ public class NetworkHandler {
 				MobTraitCap cap = MobTraitCap.HOLDER.get(player);
 				if (!cap.isInitialized() || cap.traits.isEmpty()) return;
 
-				MobTrait trait = LHTraits.TRAITS.get().getValue(new ResourceLocation(msg.traitId));
+				ResourceLocation traitLocation = ResourceLocation.tryParse(msg.traitId);
+				if (traitLocation == null) return;
+				MobTrait trait = LHTraits.TRAITS.get().getValue(traitLocation);
 				if (trait == null) return;
 
 				Integer currentLevel = cap.traits.get(trait);
