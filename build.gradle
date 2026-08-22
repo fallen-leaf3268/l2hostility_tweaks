@@ -1,3 +1,5 @@
+import groovy.json.JsonSlurper
+
 plugins {
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
     id 'org.spongepowered.mixin' version '0.7.+'
@@ -72,6 +74,48 @@ jar {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.compilerArgs << '-Xlint:-deprecation' << '-Xlint:-removal'
+}
+
+tasks.register('validateProjectResources') {
+    def resourceFiles = fileTree('src/main/resources') {
+        include '**/*.json'
+    }
+    def mixinSources = fileTree('src/main/java/com/l2hostility_tweaks/mixin') {
+        include '*.java'
+    }
+    inputs.files(resourceFiles, mixinSources)
+
+    doLast {
+        resourceFiles.files.sort().each { jsonFile ->
+            try {
+                new JsonSlurper().parse(jsonFile, 'UTF-8')
+            } catch (Exception exception) {
+                throw new GradleException("Invalid JSON: ${project.relativePath(jsonFile)}", exception)
+            }
+        }
+
+        def config = new JsonSlurper().parse(
+                file('src/main/resources/l2hostility_tweaks.mixins.json'), 'UTF-8')
+        def registered = ['mixins', 'client', 'server']
+                .collectMany { key -> (config[key] ?: []) as List }
+                .collect { it as String }
+                .toSet()
+        def sources = mixinSources.files
+                .collect { it.name.substring(0, it.name.length() - '.java'.length()) }
+                .toSet()
+        def missingSources = registered - sources
+        def unregisteredSources = sources - registered
+
+        if (!missingSources.isEmpty() || !unregisteredSources.isEmpty()) {
+            throw new GradleException(
+                    "Mixin registration mismatch. Missing sources: ${missingSources.sort()}; " +
+                            "unregistered sources: ${unregisteredSources.sort()}")
+        }
+    }
+}
+
+tasks.named('check').configure {
+    dependsOn tasks.named('validateProjectResources')
 }
 
 publishMods {

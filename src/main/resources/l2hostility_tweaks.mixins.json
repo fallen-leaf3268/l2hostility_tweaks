@@ -59,7 +59,7 @@
         "RagnarokTraitMixin",
         "RemoveTraitEnchantmentMixin",
         "TraitSealFilterMixin",
-        "PocketOfRestorationMixin",
+        "PocketOfRestorationMixin"
     ],
     "client": [
         "DifficultyScreenMixin",
