@@ -83,7 +83,13 @@ public class TraitGeneratorMixin {
                     continue;
                 }
 
-                MobTrait mt = traitReg.get(new ResourceLocation(traitId));
+                ResourceLocation traitLocation = l2fix$parseTraitId(traitId);
+                if (traitLocation == null) {
+                    LOG.warn("[NbtPresetGen] Trait id '{}' is invalid, skipping", traitId);
+                    continue;
+                }
+
+                MobTrait mt = traitReg.get(traitLocation);
                 if (mt == null) {
                     LOG.warn("[NbtPresetGen] Trait '{}' not found in registry, skipping", traitId);
                     continue;
@@ -108,6 +114,11 @@ public class TraitGeneratorMixin {
     @Unique
     static boolean l2fix$shouldApplyPreset(int currentRank, int minLevel) {
         return currentRank < minLevel;
+    }
+
+    @Unique
+    static ResourceLocation l2fix$parseTraitId(String traitId) {
+        return traitId == null ? null : ResourceLocation.tryParse(traitId);
     }
 
     private static boolean l2fix$resolveFields(Object tb) {
