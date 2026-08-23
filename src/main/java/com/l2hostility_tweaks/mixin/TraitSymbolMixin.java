@@ -96,7 +96,7 @@ public class TraitSymbolMixin {
 				if (group.traitIds().contains(trait.getID())) {
 					for (var otherId : group.traitIds()) {
 						if (!otherId.equals(trait.getID())) {
-							Component otherName = getTraitName(otherId);
+							Component otherName = l2fix$getTraitName(getTraitRegistry(), otherId);
 							tooltip.add(Component.translatable("tooltip.l2hostility_tweaks.player_override.mutual", otherName)
 									.withStyle(ChatFormatting.WHITE));
 						}
@@ -140,10 +140,10 @@ public class TraitSymbolMixin {
 		}
 	}
 
-	private static Component getTraitName(String traitId) {
-		Registry<MobTrait> reg = getTraitRegistry();
-		if (reg != null) {
-			MobTrait t = reg.get(new ResourceLocation(traitId));
+	static Component l2fix$getTraitName(Registry<MobTrait> registry, String traitId) {
+		ResourceLocation id = ResourceLocation.tryParse(traitId);
+		if (registry != null && id != null) {
+			MobTrait t = registry.get(id);
 			if (t != null) return t.getDesc();
 		}
 		return Component.literal(traitId);

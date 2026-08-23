@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.config;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
@@ -316,20 +317,25 @@ public class L2HConfig {
 
     public static List<ExclusionGroup> getExclusionGroups() {
         if (parsedExclusionGroups == null) {
-            parsedExclusionGroups = new ArrayList<>();
-            for (String entry : COMMON.exclusionGroups.get()) {
-                String[] parts = entry.split(",");
-                if (parts.length < 2) continue;
-                String rule = parts[0].trim();
-                List<String> traits = new ArrayList<>();
-                for (int i = 1; i < parts.length; i++) {
-                    String s = parts[i].trim();
-                    if (!s.isEmpty()) traits.add(s);
-                }
-                if (!traits.isEmpty()) parsedExclusionGroups.add(new ExclusionGroup(rule, traits));
-            }
+            parsedExclusionGroups = parseExclusionGroups(COMMON.exclusionGroups.get());
         }
         return parsedExclusionGroups;
+    }
+
+    static List<ExclusionGroup> parseExclusionGroups(List<? extends String> raw) {
+        List<ExclusionGroup> result = new ArrayList<>();
+        for (String entry : raw) {
+            String[] parts = entry.split(",");
+            if (parts.length < 2) continue;
+            String rule = parts[0].trim();
+            List<String> traits = new ArrayList<>();
+            for (int i = 1; i < parts.length; i++) {
+                String id = parts[i].trim();
+                if (ResourceLocation.tryParse(id) != null) traits.add(id);
+            }
+            if (!traits.isEmpty()) result.add(new ExclusionGroup(rule, traits));
+        }
+        return result;
     }
 
     private static List<int[]> parseThresholds(List<? extends String> raw) {

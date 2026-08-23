@@ -7,6 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class TraitSymbolMixinTest {
 
     @Test
+    void displaysInvalidTraitIdAsLiteralText() {
+        assertEquals("Invalid Trait ID",
+                TraitSymbolMixin.l2fix$getTraitName(null, "Invalid Trait ID").getString());
+    }
+
+    @Test
     void preservesPreRefreshHealthPercentage() {
         assertEquals(30.0f, TraitSymbolMixin.l2fix$scaledHealth(60.0f, 100.0f, 50.0f), 0.0001f);
     }
