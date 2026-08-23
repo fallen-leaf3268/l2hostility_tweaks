@@ -33,11 +33,17 @@ public class TraitWandHelper {
 	public static MobTrait getTrait(ItemStack stack) {
 		if (stack.getOrCreateTag().contains(TRAIT_KEY, Tag.TAG_STRING)) {
 			String str = stack.getOrCreateTag().getString(TRAIT_KEY);
-			ResourceLocation id = new ResourceLocation(str);
-			MobTrait ans = LHTraits.TRAITS.get().getValue(id);
-			if (ans != null) return ans;
+			ResourceLocation id = parseTraitId(str);
+			if (id != null) {
+				MobTrait ans = LHTraits.TRAITS.get().getValue(id);
+				if (ans != null) return ans;
+			}
 		}
 		return LHTraits.TRAITS.get().getValue(new ResourceLocation("l2hostility:tank"));
+	}
+
+	static ResourceLocation parseTraitId(String value) {
+		return ResourceLocation.tryParse(value);
 	}
 
 	public static MobTrait nextTrait(MobTrait mod) {

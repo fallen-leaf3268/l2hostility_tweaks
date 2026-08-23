@@ -7,9 +7,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TraitWandHelperTest {
+
+    @Test
+    void parsesValidTraitId() {
+        assertEquals("l2hostility:split",
+                TraitWandHelper.parseTraitId("l2hostility:split").toString());
+    }
+
+    @Test
+    void rejectsInvalidTraitIdWithoutThrowing() {
+        assertNull(TraitWandHelper.parseTraitId("Invalid Trait ID"));
+    }
 
     @Test
     void dropsOnlyTheRemainderAfterPartialInventoryInsertion() {
