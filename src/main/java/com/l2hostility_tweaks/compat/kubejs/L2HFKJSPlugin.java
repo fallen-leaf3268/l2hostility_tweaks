@@ -19,4 +19,10 @@ public class L2HFKJSPlugin extends KubeJSPlugin {
 	public void registerBindings(BindingsEvent event) {
 		event.add("L2HFix", SpellDamageFlags.class);
 	}
+
+	@Override
+	public void clearCaches() {
+		super.clearCaches();
+		SpellDamageFlags.clear();
+	}
 }

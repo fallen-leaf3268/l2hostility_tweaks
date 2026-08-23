@@ -46,6 +46,9 @@ dependencies {
 
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation files("libs/kubejs-forge-2001.6.5-build.26.jar")
+    testImplementation files("libs/[犀牛] rhino-forge-2001.2.3-build.10.jar")
+    testImplementation files("libs/architectury-9.2.14-forge.jar")
 }
 
 tasks.named('processResources', ProcessResources).configure {
