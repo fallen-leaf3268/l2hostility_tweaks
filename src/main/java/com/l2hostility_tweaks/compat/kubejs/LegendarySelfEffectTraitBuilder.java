@@ -22,7 +22,7 @@ public class LegendarySelfEffectTraitBuilder extends AbstractTraitBuilder<Legend
 	}
 
 	public LegendarySelfEffectTraitBuilder effect(String id) {
-		var eff = ForgeRegistries.MOB_EFFECTS.getValue(new ResourceLocation(id));
+		var eff = KubeJsRegistryResolver.resolve("mob effect", id, ForgeRegistries.MOB_EFFECTS::getValue);
 		if (eff != null) this.effect = () -> eff;
 		return this;
 	}

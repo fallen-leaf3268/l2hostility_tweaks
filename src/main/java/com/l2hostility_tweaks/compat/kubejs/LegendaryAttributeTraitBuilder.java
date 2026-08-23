@@ -27,8 +27,11 @@ public class LegendaryAttributeTraitBuilder extends AbstractTraitBuilder<Legenda
 				 "multiply_total", "MULTIPLY_TOTAL" -> AttributeModifier.Operation.MULTIPLY_TOTAL;
 			default -> AttributeModifier.Operation.ADDITION;
 		};
+		var resolved = KubeJsRegistryResolver.resolve("attribute", attribute,
+				ForgeRegistries.ATTRIBUTES::getValue);
+		if (resolved == null) return this;
 		list.add(new LegendaryAttributeTrait.AttributeEntry(
-				name, () -> ForgeRegistries.ATTRIBUTES.getValue(new ResourceLocation(attribute)),
+				name, () -> resolved,
 				() -> factor, op
 		));
 		return this;
