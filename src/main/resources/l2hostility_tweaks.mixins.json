@@ -30,7 +30,6 @@
         "MobTraitCapTickMixin",
         "TraitSymbolSelfUseMixin",
         "DementorTraitMixin",
-        "KillerAuraSelfMixin",
         "MobTraitImmunityMixin",
         "RealityTraitMixin",
         "TraitRomanMixin",

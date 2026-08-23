@@ -16,6 +16,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -37,15 +38,20 @@ public class KillerAuraTraitMixin {
 			MobTraitCap cap = MobTraitCap.HOLDER.get(mob);
 			AABB box = mob.getBoundingBox().inflate(range);
 			for (var e : mob.level().getEntitiesOfClass(LivingEntity.class, box)) {
-				if (e instanceof Player pl && !pl.getAbilities().instabuild ||
-						e instanceof Mob target && target.getTarget() == mob ||
-						mob instanceof Mob mobmob && mobmob.getTarget() == e) {
-					if (e.distanceTo(mob) > range) continue;
-					if (LHItems.ABRAHADABRA.get().isOn(e)) continue;
-					TraitEffectCache cache = new TraitEffectCache(e);
-					cap.traitEvent((k, v) -> k.postHurtPlayer(v, mob, cache));
-					e.hurt(new DamageSource(LHDamageTypes.forKey(mob.level(), LHDamageTypes.KILLER_AURA), null, mob), damage);
+				boolean nonCreativePlayer = e instanceof Player player && !player.getAbilities().instabuild;
+				boolean candidateTargetsHolder = e instanceof Mob candidateMob && candidateMob.getTarget() == mob;
+				boolean holderTargetsCandidate = mob instanceof Mob holderMob && holderMob.getTarget() == e;
+				boolean recentlyHitByPlayerHolder = mob instanceof Player && e instanceof Mob candidateMob &&
+						candidateMob.getLastHurtByMob() == mob;
+				if (!l2fix$shouldTarget(e == mob, nonCreativePlayer, candidateTargetsHolder,
+						holderTargetsCandidate, recentlyHitByPlayerHolder)) {
+					continue;
 				}
+				if (e.distanceTo(mob) > range) continue;
+				if (LHItems.ABRAHADABRA.get().isOn(e)) continue;
+				TraitEffectCache cache = new TraitEffectCache(e);
+				cap.traitEvent((k, v) -> k.postHurtPlayer(v, mob, cache));
+				e.hurt(new DamageSource(LHDamageTypes.forKey(mob.level(), LHDamageTypes.KILLER_AURA), null, mob), damage);
 			}
 		}
 		if (mob.level().isClientSide()) {
@@ -56,6 +62,14 @@ public class KillerAuraTraitMixin {
 			mob.level().addAlwaysVisibleParticle(ParticleTypes.FLAME,
 					center.x + v0.x, center.y + v0.y + 0.5f, center.z + v0.z, 0, 0, 0);
 		}
+	}
+
+	@Unique
+	static boolean l2fix$shouldTarget(boolean self, boolean nonCreativePlayer,
+									 boolean candidateTargetsHolder, boolean holderTargetsCandidate,
+									 boolean recentlyHitByPlayerHolder) {
+		return !self && (nonCreativePlayer || candidateTargetsHolder ||
+				holderTargetsCandidate || recentlyHitByPlayerHolder);
 	}
 
 	@Redirect(method = "addDetail", at = @At(value = "INVOKE",
