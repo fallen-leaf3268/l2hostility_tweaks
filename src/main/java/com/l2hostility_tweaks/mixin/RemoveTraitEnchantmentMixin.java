@@ -7,6 +7,7 @@ import dev.xkmc.l2hostility.content.enchantments.RemoveTraitEnchantment;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Slime;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -31,13 +32,17 @@ public class RemoveTraitEnchantmentMixin {
 		if (TraitDisableHelper.isDisabled(target, traitId)) return;
 
 		TraitDisableHelper.setDisabled(target, traitId, true);
-		// 使用附魔等级计算封印时长：等级 1 = 永久，2+ = value * 30 秒
-		long duration = value != null && value > 1 ? value * 600L : -1L;
-		target.getPersistentData().putLong(TraitDisableHelper.sealExpiryKey(traitId), duration);
+		target.getPersistentData().putLong(
+				TraitDisableHelper.sealExpiryKey(traitId), l2fix$sealExpiry(value));
 		cap.syncToClient(target);
 
 		if (target instanceof Slime slime) {
 			slime.addTag("SuppressSplit");
 		}
+	}
+
+	@Unique
+	static long l2fix$sealExpiry(Integer ignoredValue) {
+		return -1L;
 	}
 }
