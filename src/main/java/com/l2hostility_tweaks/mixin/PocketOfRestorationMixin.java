@@ -5,6 +5,8 @@ import dev.xkmc.l2hostility.compat.curios.CurioCompat;
 import dev.xkmc.l2hostility.compat.curios.EntitySlotAccess;
 import dev.xkmc.l2hostility.content.item.curio.misc.PocketOfRestoration;
 import dev.xkmc.l2hostility.content.item.traits.SealedItem;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -20,6 +22,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import top.theillusivec4.curios.api.CuriosApi;
 import top.theillusivec4.curios.api.SlotContext;
 
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 @Mixin(value = PocketOfRestoration.class, remap = false)
@@ -97,12 +100,16 @@ public class PocketOfRestorationMixin {
 			int dur = tag.getInt(SealedItem.TIME);
 			if (le.level().getGameTime() < time + dur) continue;
 
-			ItemStack result = ItemStack.of(tag.getCompound(SealedItem.DATA));
+			ItemStack result = l2fix$readStoredItem(tag);
+			if (result.isEmpty()) continue;
 			EntitySlotAccess slot = CurioCompat.decode(tag.getString(PocketOfRestoration.KEY), le);
-			if (slot != null && slot.get().isEmpty()) {
-				slot.set(result);
-			} else if (le instanceof Player player && player.addItem(result)) {
-			}
+			Player player = le instanceof Player value ? value : null;
+			boolean restored = l2fix$restoreStoredItem(
+					slot != null && slot.get().isEmpty(),
+					() -> slot.set(result),
+					player == null ? null : () -> player.addItem(result),
+					player == null ? null : () -> player.drop(result, false) != null);
+			if (!restored) continue;
 			stack.getTag().remove(key);
 			changed = true;
 		}
@@ -116,20 +123,19 @@ public class PocketOfRestorationMixin {
 			if (stack.getDamageValue() + 1 + l2fix$abyssLevel.get() >= stack.getMaxDamage()) break;
 
 			ItemStack sealed = e.get();
+			ItemStack stored = l2fix$readStoredItem(sealed.getTag());
+			if (stored.isEmpty()) continue;
 			e.set(ItemStack.EMPTY);
 			String id = e.getID();
 			long gameTime = le.level().getGameTime();
 
 			stack.hurtAndBreak(1 + l2fix$abyssLevel.get(), le, x -> {});
 
-			var data = sealed.getOrCreateTag().get(SealedItem.DATA);
-			if (data == null) continue;
-
 			String key = l2fix$slotKey(emptySlot);
 			var tag = stack.getOrCreateTagElement(key);
 			int origTime = sealed.getOrCreateTag().getInt(SealedItem.TIME);
 			tag.putInt(SealedItem.TIME, origTime / (l2fix$abyssLevel.get() + 1));
-			tag.put(SealedItem.DATA, data);
+			tag.put(SealedItem.DATA, stored.save(new CompoundTag()));
 			tag.putString(PocketOfRestoration.KEY, id);
 			tag.putLong(PocketOfRestoration.START, gameTime);
 			changed = true;
@@ -167,5 +173,31 @@ public class PocketOfRestorationMixin {
 			}
 		}
 		return -1;
+	}
+
+	@Unique
+	static boolean l2fix$restoreStoredItem(boolean originalSlotEmpty, Runnable restoreOriginal,
+			BooleanSupplier addToInventory, BooleanSupplier dropItem) {
+		if (originalSlotEmpty) {
+			restoreOriginal.run();
+			return true;
+		}
+		if (addToInventory != null && addToInventory.getAsBoolean()) {
+			return true;
+		}
+		return dropItem != null && dropItem.getAsBoolean();
+	}
+
+	@Unique
+	static ItemStack l2fix$readStoredItem(CompoundTag tag) {
+		if (!l2fix$hasStoredItemData(tag)) {
+			return ItemStack.EMPTY;
+		}
+		return ItemStack.of(tag.getCompound(SealedItem.DATA));
+	}
+
+	@Unique
+	static boolean l2fix$hasStoredItemData(CompoundTag tag) {
+		return tag != null && tag.contains(SealedItem.DATA, Tag.TAG_COMPOUND);
 	}
 }
