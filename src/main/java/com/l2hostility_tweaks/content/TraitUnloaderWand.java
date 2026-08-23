@@ -64,7 +64,7 @@ public class TraitUnloaderWand extends Item {
 		if (newLevel <= 0) {
 			cap.traits.remove(trait);
 		}
-		player.getPersistentData().remove(TraitDisableHelper.sealExpiryKey(trait.getID()));
+		TraitDisableHelper.clearSealData(player.getPersistentData(), trait.getID());
 		syncCap(player, cap);
 		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
 
@@ -80,7 +80,7 @@ public class TraitUnloaderWand extends Item {
 		cap.traits.remove(trait);
 		trait.initialize(player, 0);
 		trait.postInit(player, 0);
-		player.getPersistentData().remove(TraitDisableHelper.sealExpiryKey(trait.getID()));
+		TraitDisableHelper.clearSealData(player.getPersistentData(), trait.getID());
 		syncCap(player, cap);
 		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
 
@@ -179,7 +179,7 @@ public class TraitUnloaderWand extends Item {
 			trait.initialize(player, 0);
 			trait.postInit(player, 0);
 			cap.traits.remove(trait);
-			player.getPersistentData().remove(TraitDisableHelper.sealExpiryKey(trait.getID()));
+			TraitDisableHelper.clearSealData(player.getPersistentData(), trait.getID());
 			ItemStack symbol = new ItemStack(trait.asItem(), refund);
 			TraitWandHelper.giveOrDrop(player, symbol);
 		}

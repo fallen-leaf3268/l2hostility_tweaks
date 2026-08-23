@@ -33,6 +33,11 @@ public class TraitDisableHelper {
 		}
 	}
 
+	public static void clearSealData(CompoundTag data, String traitId) {
+		data.remove(sealedLevelKey(traitId));
+		data.remove(sealExpiryKey(traitId));
+	}
+
 	public static Registry<MobTrait> getTraitRegistry() {
 		Registry<MobTrait> reg = traitRegistry;
 		if (reg == null) {

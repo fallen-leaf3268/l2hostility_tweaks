@@ -29,4 +29,17 @@ class TraitDisableHelperTest {
 
         assertFalse(data.contains(SEALED_LEVEL_KEY));
     }
+
+    @Test
+    void clearsSealedLevelAndExpiryTogether() {
+        CompoundTag data = new CompoundTag();
+        String expiryKey = TraitDisableHelper.sealExpiryKey(TRAIT_ID);
+        data.putInt(SEALED_LEVEL_KEY, 3);
+        data.putLong(expiryKey, 1200L);
+
+        TraitDisableHelper.clearSealData(data, TRAIT_ID);
+
+        assertFalse(data.contains(SEALED_LEVEL_KEY));
+        assertFalse(data.contains(expiryKey));
+    }
 }
