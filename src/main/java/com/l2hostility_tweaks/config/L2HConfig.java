@@ -160,8 +160,8 @@ public class L2HConfig {
             killerAuraDamageArray = builder.comment("Killer Aura 数组配置",
                     "每级伤害")
                     .defineList("damage_array", List.of(), e -> e instanceof Integer);
-            killerAuraIntervalArray = builder.comment("每级攻击间隔 (tick)")
-                    .defineList("interval_array", List.of(), e -> e instanceof Integer);
+            killerAuraIntervalArray = builder.comment("每级攻击间隔 (tick)，必须大于 0")
+                    .defineList("interval_array", List.of(), L2HConfig::isPositiveInteger);
             builder.pop();
 
             builder.push("dispell");
@@ -448,8 +448,18 @@ public class L2HConfig {
 
 	public static int getKillerAuraInterval(int level) {
 		List<? extends Integer> arr = COMMON.killerAuraIntervalArray.get();
-		if (!arr.isEmpty()) return arr.get(Math.min(level, arr.size()) - 1);
-		return dev.xkmc.l2hostility.init.data.LHConfig.COMMON.killerAuraInterval.get() / level;
+		int interval = !arr.isEmpty()
+				? arr.get(Math.min(level, arr.size()) - 1)
+				: dev.xkmc.l2hostility.init.data.LHConfig.COMMON.killerAuraInterval.get() / level;
+		return sanitizeKillerAuraInterval(interval);
+	}
+
+	static boolean isPositiveInteger(Object value) {
+		return value instanceof Integer integer && integer > 0;
+	}
+
+	static int sanitizeKillerAuraInterval(int interval) {
+		return Math.max(1, interval);
 	}
 
 	public static int getDispellTime(int level) {
