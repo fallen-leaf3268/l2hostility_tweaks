@@ -70,7 +70,7 @@ public class TraitUnloaderWand extends Item {
 
 		int refund = L2HConfig.getUnloadRefund(absLevel);
 		ItemStack symbol = new ItemStack(trait.asItem(), refund);
-		player.addItem(symbol);
+		TraitWandHelper.giveOrDrop(player, symbol);
 		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_SINGLE,
 				trait.getDesc(), absLevel, Math.max(0, newLevel)).withStyle(ChatFormatting.GREEN), true);
 	}
@@ -86,7 +86,7 @@ public class TraitUnloaderWand extends Item {
 
 		int totalRefund = L2HConfig.getTotalUnloadRefund(absLevel);
 		ItemStack symbol = new ItemStack(trait.asItem(), totalRefund);
-		player.addItem(symbol);
+		TraitWandHelper.giveOrDrop(player, symbol);
 		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_GROUP,
 				trait.getDesc(), absLevel, totalRefund).withStyle(ChatFormatting.GREEN), true);
 	}
@@ -181,7 +181,7 @@ public class TraitUnloaderWand extends Item {
 			cap.traits.remove(trait);
 			player.getPersistentData().remove(TraitDisableHelper.sealExpiryKey(trait.getID()));
 			ItemStack symbol = new ItemStack(trait.asItem(), refund);
-			player.addItem(symbol);
+			TraitWandHelper.giveOrDrop(player, symbol);
 		}
 		syncCap(player, cap);
 		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));

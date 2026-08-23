@@ -4,9 +4,11 @@ import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import dev.xkmc.l2hostility.init.registrate.LHTraits;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
+import java.util.function.BooleanSupplier;
 
 public class TraitWandHelper {
 
@@ -15,6 +17,17 @@ public class TraitWandHelper {
 	public static ItemStack setTrait(ItemStack stack, MobTrait trait) {
 		stack.getOrCreateTag().putString(TRAIT_KEY, trait.getID());
 		return stack;
+	}
+
+	public static boolean giveOrDrop(Player player, ItemStack stack) {
+		return deliver(() -> player.addItem(stack), () -> !stack.isEmpty(),
+				() -> player.drop(stack, false) != null);
+	}
+
+	static boolean deliver(Runnable insert, BooleanSupplier hasRemainder,
+			BooleanSupplier drop) {
+		insert.run();
+		return !hasRemainder.getAsBoolean() || drop.getAsBoolean();
 	}
 
 	public static MobTrait getTrait(ItemStack stack) {

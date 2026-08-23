@@ -12,20 +12,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PocketOfRestorationMixinTest {
 
     @Test
-    void dropsRestoredItemWhenOriginalSlotAndInventoryAreFull() {
-        AtomicBoolean dropped = new AtomicBoolean();
+    void completesRestoreWhenSharedFallbackDeliversTheItem() {
+        AtomicBoolean delivered = new AtomicBoolean();
 
         boolean restored = PocketOfRestorationMixin.l2fix$restoreStoredItem(
                 false,
                 () -> {},
-                () -> false,
                 () -> {
-                    dropped.set(true);
+                    delivered.set(true);
                     return true;
                 });
 
         assertTrue(restored);
-        assertTrue(dropped.get());
+        assertTrue(delivered.get());
+    }
+
+    @Test
+    void keepsStoredItemWhenSharedFallbackCannotDeliverIt() {
+        boolean restored = PocketOfRestorationMixin.l2fix$restoreStoredItem(
+                false,
+                () -> {},
+                () -> false);
+
+        assertFalse(restored);
     }
 
     @Test

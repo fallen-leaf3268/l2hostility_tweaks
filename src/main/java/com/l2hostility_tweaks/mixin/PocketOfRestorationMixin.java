@@ -1,6 +1,7 @@
 package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.init.L2HFEnchantments;
+import com.l2hostility_tweaks.util.TraitWandHelper;
 import dev.xkmc.l2hostility.compat.curios.CurioCompat;
 import dev.xkmc.l2hostility.compat.curios.EntitySlotAccess;
 import dev.xkmc.l2hostility.content.item.curio.misc.PocketOfRestoration;
@@ -107,8 +108,7 @@ public class PocketOfRestorationMixin {
 			boolean restored = l2fix$restoreStoredItem(
 					slot != null && slot.get().isEmpty(),
 					() -> slot.set(result),
-					player == null ? null : () -> player.addItem(result),
-					player == null ? null : () -> player.drop(result, false) != null);
+					player == null ? null : () -> TraitWandHelper.giveOrDrop(player, result));
 			if (!restored) continue;
 			stack.getTag().remove(key);
 			changed = true;
@@ -177,15 +177,12 @@ public class PocketOfRestorationMixin {
 
 	@Unique
 	static boolean l2fix$restoreStoredItem(boolean originalSlotEmpty, Runnable restoreOriginal,
-			BooleanSupplier addToInventory, BooleanSupplier dropItem) {
+			BooleanSupplier deliverFallback) {
 		if (originalSlotEmpty) {
 			restoreOriginal.run();
 			return true;
 		}
-		if (addToInventory != null && addToInventory.getAsBoolean()) {
-			return true;
-		}
-		return dropItem != null && dropItem.getAsBoolean();
+		return deliverFallback != null && deliverFallback.getAsBoolean();
 	}
 
 	@Unique
