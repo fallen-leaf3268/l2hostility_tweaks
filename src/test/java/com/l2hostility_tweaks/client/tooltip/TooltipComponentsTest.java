@@ -42,6 +42,17 @@ class TooltipComponentsTest {
     }
 
     @Test
+    void replacesRootTranslationAndPreservesUnrelatedSuffix() {
+        Component line = Component.translatable(DESC).append(Component.literal(" [source]"));
+
+        Component result = TooltipComponents.replaceTranslations(line, Set.of(DESC),
+                Component.translatable(DESC_ANY));
+
+        assertTrue(TooltipComponents.containsTranslation(result, Set.of(DESC_ANY)));
+        assertEquals(" [source]", result.getSiblings().get(0).getString());
+    }
+
+    @Test
     void replacesFirstDescriptionAndRemovesDuplicateLines() {
         List<Component> tooltip = new ArrayList<>(List.of(
                 Component.literal("Item"),

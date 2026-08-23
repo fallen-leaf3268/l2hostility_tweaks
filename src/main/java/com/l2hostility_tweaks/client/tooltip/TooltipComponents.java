@@ -35,7 +35,13 @@ public final class TooltipComponents {
                                                 Component replacement) {
         if (component.getContents() instanceof TranslatableContents translatable
                 && keys.contains(translatable.getKey())) {
-            return replacement.copy();
+            MutableComponent result = replacement.copy();
+            for (Component sibling : component.getSiblings()) {
+                if (!containsTranslation(sibling, keys)) {
+                    result.append(sibling.copy());
+                }
+            }
+            return result;
         }
         MutableComponent copy = component.copy();
         copy.getSiblings().clear();
