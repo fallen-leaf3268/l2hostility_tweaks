@@ -22,6 +22,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.Collection;
+
 @Mixin(Item.class)
 public class TraitSymbolSelfUseMixin {
 
@@ -46,14 +48,12 @@ public class TraitSymbolSelfUseMixin {
 		}
 
 		var override = L2HConfig.getPlayerTraitOverrides().get(trait.getID());
+		Integer rawLevel = cap.traits.get(trait);
+		int currentLevel = rawLevel != null ? Math.abs(rawLevel) : 0;
 
 		int maxTraits = L2HConfig.getPlayerMaxTraits();
 		if (maxTraits >= 0) {
-			int currentCount = 0;
-			for (var entry : cap.traits.entrySet()) {
-				if (entry.getValue() > 0) currentCount++;
-			}
-			if (cap.getTraitLevel(trait) == 0) currentCount++;
+			int currentCount = l2fix$projectedTraitCount(cap.traits.values(), rawLevel);
 			if (currentCount > maxTraits) {
 				if (player instanceof ServerPlayer sp) {
 					sp.sendSystemMessage(L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_MAX_COUNT, maxTraits).withStyle(ChatFormatting.RED), true);
@@ -63,7 +63,7 @@ public class TraitSymbolSelfUseMixin {
 			}
 		}
 
-		if (Math.abs(cap.getTraitLevel(trait)) >= trait.getMaxLevel()) {
+		if (l2fix$isAtMaxLevel(rawLevel, trait.getMaxLevel())) {
 			if (player instanceof ServerPlayer sp) {
 				sp.sendSystemMessage(LangData.MSG_ERR_MAX.get().withStyle(ChatFormatting.RED), true);
 			}
@@ -117,9 +117,6 @@ public class TraitSymbolSelfUseMixin {
 				return;
 			}
 		}
-
-		Integer currentLvl = cap.traits.get(trait);
-		int currentLevel = currentLvl != null ? Math.abs(currentLvl) : 0;
 
 		int cost = 1;
 		int mode = L2HConfig.getPlayerSelfTraitCostMode();
@@ -179,5 +176,14 @@ public class TraitSymbolSelfUseMixin {
 		}
 
 		cir.setReturnValue(InteractionResultHolder.success(stack));
+	}
+
+	static boolean l2fix$isAtMaxLevel(Integer rawLevel, int maxLevel) {
+		return rawLevel != null && Math.abs(rawLevel) >= maxLevel;
+	}
+
+	static int l2fix$projectedTraitCount(Collection<Integer> levels, Integer targetRawLevel) {
+		int count = (int) levels.stream().filter(value -> value != null && value != 0).count();
+		return targetRawLevel == null || targetRawLevel == 0 ? count + 1 : count;
 	}
 }
