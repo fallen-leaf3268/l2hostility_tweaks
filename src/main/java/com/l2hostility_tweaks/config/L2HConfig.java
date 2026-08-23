@@ -13,13 +13,13 @@ public class L2HConfig {
     public static final ForgeConfigSpec SPEC;
     public static final Common COMMON;
 
-    private static List<int[]> parsedLevelThresholds;
-    private static Map<String, int[]> parsedPerTraitThresholds;
-    private static List<int[]> parsedLegendaryThresholds;
-    private static Set<String> parsedExtraLegendaryIds;
-    private static List<ExclusionGroup> parsedExclusionGroups;
-    private static List<Integer> parsedSealDurationArray;
-    private static Map<String, PlayerTraitOverride> parsedPlayerTraitOverrides;
+    private static volatile List<int[]> parsedLevelThresholds;
+    private static volatile Map<String, int[]> parsedPerTraitThresholds;
+    private static volatile List<int[]> parsedLegendaryThresholds;
+    private static volatile Set<String> parsedExtraLegendaryIds;
+    private static volatile List<ExclusionGroup> parsedExclusionGroups;
+    private static volatile List<Integer> parsedSealDurationArray;
+    private static volatile Map<String, PlayerTraitOverride> parsedPlayerTraitOverrides;
 
     static {
         Pair<Common, ForgeConfigSpec> pair = new ForgeConfigSpec.Builder().configure(Common::new);
@@ -594,7 +594,13 @@ public class L2HConfig {
         return parsedPlayerTraitOverrides;
     }
 
-    public static void invalidatePlayerTraitOverrides() {
+    public static void invalidateCaches() {
+        parsedLevelThresholds = null;
+        parsedPerTraitThresholds = null;
+        parsedLegendaryThresholds = null;
+        parsedExtraLegendaryIds = null;
+        parsedExclusionGroups = null;
+        parsedSealDurationArray = null;
         parsedPlayerTraitOverrides = null;
     }
 }

@@ -2,6 +2,7 @@ package com.l2hostility_tweaks;
 
 import com.l2hostility_tweaks.client.config.ClientL2HConfig;
 import com.l2hostility_tweaks.compat.kubejs.SpellDamageFlags;
+import com.l2hostility_tweaks.config.ConfigCacheReloadHandler;
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.content.DimensionBreakerItem;
 import com.l2hostility_tweaks.content.RingDamageListener;
@@ -44,6 +45,7 @@ import org.slf4j.LoggerFactory;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import top.theillusivec4.curios.api.SlotTypeMessage;
 
@@ -72,6 +74,7 @@ public class L2HostilityFix {
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientL2HConfig.CLIENT_SPEC, "l2_configs/l2hostility_tweaks-client.toml");
         L2HFEnchantments.REGISTRY.register(FMLJavaModLoadingContext.get().getModEventBus());
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onBuildCreativeTab);
+        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onConfigReload);
         MinecraftForge.EVENT_BUS.register(this);
         AttackEventHandler.register(4500, new RingDamageListener());
         InterModComms.sendTo("curios", SlotTypeMessage.REGISTER_TYPE,
@@ -88,6 +91,10 @@ public class L2HostilityFix {
 			event.accept(L2HFItems.SEAL_SYMBOL.get());
 		}
 	}
+
+    private void onConfigReload(ModConfigEvent.Reloading event) {
+        ConfigCacheReloadHandler.invalidate(event.getConfig().getSpec());
+    }
 
     @SubscribeEvent
     public void onLivingTick(LivingEvent.LivingTickEvent event) {

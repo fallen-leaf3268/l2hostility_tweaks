@@ -2,13 +2,46 @@ package com.l2hostility_tweaks.config;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
+import java.lang.reflect.Field;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class L2HConfigTest {
+
+    @Test
+    void invalidatesEveryParsedCommonConfigCache() throws Exception {
+        List<String> cacheNames = List.of(
+                "parsedLevelThresholds",
+                "parsedPerTraitThresholds",
+                "parsedLegendaryThresholds",
+                "parsedExtraLegendaryIds",
+                "parsedExclusionGroups",
+                "parsedSealDurationArray",
+                "parsedPlayerTraitOverrides");
+
+        for (String cacheName : cacheNames) {
+            Field field = L2HConfig.class.getDeclaredField(cacheName);
+            field.setAccessible(true);
+            Object sentinel = Map.class.isAssignableFrom(field.getType())
+                    ? new LinkedHashMap<>()
+                    : Set.class.isAssignableFrom(field.getType())
+                    ? new LinkedHashSet<>()
+                    : new ArrayList<>();
+            field.set(null, sentinel);
+        }
+
+        L2HConfig.invalidateCaches();
+
+        for (String cacheName : cacheNames) {
+            Field field = L2HConfig.class.getDeclaredField(cacheName);
+            field.setAccessible(true);
+            assertNull(field.get(null), cacheName);
+        }
+    }
 
     @Test
     void filtersInvalidExclusionIdsButKeepsUnregisteredIds() {

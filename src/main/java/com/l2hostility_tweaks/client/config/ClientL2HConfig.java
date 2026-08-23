@@ -13,7 +13,7 @@ public class ClientL2HConfig {
     public static final ForgeConfigSpec CLIENT_SPEC;
     public static final Client CLIENT;
 
-    private static List<int[]> parsedColorSegments;
+    private static volatile List<int[]> parsedColorSegments;
 
     static {
         Pair<Client, ForgeConfigSpec> pair = new ForgeConfigSpec.Builder().configure(Client::new);
@@ -114,5 +114,9 @@ public class ClientL2HConfig {
             } catch (NumberFormatException ignored) {}
         }
         return FastColor.ARGB32.color(255, 170, 170, 170);
+    }
+
+    public static void invalidateCaches() {
+        parsedColorSegments = null;
     }
 }
