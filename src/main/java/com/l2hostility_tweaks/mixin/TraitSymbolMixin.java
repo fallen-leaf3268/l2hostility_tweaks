@@ -55,17 +55,23 @@ public class TraitSymbolMixin {
 				cir.setReturnValue(InteractionResult.FAIL);
 				return;
 			}
+		float oldHealth = target.getHealth();
+		float oldMaxHealth = target.getMaxHealth();
 		int next = -(abs + 1);
 		target.getPersistentData().putInt("l2htweaks_sealed_level_" + trait.getID(), abs + 1);
 		cap.traits.put(trait, next);
 		trait.initialize(target, 0);
 		cap.syncToClient(target);
-		float ratio = target.getHealth() / target.getMaxHealth();
-		target.setHealth(Math.max(1, target.getMaxHealth() * ratio));
+		target.setHealth(l2fix$scaledHealth(oldHealth, oldMaxHealth, target.getMaxHealth()));
 		if (!player.getAbilities().instabuild) {
 			stack.shrink(1);
 		}
 		cir.setReturnValue(InteractionResult.SUCCESS);
+	}
+
+	static float l2fix$scaledHealth(float oldHealth, float oldMaxHealth, float newMaxHealth) {
+		float ratio = oldMaxHealth > 0 ? oldHealth / oldMaxHealth : 1.0f;
+		return Math.max(1.0f, newMaxHealth * Math.min(1.0f, ratio));
 	}
 
 	@Inject(method = "m_7373_", at = @At("TAIL"))
