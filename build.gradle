@@ -118,6 +118,36 @@ tasks.register('validateProjectResources') {
                     "Mixin registration mismatch. Missing sources: ${missingSources.sort()}; " +
                             "unregistered sources: ${unregisteredSources.sort()}")
         }
+
+        def tooltipKeys = [
+                'enchantment.l2hostility_tweaks.reprint_counter.desc',
+                'enchantment.l2hostility_tweaks.reprint_counter.desc_any',
+                'enchantment.l2hostility_tweaks.reprint_counter.desc_armor',
+                'enchantment.l2hostility_tweaks.abyss_pocket.desc',
+                'enchantment.l2hostility_tweaks.gluttony_pocket.desc',
+                'enchantment.l2hostility.split_suppressor.desc',
+                'tooltip.l2hostility_tweaks.abrahadabra_minion',
+                'tooltip.l2hostility_tweaks.glow_enabled',
+                'tooltip.l2hostility_tweaks.glow_disabled',
+                'tooltip.l2hostility_tweaks.essence_use',
+                'trait.l2hostility_tweaks.dispell.immunity',
+                'trait.l2hostility_tweaks.dementor.immunity'
+        ]
+        ['en_us', 'zh_cn'].each { locale ->
+            def langFile = file("src/main/resources/assets/l2hostility_tweaks/lang/${locale}.json")
+            def translations = new JsonSlurper().parse(langFile, 'UTF-8') as Map
+            def missingKeys = tooltipKeys.findAll { !translations.containsKey(it) }
+            if (!missingKeys.isEmpty()) {
+                throw new GradleException("Missing ${locale} tooltip keys: ${missingKeys}")
+            }
+        }
+
+        def dispellMixin = file('src/main/java/com/l2hostility_tweaks/mixin/DispellTraitMixin.java')
+                .getText('UTF-8')
+        if (!dispellMixin.contains('trait.l2hostility_tweaks.dispell.immunity')) {
+            throw new GradleException(
+                    'Dispell immunity tooltip must be owned by DispellTraitMixin.addDetail')
+        }
     }
 }
 

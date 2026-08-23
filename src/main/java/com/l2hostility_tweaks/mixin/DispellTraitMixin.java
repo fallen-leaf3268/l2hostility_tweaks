@@ -52,6 +52,14 @@ public class DispellTraitMixin {
 				.withStyle(ChatFormatting.GRAY));
 	}
 
+	@Inject(method = "addDetail", at = @At("TAIL"), remap = false)
+	private void l2fix$dispellImmunityDetail(List<Component> list, CallbackInfo ci) {
+		if (L2HConfig.isOldDispellEnabled()) {
+			list.add(Component.translatable("trait.l2hostility_tweaks.dispell.immunity")
+					.withStyle(ChatFormatting.GOLD));
+		}
+	}
+
 	private static Component l2fix$mapLevel(IntFunction<Component> func, int max) {
 		Component comp = null;
 		for (int i = 1; i <= max; i++) {
