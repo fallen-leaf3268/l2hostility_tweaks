@@ -1,6 +1,7 @@
 package com.l2hostility_tweaks.compat.kubejs;
 
 import com.l2hostility_tweaks.content.traits.LegendarySelfEffectTrait;
+import com.l2hostility_tweaks.content.traits.LegendaryTraitColor;
 import dev.xkmc.l2hostility.compat.kubejs.AbstractTraitBuilder;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import net.minecraft.resources.ResourceLocation;
@@ -38,6 +39,7 @@ public class LegendarySelfEffectTraitBuilder extends AbstractTraitBuilder<Legend
 
 	@Override
 	public MobTrait createObject() {
+		color = LegendaryTraitColor.normalize(color);
 		return new LegendarySelfEffectTrait(color, effect, duration, amplifierPerLevel);
 	}
 }

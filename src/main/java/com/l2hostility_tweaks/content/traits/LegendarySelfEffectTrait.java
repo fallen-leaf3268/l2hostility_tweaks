@@ -23,7 +23,7 @@ public class LegendarySelfEffectTrait extends LegendaryTrait {
 
 	public LegendarySelfEffectTrait(IntSupplier color, Supplier<MobEffect> effect, int duration, int amplifierPerLevel) {
 		super(ChatFormatting.GOLD);
-		this.color = color;
+		this.color = LegendaryTraitColor.normalize(color);
 		this.effect = effect;
 		this.duration = duration;
 		this.amplifierPerLevel = amplifierPerLevel;

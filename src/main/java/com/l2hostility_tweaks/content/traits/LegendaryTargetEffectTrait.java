@@ -22,7 +22,7 @@ public class LegendaryTargetEffectTrait extends LegendaryTrait {
 
 	public LegendaryTargetEffectTrait(IntSupplier color, Function<Integer, MobEffectInstance> func) {
 		super(ChatFormatting.GOLD);
-		this.color = color;
+		this.color = LegendaryTraitColor.normalize(color);
 		this.func = func;
 	}
 
