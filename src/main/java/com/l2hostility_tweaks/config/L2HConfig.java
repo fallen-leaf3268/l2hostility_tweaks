@@ -80,6 +80,7 @@ public class L2HConfig {
 		public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> dispellCountArray;
         // === 传奇限制 ===
         public final ForgeConfigSpec.BooleanValue legendaryEnabled;
+        public final ForgeConfigSpec.BooleanValue legendaryBypassVanillaGate;
         public final ForgeConfigSpec.IntValue legendaryUnlimited;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> legendaryThresholds;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> extraLegendaryIds;
@@ -214,6 +215,8 @@ public class L2HConfig {
             builder.push("legendary_limit");
             legendaryEnabled = builder.comment("启用传奇词条数量限制")
                     .define("enabled", false);
+            legendaryBypassVanillaGate = builder.comment("绕过原版传奇词条等级门槛")
+                    .define("bypass_vanilla_gate", false);
             legendaryUnlimited = builder.comment("超过此难度取消传奇数量限制")
                     .defineInRange("unlimited_threshold", 2000, 0, Integer.MAX_VALUE);
             legendaryThresholds = builder.comment("格式: \"难度,最大数量\"",
