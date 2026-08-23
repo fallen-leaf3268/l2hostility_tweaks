@@ -2,8 +2,15 @@ package com.l2hostility_tweaks.client.tooltip;
 
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.init.L2HFEnchantments;
+import dev.xkmc.l2hostility.content.item.traits.SealedItem;
+import dev.xkmc.l2hostility.init.data.LHConfig;
+import dev.xkmc.l2hostility.init.data.LangData;
+import dev.xkmc.l2hostility.init.registrate.LHItems;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ArmorItem;
@@ -33,6 +40,19 @@ public final class TooltipPipeline {
     private static final String SPLIT_DESC = "enchantment.l2hostility.split_suppressor.desc";
     private static final ResourceLocation SPLIT_SUPPRESSOR_ID =
             new ResourceLocation("l2hostility", "split_suppressor");
+    private static final ResourceLocation ABRAHADABRA_ID =
+            new ResourceLocation("l2hostility", "abrahadabra");
+    private static final ResourceLocation DETECTOR_GLASSES_ID =
+            new ResourceLocation("l2hostility", "detector_glasses");
+    private static final ResourceLocation RESTORATION_POCKET_ID =
+            new ResourceLocation("l2hostility", "pocket_of_restoration");
+    private static final String ABRAHADABRA_TOOLTIP = "tooltip.l2hostility_tweaks.abrahadabra_minion";
+    private static final String GLOW_ENABLED = "tooltip.l2hostility_tweaks.glow_enabled";
+    private static final String GLOW_DISABLED = "tooltip.l2hostility_tweaks.glow_disabled";
+    private static final String ESSENCE_TOOLTIP = "tooltip.l2hostility_tweaks.essence_use";
+    private static final String SEALED_ITEM_TOOLTIP = "l2hostility.tooltip.sealed_item";
+    private static final String RESTORATION_POCKET_DESCRIPTION =
+            "l2hostility.item.equipment.pocket_of_restoration";
 
     private TooltipPipeline() {
     }
@@ -41,6 +61,9 @@ public final class TooltipPipeline {
                              List<Component> tooltip) {
         if (TooltipComponents.isVisible(stack, ItemStack.TooltipPart.ENCHANTMENTS)) {
             applyDescriptions(stack, EnchantmentHelper.getEnchantments(stack), tooltip);
+        }
+        if (TooltipComponents.isVisible(stack, ItemStack.TooltipPart.ADDITIONAL)) {
+            applyItemDetails(stack, tooltip);
         }
     }
 
@@ -90,6 +113,84 @@ public final class TooltipPipeline {
                 .withStyle(ChatFormatting.AQUA);
         String key = armor ? REPRINT_DESC_ARMOR : REPRINT_DESC;
         return Component.translatable(key, number).withStyle(ChatFormatting.GRAY);
+    }
+
+    static void applyStaticItemTooltip(List<Component> tooltip, Collection<String> keys,
+                                       Component description) {
+        TooltipComponents.upsertOrAppend(tooltip, keys, description);
+    }
+
+    private static void applyItemDetails(ItemStack stack, List<Component> tooltip) {
+        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+        if (ABRAHADABRA_ID.equals(itemId)) {
+            applyStaticItemTooltip(tooltip, Set.of(ABRAHADABRA_TOOLTIP),
+                    Component.translatable(ABRAHADABRA_TOOLTIP).withStyle(ChatFormatting.GOLD));
+        }
+        if (DETECTOR_GLASSES_ID.equals(itemId)) {
+            boolean disabled = stack.hasTag() && stack.getTag().getBoolean("DetectorGlowDisabled");
+            String key = disabled ? GLOW_DISABLED : GLOW_ENABLED;
+            applyStaticItemTooltip(tooltip, Set.of(GLOW_ENABLED, GLOW_DISABLED),
+                    Component.translatable(key)
+                            .withStyle(disabled ? ChatFormatting.RED : ChatFormatting.GREEN));
+        }
+        if (stack.is(LHItems.HOSTILITY_ESSENCE.get())) {
+            applyStaticItemTooltip(tooltip, Set.of(ESSENCE_TOOLTIP),
+                    Component.translatable(ESSENCE_TOOLTIP, LHConfig.COMMON.bottleOfCurseLevel.get())
+                            .withStyle(ChatFormatting.GRAY));
+        }
+        if (RESTORATION_POCKET_ID.equals(itemId)) {
+            addRestorationPocketContents(stack, tooltip);
+        }
+    }
+
+    private static void addRestorationPocketContents(ItemStack stack, List<Component> tooltip) {
+        int gluttonyLevel = EnchantmentHelper.getTagEnchantmentLevel(
+                L2HFEnchantments.GLUTTONY_POCKET.get(), stack);
+        CompoundTag tag = stack.getTag();
+        if (gluttonyLevel <= 0 || tag == null) {
+            return;
+        }
+
+        int sealedItemLine = findTranslationLine(tooltip, SEALED_ITEM_TOOLTIP);
+        if (sealedItemLine >= 0) {
+            int insertAt = Math.min(sealedItemLine + 2, tooltip.size());
+            addExtraPocketSlots(tag, gluttonyLevel, tooltip, insertAt);
+            return;
+        }
+
+        int descriptionLine = findTranslationLine(tooltip, RESTORATION_POCKET_DESCRIPTION);
+        int insertAt = descriptionLine >= 0 ? descriptionLine + 1 : tooltip.size();
+        tooltip.add(insertAt++, LangData.TOOLTIP_SEAL_DATA.get().withStyle(ChatFormatting.GRAY));
+        insertAt = addStoredItem(tag, "UnsealRoot", tooltip, insertAt);
+        addExtraPocketSlots(tag, gluttonyLevel, tooltip, insertAt);
+    }
+
+    private static void addExtraPocketSlots(CompoundTag tag, int gluttonyLevel,
+                                            List<Component> tooltip, int insertAt) {
+        for (int i = 1; i <= gluttonyLevel; i++) {
+            insertAt = addStoredItem(tag, "UnsealRoot_" + i, tooltip, insertAt);
+        }
+    }
+
+    private static int addStoredItem(CompoundTag tag, String key,
+                                     List<Component> tooltip, int insertAt) {
+        if (!tag.contains(key, Tag.TAG_COMPOUND)) {
+            return insertAt;
+        }
+        ItemStack stored = ItemStack.of(tag.getCompound(key).getCompound(SealedItem.DATA));
+        if (!stored.isEmpty()) {
+            tooltip.add(insertAt++, stored.getHoverName());
+        }
+        return insertAt;
+    }
+
+    private static int findTranslationLine(List<Component> tooltip, String key) {
+        for (int i = 0; i < tooltip.size(); i++) {
+            if (TooltipComponents.containsTranslation(tooltip.get(i), Set.of(key))) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private static void applyStaticDescription(List<Component> tooltip,

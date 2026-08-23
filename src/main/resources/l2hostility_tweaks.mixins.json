@@ -8,10 +8,8 @@
     "mixins": [
         "GetTraitLevelMixin",
         "AbrahadabraReflectMixin",
-        "AbrahadabraTooltipMixin",
         "AntiBuildBeneficialMixin",
         "TraitSymbolBudgetMixin",
-        "DetectorGlassesTooltipMixin",
         "AntibuildBlockImmuneMixin",
         "AntibuildPlaceBypassMixin",
                 "GravityTraitMixin",
@@ -70,7 +68,8 @@
         "ClientGlowingHandlerMixin",
         "ContainerScreenMixin",
         "ClientEventsMixin",
-        "DimensionBreakerItemStackMixin"
+        "DimensionBreakerItemStackMixin",
+        "TooltipPipelineMixin"
     ],
     "server": []
 }

@@ -23,6 +23,8 @@ class TooltipPipelineDescriptionsTest {
     private static final String REPRINT_ANY = REPRINT + ".desc_any";
     private static final String GLUTTONY = "enchantment.l2hostility_tweaks.gluttony_pocket";
     private static final String GLUTTONY_DESC = GLUTTONY + ".desc";
+    private static final String GLOW_ENABLED = "tooltip.l2hostility_tweaks.glow_enabled";
+    private static final String GLOW_DISABLED = "tooltip.l2hostility_tweaks.glow_disabled";
 
     @Test
     void processesTwoDescriptionsWithoutShortCircuiting() {
@@ -70,6 +72,23 @@ class TooltipPipelineDescriptionsTest {
                 TooltipPipeline.reprintDescription(false, true, 10, 0.1), Set.of(REPRINT_DESC)));
         assertTrue(TooltipComponents.containsTranslation(
                 TooltipPipeline.reprintDescription(false, false, 2, 0.1), Set.of(REPRINT_ANY)));
+    }
+
+    @Test
+    void staticItemTooltipReplacesCanonicalLineOnly() {
+        Component repeatedName = Component.literal("Sealed item");
+        List<Component> tooltip = new ArrayList<>(List.of(
+                Component.literal("Detector Glasses"),
+                Component.translatable(GLOW_ENABLED),
+                repeatedName,
+                repeatedName));
+
+        TooltipPipeline.applyStaticItemTooltip(tooltip, Set.of(GLOW_ENABLED, GLOW_DISABLED),
+                Component.translatable(GLOW_DISABLED));
+
+        assertEquals(4, tooltip.size());
+        assertTrue(TooltipComponents.containsTranslation(tooltip, GLOW_DISABLED));
+        assertEquals(2, tooltip.stream().filter(repeatedName::equals).count());
     }
 
     private static final class TestEnchantment extends Enchantment {
