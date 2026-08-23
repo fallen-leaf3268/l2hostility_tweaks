@@ -12,6 +12,7 @@ import net.minecraft.world.entity.LivingEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -65,6 +66,7 @@ public class TraitGeneratorMixin {
             if (traitReg == null) return;
 
             HashMap<Object, Object> traits = (HashMap<Object, Object>) (Object) TraitGenerationHelper.getTraits(self);
+            if (traits == null) return;
 
             int appliedCount = 0;
             for (Object tb : presets) {
@@ -87,15 +89,12 @@ public class TraitGeneratorMixin {
                     continue;
                 }
 
-                mt.initialize(entity, minLevel);
+                Object existing = traits.get(mt);
+                int currentRank = existing instanceof Integer ? (Integer) existing : 0;
+                if (!l2fix$shouldApplyPreset(currentRank, minLevel)) continue;
 
-                if (traits != null) {
-                    Object existing = traits.get(mt);
-                    int currentRank = existing instanceof Integer ? (Integer) existing : 0;
-                    if (currentRank < minLevel) {
-                        traits.put(mt, minLevel);
-                    }
-                }
+                traits.put(mt, minLevel);
+                mt.initialize(entity, minLevel);
                 appliedCount++;
             }
             if (appliedCount > 0) {
@@ -104,6 +103,11 @@ public class TraitGeneratorMixin {
         } catch (Exception e) {
             LOG.error("[NbtPresetGen] Failed to apply NBT presets", e);
         }
+    }
+
+    @Unique
+    static boolean l2fix$shouldApplyPreset(int currentRank, int minLevel) {
+        return currentRank < minLevel;
     }
 
     private static boolean l2fix$resolveFields(Object tb) {
