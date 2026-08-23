@@ -36,6 +36,9 @@ public final class TooltipComponents {
         if (component.getContents() instanceof TranslatableContents translatable
                 && keys.contains(translatable.getKey())) {
             MutableComponent result = replacement.copy();
+            if (!component.getStyle().isEmpty()) {
+                result.setStyle(component.getStyle());
+            }
             for (Component sibling : component.getSiblings()) {
                 if (!containsTranslation(sibling, keys)) {
                     result.append(sibling.copy());

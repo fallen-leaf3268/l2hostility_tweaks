@@ -106,7 +106,7 @@
   "enchantment.l2hostility_tweaks.gluttony_pocket.desc": "每级额外增加1个收纳的封印物品",
 "item.l2hostility_tweaks.miracle_twisted_pocket": "奇迹扭曲口袋",
   "tooltip.l2hostility_tweaks.miracle_twisted_pocket": "佩戴后每隔 %s 秒会减少封印物品 %s 秒的封印时间",
-  "enchantment.l2hostility.split_suppressor.desc": "击中目标时永久封印目标分裂词条",
+  "enchantment.l2hostility_tweaks.split_suppressor.desc": "击中目标时永久封印目标分裂词条",
 
   "tooltip.l2hostility_tweaks.essence_use": "右键属于你的仆从时为仆从提升%s级难度等级"
 }

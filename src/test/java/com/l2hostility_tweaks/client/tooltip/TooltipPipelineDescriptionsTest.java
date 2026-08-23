@@ -25,6 +25,19 @@ class TooltipPipelineDescriptionsTest {
     private static final String GLUTTONY_DESC = GLUTTONY + ".desc";
     private static final String GLOW_ENABLED = "tooltip.l2hostility_tweaks.glow_enabled";
     private static final String GLOW_DISABLED = "tooltip.l2hostility_tweaks.glow_disabled";
+    private static final String SPLIT_UPSTREAM_DESC =
+            "enchantment.l2hostility.split_suppressor.desc";
+    private static final String SPLIT_OWNED_DESC =
+            "enchantment.l2hostility_tweaks.split_suppressor.desc";
+
+    @Test
+    void splitSuppressorUsesOwnedTranslationKey() {
+        Component description = TooltipPipeline.splitSuppressorDescription();
+
+        assertTrue(TooltipComponents.containsTranslation(description, Set.of(SPLIT_OWNED_DESC)));
+        assertEquals(Set.of(SPLIT_UPSTREAM_DESC, SPLIT_OWNED_DESC),
+                TooltipPipeline.splitSuppressorDescriptionKeys());
+    }
 
     @Test
     void processesTwoDescriptionsWithoutShortCircuiting() {

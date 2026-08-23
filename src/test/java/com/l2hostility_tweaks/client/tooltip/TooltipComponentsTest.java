@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.client.tooltip;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.LiteralContents;
 import net.minecraft.world.item.ItemStack;
@@ -50,6 +51,16 @@ class TooltipComponentsTest {
 
         assertTrue(TooltipComponents.containsTranslation(result, Set.of(DESC_ANY)));
         assertEquals(" [source]", result.getSiblings().get(0).getString());
+    }
+
+    @Test
+    void replacementPreservesExistingRootStyle() {
+        Component line = Component.translatable(DESC).withStyle(ChatFormatting.DARK_AQUA);
+
+        Component result = TooltipComponents.replaceTranslations(line, Set.of(DESC),
+                Component.translatable(DESC_ANY).withStyle(ChatFormatting.GRAY));
+
+        assertEquals(line.getStyle(), result.getStyle());
     }
 
     @Test

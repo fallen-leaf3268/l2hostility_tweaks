@@ -37,7 +37,11 @@ public final class TooltipPipeline {
             Set.of(REPRINT_DESC, REPRINT_DESC_ANY, REPRINT_DESC_ARMOR);
     private static final String ABYSS_DESC = "enchantment.l2hostility_tweaks.abyss_pocket.desc";
     private static final String GLUTTONY_DESC = "enchantment.l2hostility_tweaks.gluttony_pocket.desc";
-    private static final String SPLIT_DESC = "enchantment.l2hostility.split_suppressor.desc";
+    private static final String SPLIT_UPSTREAM_DESC = "enchantment.l2hostility.split_suppressor.desc";
+    private static final String SPLIT_DESC =
+            "enchantment.l2hostility_tweaks.split_suppressor.desc";
+    private static final Set<String> SPLIT_DESCRIPTIONS =
+            Set.of(SPLIT_UPSTREAM_DESC, SPLIT_DESC);
     private static final ResourceLocation SPLIT_SUPPRESSOR_ID =
             new ResourceLocation("l2hostility", "split_suppressor");
     private static final ResourceLocation ABRAHADABRA_ID =
@@ -83,8 +87,17 @@ public final class TooltipPipeline {
 
         Enchantment splitSuppressor = ForgeRegistries.ENCHANTMENTS.getValue(SPLIT_SUPPRESSOR_ID);
         if (splitSuppressor != null) {
-            applyStaticDescription(tooltip, enchantments, splitSuppressor, SPLIT_DESC);
+            applyDescription(tooltip, enchantments, splitSuppressor, SPLIT_DESCRIPTIONS,
+                    splitSuppressorDescription());
         }
+    }
+
+    static Component splitSuppressorDescription() {
+        return Component.translatable(SPLIT_DESC).withStyle(ChatFormatting.GRAY);
+    }
+
+    static Set<String> splitSuppressorDescriptionKeys() {
+        return SPLIT_DESCRIPTIONS;
     }
 
     static void applyDescription(List<Component> tooltip, Map<Enchantment, Integer> enchantments,

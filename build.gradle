@@ -125,7 +125,7 @@ tasks.register('validateProjectResources') {
                 'enchantment.l2hostility_tweaks.reprint_counter.desc_armor',
                 'enchantment.l2hostility_tweaks.abyss_pocket.desc',
                 'enchantment.l2hostility_tweaks.gluttony_pocket.desc',
-                'enchantment.l2hostility.split_suppressor.desc',
+                'enchantment.l2hostility_tweaks.split_suppressor.desc',
                 'tooltip.l2hostility_tweaks.abrahadabra_minion',
                 'tooltip.l2hostility_tweaks.glow_enabled',
                 'tooltip.l2hostility_tweaks.glow_disabled',
