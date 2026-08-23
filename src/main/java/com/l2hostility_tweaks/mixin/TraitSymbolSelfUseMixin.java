@@ -75,7 +75,7 @@ public class TraitSymbolSelfUseMixin {
 			for (var group : L2HConfig.getExclusionGroups()) {
 				if (group.traitIds().contains(trait.getID())) {
 					for (var entry : cap.traits.entrySet()) {
-						if (entry.getValue() > 0 && !entry.getKey().getID().equals(trait.getID()) && group.traitIds().contains(entry.getKey().getID())) {
+						if (l2fix$isPresentForExclusion(entry.getValue()) && !entry.getKey().getID().equals(trait.getID()) && group.traitIds().contains(entry.getKey().getID())) {
 							if (player instanceof ServerPlayer sp) {
 								sp.sendSystemMessage(L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_MUTUAL_EXCLUSION, trait.getDesc(), entry.getKey().getDesc()).withStyle(ChatFormatting.RED), true);
 							}
@@ -185,5 +185,9 @@ public class TraitSymbolSelfUseMixin {
 	static int l2fix$projectedTraitCount(Collection<Integer> levels, Integer targetRawLevel) {
 		int count = (int) levels.stream().filter(value -> value != null && value != 0).count();
 		return targetRawLevel == null || targetRawLevel == 0 ? count + 1 : count;
+	}
+
+	static boolean l2fix$isPresentForExclusion(Integer rawLevel) {
+		return rawLevel != null && rawLevel != 0;
 	}
 }

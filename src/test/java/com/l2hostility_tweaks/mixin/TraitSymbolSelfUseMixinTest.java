@@ -21,4 +21,12 @@ class TraitSymbolSelfUseMixinTest {
         assertEquals(3, TraitSymbolSelfUseMixin.l2fix$projectedTraitCount(List.of(1, -2, -1), -2));
         assertEquals(4, TraitSymbolSelfUseMixin.l2fix$projectedTraitCount(List.of(1, -2, -1), null));
     }
+
+    @Test
+    void sealedTraitParticipatesInExclusionValidation() {
+        assertTrue(TraitSymbolSelfUseMixin.l2fix$isPresentForExclusion(1));
+        assertTrue(TraitSymbolSelfUseMixin.l2fix$isPresentForExclusion(-1));
+        assertFalse(TraitSymbolSelfUseMixin.l2fix$isPresentForExclusion(0));
+        assertFalse(TraitSymbolSelfUseMixin.l2fix$isPresentForExclusion(null));
+    }
 }
