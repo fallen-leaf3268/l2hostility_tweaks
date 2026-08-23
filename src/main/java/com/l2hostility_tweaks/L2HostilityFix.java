@@ -261,6 +261,8 @@ public class L2HostilityFix {
         for (var entry : newCap.traits.entrySet()) {
             int level = entry.getValue();
             int absLevel = Math.abs(level);
+            TraitDisableHelper.syncSealedLevelData(
+                    newPlayer.getPersistentData(), entry.getKey().getID(), level);
             if (level < 0) {
                 entry.getKey().initialize(newPlayer, 0);
             } else {

@@ -4,6 +4,7 @@ import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -21,6 +22,15 @@ public class TraitDisableHelper {
 
 	private static String sealedLevelKey(String traitId) {
 		return SEALED_LEVEL_PREFIX + traitId;
+	}
+
+	public static void syncSealedLevelData(CompoundTag data, String traitId, int rawLevel) {
+		String key = sealedLevelKey(traitId);
+		if (rawLevel < 0) {
+			data.putInt(key, Math.abs(rawLevel));
+		} else {
+			data.remove(key);
+		}
 	}
 
 	public static Registry<MobTrait> getTraitRegistry() {
