@@ -11,6 +11,8 @@ import net.minecraft.world.entity.LivingEntity;
 public class TraitDisableHelper {
 
 	public static final String SEAL_EXPIRY_PREFIX = "l2htweaks_seal_expiry_";
+	public static final String UNDYING_TRAIT_ID = "l2hostility:undying";
+	public static final String UNDYING_COUNT_KEY = "l2fix$undying_count";
 	private static final String SEALED_LEVEL_PREFIX = "l2htweaks_sealed_level_";
 	private static final ThreadLocal<LivingEntity> DISPLAY_ENTITY = new ThreadLocal<>();
 	private static final ThreadLocal<Boolean> HIDE_REALITY_DETAIL = ThreadLocal.withInitial(() -> false);
@@ -36,6 +38,12 @@ public class TraitDisableHelper {
 	public static void clearSealData(CompoundTag data, String traitId) {
 		data.remove(sealedLevelKey(traitId));
 		data.remove(sealExpiryKey(traitId));
+	}
+
+	public static void onTraitUnsealed(CompoundTag data, String traitId) {
+		if (UNDYING_TRAIT_ID.equals(traitId)) {
+			data.remove(UNDYING_COUNT_KEY);
+		}
 	}
 
 	public static Registry<MobTrait> getTraitRegistry() {
@@ -111,6 +119,7 @@ public class TraitDisableHelper {
 					e.setValue(restore);
 					e.getKey().initialize(entity, restore);
 					e.getKey().postInit(entity, restore);
+					onTraitUnsealed(entity.getPersistentData(), traitId);
 					break;
 				}
 			}

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TraitDisableHelperTest {
 
@@ -41,5 +42,26 @@ class TraitDisableHelperTest {
 
         assertFalse(data.contains(SEALED_LEVEL_KEY));
         assertFalse(data.contains(expiryKey));
+    }
+
+    @Test
+    void clearsUndyingCountAfterUndyingIsUnsealed() {
+        CompoundTag data = new CompoundTag();
+        data.putInt(TraitDisableHelper.UNDYING_COUNT_KEY, 3);
+
+        TraitDisableHelper.onTraitUnsealed(data, TraitDisableHelper.UNDYING_TRAIT_ID);
+
+        assertFalse(data.contains(TraitDisableHelper.UNDYING_COUNT_KEY));
+    }
+
+    @Test
+    void keepsUndyingCountWhenAnotherTraitIsUnsealed() {
+        CompoundTag data = new CompoundTag();
+        data.putInt(TraitDisableHelper.UNDYING_COUNT_KEY, 3);
+
+        TraitDisableHelper.onTraitUnsealed(data, TRAIT_ID);
+
+        assertTrue(data.contains(TraitDisableHelper.UNDYING_COUNT_KEY));
+        assertEquals(3, data.getInt(TraitDisableHelper.UNDYING_COUNT_KEY));
     }
 }
