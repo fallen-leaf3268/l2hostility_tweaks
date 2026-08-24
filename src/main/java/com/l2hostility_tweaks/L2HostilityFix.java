@@ -14,6 +14,7 @@ import com.l2hostility_tweaks.network.NetworkHandler;
 import dev.xkmc.l2complements.content.feature.CurioFeaturePredicate;
 import dev.xkmc.l2complements.content.feature.EntityFeature;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
+import com.l2hostility_tweaks.util.ImmunityHelper;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.init.data.LHConfig;
 import dev.xkmc.l2hostility.init.registrate.LHItems;
@@ -36,6 +37,7 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.TagsUpdatedEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.InterModComms;
@@ -164,6 +166,11 @@ public class L2HostilityFix {
         deathSealExpiry.clear();
         deathMeta.clear();
         pendingTraitSync.clear();
+    }
+
+    @SubscribeEvent
+    public void onTagsUpdated(TagsUpdatedEvent event) {
+        ImmunityHelper.invalidateTagCaches();
     }
 
     @SubscribeEvent

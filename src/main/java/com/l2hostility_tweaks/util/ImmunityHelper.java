@@ -13,6 +13,7 @@ import top.theillusivec4.curios.api.CuriosApi;
 
 import java.lang.ref.WeakReference;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 public class ImmunityHelper {
 
@@ -23,9 +24,6 @@ public class ImmunityHelper {
     private static TagKey<MobTrait> playerSelfBlacklistTag;
     private static final ConcurrentHashMap<String, Boolean> traitTagCache = new ConcurrentHashMap<>();
     private static final int TRAIT_TAG_CACHE_MAX = 2000;
-
-    private static final TagKey<Item> IMMUNE_TO_FORCE_ITEM = TagKey.create(Registries.ITEM, new ResourceLocation("l2hostility_tweaks", "immune_to_force"));
-    private static final TagKey<Item> IMMUNE_TO_GRAVITY_ITEM = TagKey.create(Registries.ITEM, new ResourceLocation("l2hostility_tweaks", "immune_to_gravity"));
 
     private static WeakReference<LivingEntity> cachedEntityForceRef = new WeakReference<>(null);
     private static int cacheTickForce = -1;
@@ -64,7 +62,6 @@ public class ImmunityHelper {
     }
 
     private static boolean hasTraitInTag(LivingEntity entity, TagKey<MobTrait> tag) {
-        discoverTraitRegistry();
         if (TraitDisableHelper.getTraitRegistry() == null || tag == null) return false;
         try {
             MobTraitCap cap = MobTraitCap.HOLDER.get(entity);
@@ -114,20 +111,24 @@ public class ImmunityHelper {
     }
 
     public static boolean isSelfBlacklisted(MobTrait trait) {
-        discoverTraitRegistry();
-        if (TraitDisableHelper.getTraitRegistry() == null || playerSelfBlacklistTag == null) return false;
+        TagKey<MobTrait> tag = resolveAfterDiscovery(
+                ImmunityHelper::discoverTraitRegistry, () -> playerSelfBlacklistTag);
+        if (TraitDisableHelper.getTraitRegistry() == null || tag == null) return false;
         return TraitDisableHelper.getTraitRegistry().getHolder(TraitDisableHelper.getTraitRegistry().getResourceKey(trait).orElse(null))
-                .map(h -> h.is(playerSelfBlacklistTag)).orElse(false);
+                .map(h -> h.is(tag)).orElse(false);
     }
 
     public static boolean isImmuneToTraitTick(LivingEntity entity, MobTrait trait) {
-        if (isImmuneToForce(entity) && isTraitInTag(trait, forceImmuneTraitTag)) return true;
-        if (isImmuneToGravity(entity) && isTraitInTag(trait, gravityImmuneTraitTag)) return true;
+        TagKey<MobTrait> forceTag = resolveAfterDiscovery(
+                ImmunityHelper::discoverTraitRegistry, () -> forceImmuneTraitTag);
+        TagKey<MobTrait> gravityTag = resolveAfterDiscovery(
+                ImmunityHelper::discoverTraitRegistry, () -> gravityImmuneTraitTag);
+        if (isImmuneToForce(entity) && isTraitInTag(trait, forceTag)) return true;
+        if (isImmuneToGravity(entity) && isTraitInTag(trait, gravityTag)) return true;
         return false;
     }
 
     private static boolean isTraitInTag(MobTrait trait, TagKey<MobTrait> tag) {
-        discoverTraitRegistry();
         if (TraitDisableHelper.getTraitRegistry() == null || tag == null) return false;
         return TraitDisableHelper.getTraitRegistry()
                 .getHolder(TraitDisableHelper.getTraitRegistry().getResourceKey(trait).orElse(null))
@@ -135,11 +136,13 @@ public class ImmunityHelper {
     }
 
     private static boolean computeImmuneToForce(LivingEntity entity) {
-        if (hasItemWithTag(entity, IMMUNE_TO_FORCE_ITEM)) {
+        if (hasItemWithTag(entity, ItemTags.IMMUNE_TO_FORCE)) {
             LOGGER.debug("[ForceImmunity] Force immunity (Curios tag) for {}", entity.getName().getString());
             return true;
         }
-        if (hasTraitInTag(entity, forceImmuneTraitTag)) {
+        TagKey<MobTrait> tag = resolveAfterDiscovery(
+                ImmunityHelper::discoverTraitRegistry, () -> forceImmuneTraitTag);
+        if (hasTraitInTag(entity, tag)) {
             LOGGER.debug("[ForceImmunity] Force immunity (trait tag) for {}", entity.getName().getString());
             return true;
         }
@@ -147,14 +150,38 @@ public class ImmunityHelper {
     }
 
     private static boolean computeImmuneToGravity(LivingEntity entity) {
-        if (hasItemWithTag(entity, IMMUNE_TO_GRAVITY_ITEM)) {
+        if (hasItemWithTag(entity, ItemTags.IMMUNE_TO_GRAVITY)) {
             LOGGER.debug("[GravityImmunity] Gravity immunity (Curios tag) for {}", entity.getName().getString());
             return true;
         }
-        if (hasTraitInTag(entity, gravityImmuneTraitTag)) {
+        TagKey<MobTrait> tag = resolveAfterDiscovery(
+                ImmunityHelper::discoverTraitRegistry, () -> gravityImmuneTraitTag);
+        if (hasTraitInTag(entity, tag)) {
             LOGGER.debug("[GravityImmunity] Gravity immunity (trait tag) for {}", entity.getName().getString());
             return true;
         }
         return false;
+    }
+
+    static <T> T resolveAfterDiscovery(Runnable discovery, Supplier<T> refreshedValue) {
+        discovery.run();
+        return refreshedValue.get();
+    }
+
+    public static void invalidateTagCaches() {
+        traitTagCache.clear();
+        cachedEntityForceRef = new WeakReference<>(null);
+        cacheTickForce = -1;
+        cachedImmuneToForce = false;
+        cachedEntityGravityRef = new WeakReference<>(null);
+        cacheTickGravity = -1;
+        cachedImmuneToGravity = false;
+    }
+
+    private static final class ItemTags {
+        private static final TagKey<Item> IMMUNE_TO_FORCE = TagKey.create(
+                Registries.ITEM, new ResourceLocation("l2hostility_tweaks", "immune_to_force"));
+        private static final TagKey<Item> IMMUNE_TO_GRAVITY = TagKey.create(
+                Registries.ITEM, new ResourceLocation("l2hostility_tweaks", "immune_to_gravity"));
     }
 }
