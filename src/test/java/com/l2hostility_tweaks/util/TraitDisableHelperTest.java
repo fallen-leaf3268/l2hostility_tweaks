@@ -93,4 +93,41 @@ class TraitDisableHelperTest {
         assertEquals("trait.l2hostility_tweaks.undying.limit_permanent", contents.getKey());
         assertArrayEquals(new Object[]{3}, contents.getArgs());
     }
+
+    @Test
+    void snapshotsAndRestoresOnlyManagedRuntimeState() {
+        String firstExpiry = TraitDisableHelper.sealExpiryKey("l2hostility:undying");
+        String secondExpiry = TraitDisableHelper.sealExpiryKey("l2hostility:split");
+        CompoundTag source = new CompoundTag();
+        source.putLong(firstExpiry, 1200L);
+        source.putLong(secondExpiry, -1L);
+        source.putInt(TraitDisableHelper.UNDYING_COUNT_KEY, 2);
+        source.putInt("l2htweaks_sealed_level_l2hostility:undying", 1);
+        source.putString("unrelated", "value");
+
+        CompoundTag snapshot = TraitDisableHelper.snapshotRuntimeState(source);
+        source.putLong(firstExpiry, 9999L);
+        CompoundTag target = new CompoundTag();
+        TraitDisableHelper.restoreRuntimeState(target, snapshot);
+
+        assertEquals(1200L, target.getLong(firstExpiry));
+        assertEquals(-1L, target.getLong(secondExpiry));
+        assertEquals(2, target.getInt(TraitDisableHelper.UNDYING_COUNT_KEY));
+        assertFalse(target.contains("l2htweaks_sealed_level_l2hostility:undying"));
+        assertFalse(target.contains("unrelated"));
+        target.putLong(firstExpiry, 7777L);
+        assertEquals(1200L, snapshot.getLong(firstExpiry));
+    }
+
+    @Test
+    void keepsUndyingCountAbsentWhenSourceDoesNotContainIt() {
+        CompoundTag source = new CompoundTag();
+        source.putLong(TraitDisableHelper.sealExpiryKey("l2hostility:split"), 400L);
+
+        CompoundTag snapshot = TraitDisableHelper.snapshotRuntimeState(source);
+        CompoundTag target = new CompoundTag();
+        TraitDisableHelper.restoreRuntimeState(target, snapshot);
+
+        assertFalse(target.contains(TraitDisableHelper.UNDYING_COUNT_KEY));
+    }
 }

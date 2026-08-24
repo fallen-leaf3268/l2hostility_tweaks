@@ -5,6 +5,7 @@ import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
@@ -21,6 +22,30 @@ public class TraitDisableHelper {
 
 	public static String sealExpiryKey(String traitId) {
 		return SEAL_EXPIRY_PREFIX + traitId;
+	}
+
+	public static CompoundTag snapshotRuntimeState(CompoundTag data) {
+		CompoundTag snapshot = new CompoundTag();
+		for (String key : data.getAllKeys()) {
+			if (key.startsWith(SEAL_EXPIRY_PREFIX) && data.contains(key, Tag.TAG_LONG)) {
+				snapshot.putLong(key, data.getLong(key));
+			}
+		}
+		if (data.contains(UNDYING_COUNT_KEY, Tag.TAG_INT)) {
+			snapshot.putInt(UNDYING_COUNT_KEY, data.getInt(UNDYING_COUNT_KEY));
+		}
+		return snapshot;
+	}
+
+	public static void restoreRuntimeState(CompoundTag target, CompoundTag snapshot) {
+		for (String key : snapshot.getAllKeys()) {
+			if (key.startsWith(SEAL_EXPIRY_PREFIX) && snapshot.contains(key, Tag.TAG_LONG)) {
+				target.putLong(key, snapshot.getLong(key));
+			}
+		}
+		if (snapshot.contains(UNDYING_COUNT_KEY, Tag.TAG_INT)) {
+			target.putInt(UNDYING_COUNT_KEY, snapshot.getInt(UNDYING_COUNT_KEY));
+		}
 	}
 
 	private static String sealedLevelKey(String traitId) {
