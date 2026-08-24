@@ -12,8 +12,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.LinkedHashMap;
-
 @Mixin(value = MobTraitCap.class, remap = false)
 public abstract class MobTraitCapTickMixin {
 
@@ -28,10 +26,6 @@ public abstract class MobTraitCapTickMixin {
 		if (mob instanceof Player && getStage() == MobTraitCap.Stage.PRE_INIT) {
 			setStage(MobTraitCap.Stage.POST_INIT);
 		}
-	}
-
-	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Ljava/util/LinkedHashMap;clear()V"), remap = false)
-	public void l2fix$skipPetClear(LinkedHashMap<?, ?> instance) {
 	}
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Ldev/xkmc/l2hostility/content/traits/base/MobTrait;tick(Lnet/minecraft/world/entity/LivingEntity;I)V"), remap = false)

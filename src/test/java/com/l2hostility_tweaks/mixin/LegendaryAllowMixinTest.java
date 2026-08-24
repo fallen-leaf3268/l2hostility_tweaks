@@ -29,4 +29,10 @@ class LegendaryAllowMixinTest {
         assertFalse(Arrays.stream(MobTraitCapTickMixin.class.getDeclaredFields())
                 .anyMatch(field -> field.getName().equals("LOG")));
     }
+
+    @Test
+    void doesNotOverrideOwnableTraitConfigClear() {
+        assertFalse(Arrays.stream(MobTraitCapTickMixin.class.getDeclaredMethods())
+                .anyMatch(method -> method.getName().equals("l2fix$skipPetClear")));
+    }
 }
