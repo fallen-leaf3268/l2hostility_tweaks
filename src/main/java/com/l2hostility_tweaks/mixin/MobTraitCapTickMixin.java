@@ -1,12 +1,10 @@
 package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.util.ImmunityHelper;
-import com.mojang.logging.LogUtils;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.injection.At;
@@ -18,8 +16,6 @@ import java.util.LinkedHashMap;
 
 @Mixin(value = MobTraitCap.class, remap = false)
 public abstract class MobTraitCapTickMixin {
-
-	private static final Logger LOG = LogUtils.getLogger();
 
 	@Accessor("stage")
 	public abstract MobTraitCap.Stage getStage();
@@ -40,9 +36,7 @@ public abstract class MobTraitCapTickMixin {
 
 	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Ldev/xkmc/l2hostility/content/traits/base/MobTrait;tick(Lnet/minecraft/world/entity/LivingEntity;I)V"), remap = false)
 	public void l2fix$skipPlayerTraitTick(MobTrait trait, LivingEntity entity, int level) {
-		if (ImmunityHelper.isImmuneToTraitTick(entity, trait)) {
-			LOG.info("[TraitTick] BLOCKED {} for {}", trait.getID(), entity.getName().getString());
-		} else {
+		if (!ImmunityHelper.isImmuneToTraitTick(entity, trait)) {
 			trait.tick(entity, level);
 		}
 	}

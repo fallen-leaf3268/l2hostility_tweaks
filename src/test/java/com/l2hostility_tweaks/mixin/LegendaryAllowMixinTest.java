@@ -2,6 +2,8 @@ package com.l2hostility_tweaks.mixin;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -20,5 +22,11 @@ class LegendaryAllowMixinTest {
         assertFalse(AntibuildPlaceBypassMixin.l2fix$shouldBypass(false, true));
         assertFalse(AntibuildPlaceBypassMixin.l2fix$shouldBypass(true, false));
         assertTrue(AntibuildPlaceBypassMixin.l2fix$shouldBypass(true, true));
+    }
+
+    @Test
+    void blockedTraitTickDoesNotRetainAnInfoLogger() {
+        assertFalse(Arrays.stream(MobTraitCapTickMixin.class.getDeclaredFields())
+                .anyMatch(field -> field.getName().equals("LOG")));
     }
 }
