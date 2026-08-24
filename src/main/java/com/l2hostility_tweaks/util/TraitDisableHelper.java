@@ -5,6 +5,7 @@ import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -44,6 +45,16 @@ public class TraitDisableHelper {
 		if (UNDYING_TRAIT_ID.equals(traitId)) {
 			data.remove(UNDYING_COUNT_KEY);
 		}
+	}
+
+	public static Component buildUndyingLimitDetail(int maxResurrections, int sealDuration) {
+		if (maxResurrections < 0 || sealDuration == 0) return null;
+		if (sealDuration > 0) {
+			return Component.translatable("trait.l2hostility_tweaks.undying.limit_timed",
+					maxResurrections, sealDuration);
+		}
+		return Component.translatable("trait.l2hostility_tweaks.undying.limit_permanent",
+				maxResurrections);
 	}
 
 	public static Registry<MobTrait> getTraitRegistry() {

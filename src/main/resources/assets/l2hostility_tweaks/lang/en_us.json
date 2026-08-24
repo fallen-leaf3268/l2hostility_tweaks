@@ -1,4 +1,6 @@
 {
+  "trait.l2hostility_tweaks.undying.limit_timed": "Seals the trait after %s activations; the sealed trait unlocks after %s seconds",
+  "trait.l2hostility_tweaks.undying.limit_permanent": "Permanently seals the trait after %s activations",
   "enchantment.l2hostility_tweaks.reprint_counter": "Reprint Counter",
   "enchantment.l2hostility_tweaks.reprint_counter.desc": "On armor: reduces Reprint mob damage by %s. On any slot: reverses Reprint enchantment factor.",
   "enchantment.l2hostility_tweaks.reprint_counter.desc_any": "Reverses Reprint enchantment factor on any slot.",

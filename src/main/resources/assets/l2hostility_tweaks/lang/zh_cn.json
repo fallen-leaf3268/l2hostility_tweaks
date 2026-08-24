@@ -1,4 +1,6 @@
 {
+  "trait.l2hostility_tweaks.undying.limit_timed": "触发 %s 次后封印词条，封印的词条将在 %s 秒后解封",
+  "trait.l2hostility_tweaks.undying.limit_permanent": "触发 %s 次后永久封印词条",
   "enchantment.l2hostility_tweaks.reprint_counter": "复印反制",
   "enchantment.l2hostility_tweaks.reprint_counter.desc": "在护甲上时：拥有复印词条的生物对你造成的伤害减少 %s；在任意栏位时：逆转复印词条的附魔点数计算",
   "enchantment.l2hostility_tweaks.reprint_counter.desc_any": "逆转复印词条的附魔点数计算",
