@@ -50,6 +50,7 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import top.theillusivec4.curios.api.SlotTypeMessage;
+import net.minecraft.nbt.CompoundTag;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -62,7 +63,7 @@ public class L2HostilityFix {
     private static final Logger LOGGER = LoggerFactory.getLogger("l2htweaks:main");
     public static com.l2hostility_tweaks.proxy.IProxy PROXY;
     private static final java.util.Map<java.util.UUID, java.util.LinkedHashMap<dev.xkmc.l2hostility.content.traits.base.MobTrait, Integer>> deathSnapshots = new java.util.HashMap<>();
-    private static final java.util.Map<java.util.UUID, java.util.Map<String, Long>> deathSealExpiry = new java.util.HashMap<>();
+    private static final java.util.Map<java.util.UUID, CompoundTag> deathTraitRuntimeState = new java.util.HashMap<>();
     private static final java.util.Map<java.util.UUID, int[]> deathMeta = new java.util.HashMap<>();
     private static final Set<java.util.UUID> pendingTraitSync = Collections.synchronizedSet(new HashSet<>());
 
@@ -144,26 +145,25 @@ public class L2HostilityFix {
         for (var entry : cap.traits.entrySet()) {
             snapshot.put(entry.getKey(), entry.getValue());
         }
-        deathSnapshots.put(player.getUUID(), snapshot);
-        deathMeta.put(player.getUUID(), new int[]{cap.lv, cap.fullDrop ? 1 : 0});
+        java.util.UUID uuid = player.getUUID();
+        deathSnapshots.put(uuid, snapshot);
+        deathMeta.put(uuid, new int[]{cap.lv, cap.fullDrop ? 1 : 0});
 
-        java.util.Map<String, Long> seals = new java.util.HashMap<>();
-        for (String key : player.getPersistentData().getAllKeys()) {
-            if (key.startsWith(TraitDisableHelper.SEAL_EXPIRY_PREFIX)) {
-                seals.put(key, player.getPersistentData().getLong(key));
-            }
+        CompoundTag runtimeState = TraitDisableHelper.snapshotRuntimeState(player.getPersistentData());
+        if (runtimeState.isEmpty()) {
+            deathTraitRuntimeState.remove(uuid);
+        } else {
+            deathTraitRuntimeState.put(uuid, runtimeState);
         }
-        if (!seals.isEmpty()) {
-            deathSealExpiry.put(player.getUUID(), seals);
-        }
-        LOGGER.info("DEATH: snapshotted {} traits + {} seals for player={} uuid={}", snapshot.size(), seals.size(), player.getName().getString(), player.getUUID());
+        LOGGER.info("DEATH: snapshotted {} traits + {} runtime state entries for player={} uuid={}",
+                snapshot.size(), runtimeState.size(), player.getName().getString(), uuid);
     }
 
     @SubscribeEvent
     public void onServerStopped(ServerStoppedEvent event) {
         SpellDamageFlags.clear();
         deathSnapshots.clear();
-        deathSealExpiry.clear();
+        deathTraitRuntimeState.clear();
         deathMeta.clear();
         pendingTraitSync.clear();
     }
@@ -189,7 +189,7 @@ public class L2HostilityFix {
     public void onPlayerLoggedOut(PlayerLoggedOutEvent event) {
         java.util.UUID uuid = event.getEntity().getUUID();
         deathSnapshots.remove(uuid);
-        deathSealExpiry.remove(uuid);
+        deathTraitRuntimeState.remove(uuid);
         deathMeta.remove(uuid);
         pendingTraitSync.remove(uuid);
     }
@@ -226,12 +226,12 @@ public class L2HostilityFix {
         boolean keepInv = newPlayer.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY);
         java.util.UUID uuid = oldPlayer.getUUID();
         java.util.LinkedHashMap<dev.xkmc.l2hostility.content.traits.base.MobTrait, Integer> snapshot = deathSnapshots.remove(uuid);
-        java.util.Map<String, Long> seals = deathSealExpiry.remove(uuid);
+        CompoundTag runtimeState = deathTraitRuntimeState.remove(uuid);
         int[] meta = deathMeta.remove(uuid);
-        LOGGER.info("CLONE: death clone keepInventory={} snapshot={} seals={} meta={} newTraits={}",
+        LOGGER.info("CLONE: death clone keepInventory={} snapshot={} runtimeState={} meta={} newTraits={}",
                 keepInv,
                 snapshot != null ? snapshot.size() : -1,
-                seals != null ? seals.size() : -1,
+                runtimeState != null ? runtimeState.size() : -1,
                 meta != null ? ("lv=" + meta[0] + " fullDrop=" + meta[1]) : "null",
                 MobTraitCap.HOLDER.isProper(newPlayer) ? MobTraitCap.HOLDER.get(newPlayer).traits.size() : -1);
 
@@ -265,11 +265,9 @@ public class L2HostilityFix {
             newCap.fullDrop = meta[1] != 0;
             LOGGER.info("CLONE: restored lv={} fullDrop={}", meta[0], meta[1] != 0);
         }
-        if (seals != null) {
-            for (var entry : seals.entrySet()) {
-                newPlayer.getPersistentData().putLong(entry.getKey(), entry.getValue());
-            }
-            LOGGER.info("CLONE: restored {} seal expiry entries", seals.size());
+        if (runtimeState != null) {
+            TraitDisableHelper.restoreRuntimeState(newPlayer.getPersistentData(), runtimeState);
+            LOGGER.info("CLONE: restored {} runtime state entries", runtimeState.size());
         }
 
         for (var entry : newCap.traits.entrySet()) {
