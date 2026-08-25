@@ -375,9 +375,9 @@ Expected: `BUILD SUCCESSFUL`，所有测试 0 failures、0 errors、0 skipped。
 
 - [ ] **Step 2: 校验 Mixin 配置和 JAR 内容**
 
-Run: `./gradlew validateMixinConfig validateTooltipTranslations`
+Run: `./gradlew validateProjectResources`
 
-Expected: `BUILD SUCCESSFUL`。
+Expected: `BUILD SUCCESSFUL`；该任务同时校验 JSON、Mixin 注册一致性和中英文 tooltip 键。
 
 Run: `D:\JAVA\JAVA_17\bin\jar.exe tf build/libs/l2hostility_tweaks-1.0.0.jar`
 
