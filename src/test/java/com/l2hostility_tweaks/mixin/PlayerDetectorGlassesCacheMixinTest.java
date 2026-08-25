@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -13,23 +14,29 @@ class PlayerDetectorGlassesCacheMixinTest {
 
 	@Test
 	void cachesWithinTickAndRefreshesOnNextTick() {
-		var cache = new PlayerDetectorGlassesCacheMixin();
-		cache.l2fix$storeDetectorGlasses(12, true);
+		var cache = new CountingCache();
+		cache.scannedValue = true;
 
-		assertTrue(cache.l2fix$isDetectorGlassesCacheValid(12));
-		assertFalse(cache.l2fix$isDetectorGlassesCacheValid(13));
-		assertTrue(cache.l2fix$getCachedDetectorGlasses());
+		assertTrue(cache.l2fix$hasDetectorGlassesAtTick(12));
+		assertTrue(cache.l2fix$hasDetectorGlassesAtTick(12));
+		assertEquals(1, cache.scanCount);
+
+		cache.scannedValue = false;
+		assertFalse(cache.l2fix$hasDetectorGlassesAtTick(13));
+		assertEquals(2, cache.scanCount);
 	}
 
 	@Test
 	void differentPlayerInstancesKeepIndependentValues() {
-		var first = new PlayerDetectorGlassesCacheMixin();
-		var second = new PlayerDetectorGlassesCacheMixin();
-		first.l2fix$storeDetectorGlasses(20, true);
-		second.l2fix$storeDetectorGlasses(20, false);
+		var first = new CountingCache();
+		var second = new CountingCache();
+		first.scannedValue = true;
+		second.scannedValue = false;
 
-		assertTrue(first.l2fix$getCachedDetectorGlasses());
-		assertFalse(second.l2fix$getCachedDetectorGlasses());
+		assertTrue(first.l2fix$hasDetectorGlassesAtTick(20));
+		assertFalse(second.l2fix$hasDetectorGlassesAtTick(20));
+		assertEquals(1, first.scanCount);
+		assertEquals(1, second.scanCount);
 	}
 
 	@Test
@@ -49,5 +56,17 @@ class PlayerDetectorGlassesCacheMixinTest {
 		assertFalse(visibilityMixin.contains("Map<UUID"));
 		assertFalse(visibilityMixin.contains("ConcurrentHashMap"));
 		assertFalse(visibilityMixin.contains("playerGlassesTick"));
+	}
+
+	private static final class CountingCache extends PlayerDetectorGlassesCacheMixin {
+
+		private int scanCount;
+		private boolean scannedValue;
+
+		@Override
+		boolean l2fix$scanDetectorGlasses() {
+			scanCount++;
+			return scannedValue;
+		}
 	}
 }

@@ -25,12 +25,22 @@ public class PlayerDetectorGlassesCacheMixin implements DetectorGlassesCache {
 	@Override
 	public boolean l2fix$hasDetectorGlasses() {
 		Player player = (Player) (Object) this;
-		if (!l2fix$isDetectorGlassesCacheValid(player.tickCount)) {
-			Item glasses = l2fix$getDetectorGlasses();
-			boolean has = glasses != null && CurioCompat.hasItemInCurioOrSlot(player, glasses);
-			l2fix$storeDetectorGlasses(player.tickCount, has);
+		return l2fix$hasDetectorGlassesAtTick(player.tickCount);
+	}
+
+	@Unique
+	boolean l2fix$hasDetectorGlassesAtTick(int tick) {
+		if (!l2fix$isDetectorGlassesCacheValid(tick)) {
+			l2fix$storeDetectorGlasses(tick, l2fix$scanDetectorGlasses());
 		}
 		return l2fix$getCachedDetectorGlasses();
+	}
+
+	@Unique
+	boolean l2fix$scanDetectorGlasses() {
+		Player player = (Player) (Object) this;
+		Item glasses = l2fix$getDetectorGlasses();
+		return glasses != null && CurioCompat.hasItemInCurioOrSlot(player, glasses);
 	}
 
 	@Unique
