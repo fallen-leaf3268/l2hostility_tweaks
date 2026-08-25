@@ -12,24 +12,18 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.Map;
+import java.util.function.Function;
+
 @Mixin(value = RemoveTraitEnchantment.class, remap = false)
 public class RemoveTraitEnchantmentMixin {
 
 	@Inject(method = "hitMob", at = @At("HEAD"), cancellable = true, remap = false)
 	private void l2fix$sealTraitInsteadOfRemove(LivingEntity target, MobTraitCap cap, Integer value, AttackCache cache, CallbackInfo ci) {
-		// 优先找 split 词条（防止史莱姆分裂），没有则封印第一个词条
-		String traitId = cap.traits.keySet().stream()
-				.filter(t -> t.getID().equals("l2hostility:split"))
-				.findFirst().map(t -> t.getID()).orElse(null);
-		if (traitId == null) {
-			traitId = cap.traits.keySet().stream()
-					.filter(t -> t.getID() != null && cap.getTraitLevel(t) > 0)
-					.findFirst().map(t -> t.getID()).orElse(null);
-		}
-		if (traitId == null) return;
-
 		ci.cancel();
-		if (TraitDisableHelper.isDisabled(target, traitId)) return;
+		var trait = l2fix$findActiveSplit(cap.traits, mobTrait -> mobTrait.getID());
+		if (trait == null) return;
+		String traitId = trait.getID();
 
 		TraitDisableHelper.setDisabled(target, traitId, true);
 		target.getPersistentData().putLong(
@@ -39,6 +33,16 @@ public class RemoveTraitEnchantmentMixin {
 		if (target instanceof Slime slime) {
 			slime.addTag("SuppressSplit");
 		}
+	}
+
+	@Unique
+	static <T> T l2fix$findActiveSplit(Map<T, Integer> traits, Function<T, String> idGetter) {
+		return traits.entrySet().stream()
+				.filter(entry -> "l2hostility:split".equals(idGetter.apply(entry.getKey())))
+				.filter(entry -> entry.getValue() != null && entry.getValue() > 0)
+				.map(Map.Entry::getKey)
+				.findFirst()
+				.orElse(null);
 	}
 
 	@Unique

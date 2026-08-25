@@ -4,7 +4,7 @@
 
 **Goal:** 让分裂抑制只永久封印当前有效的 `l2hostility:split`，不再回退封印其他词条。
 
-**Architecture:** 在 `RemoveTraitEnchantmentMixin` 中增加一个包内可测试的纯选择函数，按词条 ID 与原始等级筛选有效分裂词条。实际 Mixin 调用该函数；找不到目标时直接返回，让上游保持“移除不存在的分裂词条等于无效果”的行为。
+**Architecture:** 在 `RemoveTraitEnchantmentMixin` 中增加一个包内可测试的纯选择函数，按词条 ID 与原始等级筛选有效分裂词条。Mixin 统一接管分裂抑制调用，避免上游删除负等级的已封印分裂；找不到有效目标时不写入任何状态。
 
 **Tech Stack:** Java 17、Forge 1.20.1、Mixin、JUnit 5、Gradle
 
@@ -79,7 +79,7 @@ static <T> T l2fix$findActiveSplit(Map<T, Integer> traits, Function<T, String> i
 }
 ```
 
-在注入方法中用该函数替换“优先分裂、否则第一个有效词条”的两段选择逻辑；只在返回非空词条时取消上游并执行永久封印。
+在注入方法中先取消上游删除逻辑，再用该函数替换“优先分裂、否则第一个有效词条”的两段选择逻辑；只在返回非空词条时执行永久封印。这样无分裂时无效果，已封印时也不会被上游误删。
 
 - [ ] **Step 4: 运行定向测试并确认 GREEN**
 
