@@ -2,6 +2,7 @@ package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.init.L2HFEnchantments;
+import com.l2hostility_tweaks.util.ReprintDamageCalculator;
 
 import dev.xkmc.l2damagetracker.contents.attack.AttackCache;
 import dev.xkmc.l2damagetracker.contents.attack.DamageModifier;
@@ -26,38 +27,29 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Mixin(value = ReprintTrait.class, remap = false)
 public class ReprintTraitMixin {
 
 	@Unique
-	private int l2fix$antiReprintTotal;
-	@Unique
-	private int l2fix$antiReprintArmor;
-	@Unique
-	private boolean l2fix$linear;
-	@Unique
-	private boolean l2fix$hasCounter;
-	@Unique
 	private static Enchantment cachedVoidTouch;
 
 	@Inject(method = "onHurtTarget", at = @At("HEAD"), cancellable = true, remap = false)
 	private void l2fix$head(int level, LivingEntity attacker, AttackCache cache, TraitEffectCache traitCache, CallbackInfo ci) {
-		l2fix$antiReprintTotal = 0;
-		l2fix$antiReprintArmor = 0;
-		l2fix$hasCounter = false;
-		l2fix$linear = L2HConfig.isReprintLinearEnabled();
+		int antiReprintArmor = 0;
+		boolean hasCounter = false;
+		boolean linear = L2HConfig.isReprintLinearEnabled();
 
 		Enchantment antiReprint = L2HFEnchantments.REPRINT_COUNTER.get();
 		for (var slot : EquipmentSlot.values()) {
 			ItemStack src = cache.getAttackTarget().getItemBySlot(slot);
 			for (var e : src.getAllEnchantments().entrySet()) {
 				if (e.getKey() == antiReprint) {
-					l2fix$antiReprintTotal += e.getValue();
-					l2fix$hasCounter = true;
+					hasCounter = true;
 					if (slot.getType() == EquipmentSlot.Type.ARMOR) {
-						l2fix$antiReprintArmor = Math.max(l2fix$antiReprintArmor, e.getValue());
+						antiReprintArmor = Math.max(antiReprintArmor, e.getValue());
 					}
 				}
 			}
@@ -65,69 +57,49 @@ public class ReprintTraitMixin {
 
 		if (attacker instanceof Player) {
 			ci.cancel();
-			l2fix$playerReprint(attacker, cache);
+			l2fix$playerReprint(attacker, cache, linear, antiReprintArmor);
 			return;
 		}
 
-		if (l2fix$linear || l2fix$hasCounter) {
+		if (linear || hasCounter) {
 			ci.cancel();
-			l2fix$handleReprint(level, attacker, cache, traitCache);
+			l2fix$handleReprint(attacker, cache, linear, antiReprintArmor);
 		}
 	}
 
 	@Unique
-	private void l2fix$handleReprint(int level, LivingEntity attacker, AttackCache cache, TraitEffectCache traitCache) {
+	private void l2fix$handleReprint(LivingEntity attacker, AttackCache cache,
+			boolean linear, int antiReprintArmor) {
 		Enchantment antiReprint = L2HFEnchantments.REPRINT_COUNTER.get();
 		if (cachedVoidTouch == null) {
 			cachedVoidTouch = ForgeRegistries.ENCHANTMENTS.getValue(new ResourceLocation("l2complements", "void_touch"));
 		}
 		Enchantment voidTouch = cachedVoidTouch;
 
-		long total = 0;
-		int maxLv = 0;
+		var points = new ArrayList<ReprintDamageCalculator.Point>();
 		var event = cache.getLivingHurtEvent();
 		for (var slot : EquipmentSlot.values()) {
 			ItemStack dst = attacker.getItemBySlot(slot);
 			ItemStack src = cache.getAttackTarget().getItemBySlot(slot);
-			var targetEnch = src.getAllEnchantments();
-			for (var e : targetEnch.entrySet()) {
-				int lv = e.getValue();
-				boolean isCounter = e.getKey() == antiReprint;
-
-				if (l2fix$linear) {
-					if (isCounter) {
-						total -= lv;
-					} else {
-						maxLv = Math.max(maxLv, lv);
-						total += lv;
-					}
-				} else {
-					if (!isCounter) {
-						maxLv = Math.max(maxLv, lv);
-					}
-					if (lv >= 30 && !isCounter) {
-						total = -1;
-					} else if (total >= 0) {
-						long contribution = 1L << (lv - 1);
-						total += isCounter ? -contribution : contribution;
-					}
-				}
+			for (var e : src.getAllEnchantments().entrySet()) {
+				points.add(new ReprintDamageCalculator.Point(e.getValue(), e.getKey() == antiReprint));
 			}
 
-			if (event != null && event.getSource().getDirectEntity() == attacker)
+			if (event != null && event.getSource().getDirectEntity() == attacker) {
 				ReprintHandler.reprint(dst, src);
+			}
 		}
 
-		if (total < 0 && total != -1) {
-			total = 0;
-		}
+		var result = ReprintDamageCalculator.calculate(linear, points);
+		int maxLv = result.maxLevel();
+		float factor = result.factor();
 
-		int bypass = l2fix$linear ? 11 : LHConfig.COMMON.reprintBypass.get();
+		int bypass = linear ? 11 : LHConfig.COMMON.reprintBypass.get();
 		if (maxLv >= bypass) {
 			ItemStack weapon = attacker.getItemBySlot(EquipmentSlot.MAINHAND);
 			if (!weapon.isEmpty() && (weapon.isEnchanted() || weapon.isEnchantable())) {
 				if (voidTouch != null && weapon.canApplyAtEnchantingTable(voidTouch)) {
-					int vtLv = l2fix$linear ? Math.min(maxLv - bypass + 1, 20) : 20;
+					int vtLv = linear ? Math.min(maxLv - bypass + 1, 20) : 20;
 					var map = weapon.getAllEnchantments();
 					map.compute(voidTouch, (k, v) -> v == null ? vtLv : Math.max(v, vtLv));
 					map.compute(Enchantments.VANISHING_CURSE, (k, v) -> v == null ? 1 : Math.max(v, 1));
@@ -136,68 +108,29 @@ public class ReprintTraitMixin {
 			}
 		}
 
-		float factor;
-		if (l2fix$linear) {
-			factor = total;
-		} else if (total >= 0) {
-			factor = total;
-		} else {
-			int exponent = Math.max(0, maxLv - 1 - l2fix$antiReprintTotal);
-			factor = (float) Math.pow(2, exponent);
-		}
-
-		if (l2fix$antiReprintArmor > 0) {
-			float reduction = l2fix$antiReprintArmor * (float) L2HConfig.getAntiReprintReduction();
+		if (antiReprintArmor > 0) {
+			float reduction = antiReprintArmor * (float) L2HConfig.getAntiReprintReduction();
 			cache.addHurtModifier(DamageModifier.multTotal(1 - Math.min(reduction, 0.8f)));
 		}
 		cache.addHurtModifier(DamageModifier.multTotal(1 + (float) (L2HConfig.getReprintDamage() * factor)));
 	}
 
 	@Unique
-	private void l2fix$playerReprint(LivingEntity attacker, AttackCache cache) {
-		long total = 0;
-		int maxLv = 0;
+	private void l2fix$playerReprint(LivingEntity attacker, AttackCache cache,
+			boolean linear, int antiReprintArmor) {
+		Enchantment antiReprint = L2HFEnchantments.REPRINT_COUNTER.get();
+		var points = new ArrayList<ReprintDamageCalculator.Point>();
 
 		for (var slot : EquipmentSlot.values()) {
 			ItemStack src = cache.getAttackTarget().getItemBySlot(slot);
 			for (var e : src.getAllEnchantments().entrySet()) {
-				int lv = e.getValue();
-				if (l2fix$linear) {
-					maxLv = Math.max(maxLv, lv);
-					Enchantment antiReprint = L2HFEnchantments.REPRINT_COUNTER.get();
-					total += e.getKey() == antiReprint ? -lv : lv;
-				} else {
-					Enchantment antiReprint = L2HFEnchantments.REPRINT_COUNTER.get();
-					boolean isCounter = e.getKey() == antiReprint;
-					if (!isCounter) {
-						maxLv = Math.max(maxLv, lv);
-					}
-					if (lv >= 30 && !isCounter) {
-						total = -1;
-					} else if (total >= 0) {
-						long contribution = 1L << (lv - 1);
-						total += isCounter ? -contribution : contribution;
-					}
-				}
+				points.add(new ReprintDamageCalculator.Point(e.getValue(), e.getKey() == antiReprint));
 			}
 		}
 
-		if (total < 0 && total != -1) {
-			total = 0;
-		}
-
-		float factor;
-		if (l2fix$linear) {
-			factor = total;
-		} else if (total >= 0) {
-			factor = total;
-		} else {
-			int exponent = Math.max(0, maxLv - 1 - l2fix$antiReprintTotal);
-			factor = (float) Math.pow(2, exponent);
-		}
-
-		if (l2fix$antiReprintArmor > 0) {
-			float reduction = l2fix$antiReprintArmor * (float) L2HConfig.getAntiReprintReduction();
+		float factor = ReprintDamageCalculator.calculate(linear, points).factor();
+		if (antiReprintArmor > 0) {
+			float reduction = antiReprintArmor * (float) L2HConfig.getAntiReprintReduction();
 			cache.addHurtModifier(DamageModifier.multTotal(1 - Math.min(reduction, 0.8f)));
 		}
 		cache.addHurtModifier(DamageModifier.multTotal(1 + (float) (L2HConfig.getReprintDamage() * factor)));
