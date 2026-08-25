@@ -63,6 +63,7 @@ public class ClientL2HConfig {
 
             colorSegments = builder.comment("血条颜色分段",
                             "格式: \"难度,R,G,B\"",
+                            "RGB 范围: 0–255",
                             "例: \"100,85,255,85\" = 难度 >= 100 时使用颜色 RGB(85,255,85)")
                     .defineList("segments",
                             List.of("100,85,255,85",
@@ -73,47 +74,67 @@ public class ClientL2HConfig {
                                     "3000,200,40,120",
                                     "4000,160,30,180",
                                     "5000,100,20,200"),
-                            e -> e instanceof String && ((String) e).matches("\\d+,\\d+,\\d+,\\d+"));
+                            e -> ClientL2HConfig.parseColorSegment(e) != null);
             defaultColor = builder.comment("默认血条颜色 (不匹配任何分段时使用)",
-                            "格式: \"R,G,B\"")
+                            "格式: \"R,G,B\"",
+                            "RGB 范围: 0–255")
                     .define("default_color", "170,170,170",
-                            e -> e instanceof String && ((String) e).matches("\\d+,\\d+,\\d+"));
+                            e -> ClientL2HConfig.parseRgb(e) != null);
             builder.pop();
         }
     }
 
+    static int[] parseColorSegment(Object value) {
+        return parseUnsignedFields(value, 4, 1);
+    }
+
+    static int[] parseRgb(Object value) {
+        return parseUnsignedFields(value, 3, 0);
+    }
+
+    private static int[] parseUnsignedFields(Object value, int fieldCount, int rgbStart) {
+        if (!(value instanceof String text)) return null;
+        String[] parts = text.split(",", -1);
+        if (parts.length != fieldCount) return null;
+        int[] parsed = new int[fieldCount];
+        try {
+            for (int i = 0; i < fieldCount; i++) {
+                String part = parts[i].trim();
+                if (!part.matches("\\d+")) return null;
+                parsed[i] = Integer.parseInt(part);
+                if (i >= rgbStart && parsed[i] > 255) return null;
+            }
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+        return parsed;
+    }
+
     public static List<int[]> getColorSegments() {
         if (parsedColorSegments == null) {
-            parsedColorSegments = new ArrayList<>();
-            for (String entry : CLIENT.colorSegments.get()) {
-                String[] parts = entry.split(",");
-                if (parts.length == 4) {
-                    try {
-                        parsedColorSegments.add(new int[]{
-                                Integer.parseInt(parts[0].trim()),
-                                Integer.parseInt(parts[1].trim()),
-                                Integer.parseInt(parts[2].trim()),
-                                Integer.parseInt(parts[3].trim())
-                        });
-                    } catch (NumberFormatException ignored) {}
-                }
-            }
-            parsedColorSegments.sort(Comparator.comparingInt(a -> a[0]));
+            parsedColorSegments = parseColorSegments(CLIENT.colorSegments.get());
         }
         return parsedColorSegments;
     }
 
-    public static int getDefaultColor() {
-        String[] parts = CLIENT.defaultColor.get().split(",");
-        if (parts.length == 3) {
-            try {
-                return FastColor.ARGB32.color(255,
-                        Integer.parseInt(parts[0].trim()),
-                        Integer.parseInt(parts[1].trim()),
-                        Integer.parseInt(parts[2].trim()));
-            } catch (NumberFormatException ignored) {}
+    static List<int[]> parseColorSegments(List<? extends String> entries) {
+        List<int[]> parsed = new ArrayList<>();
+        for (String entry : entries) {
+            int[] segment = parseColorSegment(entry);
+            if (segment != null) parsed.add(segment);
         }
+        parsed.sort(Comparator.comparingInt(a -> a[0]));
+        return parsed;
+    }
+
+    static int parseDefaultColor(Object value) {
+        int[] rgb = parseRgb(value);
+        if (rgb != null) return FastColor.ARGB32.color(255, rgb[0], rgb[1], rgb[2]);
         return FastColor.ARGB32.color(255, 170, 170, 170);
+    }
+
+    public static int getDefaultColor() {
+        return parseDefaultColor(CLIENT.defaultColor.get());
     }
 
     public static void invalidateCaches() {
