@@ -1,6 +1,6 @@
 package com.l2hostility_tweaks.mixin;
 
-import com.l2hostility_tweaks.util.AntibuildBypassHelper;
+import com.l2hostility_tweaks.util.AntibuildBypassCache;
 import dev.xkmc.l2hostility.events.MiscHandlers;
 import dev.xkmc.l2hostility.init.registrate.LHEffects;
 import net.minecraft.world.entity.player.Player;
@@ -22,7 +22,7 @@ public class AntibuildPlaceBypassMixin {
 		if (player == null) return;
 		boolean hasAntibuild = player.hasEffect(LHEffects.ANTIBUILD.get());
 		if (!hasAntibuild) return;
-		boolean hasBypass = AntibuildBypassHelper.hasBypass(player, player.level().getGameTime());
+		boolean hasBypass = ((AntibuildBypassCache) player).l2fix$hasAntibuildBypass();
 		if (l2fix$shouldBypass(hasAntibuild, hasBypass)) {
 			cir.setReturnValue(false);
 		}

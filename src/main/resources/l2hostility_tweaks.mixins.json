@@ -11,6 +11,7 @@
         "AntiBuildBeneficialMixin",
         "TraitSymbolBudgetMixin",
         "AntibuildBlockImmuneMixin",
+        "PlayerAntibuildBypassCacheMixin",
         "AntibuildPlaceBypassMixin",
                 "GravityTraitMixin",
         "EntityConfigConfigMixin",

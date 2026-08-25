@@ -1,7 +1,7 @@
 package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.L2HFBypassTags;
-import com.l2hostility_tweaks.util.AntibuildBypassHelper;
+import com.l2hostility_tweaks.util.AntibuildBypassCache;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffect;
@@ -31,12 +31,7 @@ public abstract class AntibuildBlockImmuneMixin extends LivingEntity {
 		MobEffect antibuild = ForgeRegistries.MOB_EFFECTS.getValue(ANTIBUILD_ID);
 		if (antibuild == null || !hasEffect(antibuild)) return;
 
-		if (AntibuildBypassHelper.hasArenaTrait((Player) (Object) this)) {
-			cir.setReturnValue(false);
-			return;
-		}
-
-		if (AntibuildBypassHelper.hasBypass((Player) (Object) this, level.getGameTime())) {
+		if (((AntibuildBypassCache) (Object) this).l2fix$hasAntibuildBypass()) {
 			cir.setReturnValue(false);
 			return;
 		}
