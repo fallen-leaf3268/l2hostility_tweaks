@@ -36,6 +36,14 @@ public class L2HHealthOverlay implements IGuiOverlay {
 	public static boolean bossEventsActive;
 	public static int trackedEntityId = -1;
 
+	record HudState(boolean hudActive, boolean hideBossBars) {}
+
+	static HudState l2fix$resolveHudState(boolean hasValidTarget,
+			boolean bossEventsActive, boolean hideHudWithBossbar) {
+		boolean showCustomHud = hasValidTarget && !(hideHudWithBossbar && bossEventsActive);
+		return new HudState(showCustomHud, showCustomHud);
+	}
+
 	private static final int BAR_H = 3;
 	private static final int SCALE = 24;
 	private static final long FLASH_MS = 400;
@@ -81,35 +89,21 @@ public class L2HHealthOverlay implements IGuiOverlay {
 
 		Minecraft mc = Minecraft.getInstance();
 		Optional<LivingEntity> target = getMouseOverEntity(mc, partialTick);
-		if (target.isEmpty()) {
-			hideBossBars = false;
-			hudActive = false;
-			trackedEntityId = -1;
-			return;
-		}
-
-		if (target.get() instanceof Player) {
-			hideBossBars = false;
-			hudActive = false;
-			trackedEntityId = -1;
-			return;
-		}
-
-		if (ClientL2HConfig.CLIENT.hideHudWithBossbar.get() && bossEventsActive) {
-			hideBossBars = false;
-			hudActive = false;
-			trackedEntityId = -1;
-			return;
-		}
-		hideBossBars = true;
-		hudActive = true;
-			trackedEntityId = target.get().getId();
-		renderHealthBar(g, target.get());
+		boolean hasValidTarget = target.isPresent() && !(target.get() instanceof Player);
+		HudState state = l2fix$resolveHudState(hasValidTarget, bossEventsActive,
+				ClientL2HConfig.CLIENT.hideHudWithBossbar.get());
+		hudActive = state.hudActive();
+		hideBossBars = state.hideBossBars();
+		trackedEntityId = state.hudActive() ? target.get().getId() : -1;
+		if (state.hudActive()) renderHealthBar(g, target.get());
 	}
 
 	public static void precomputeHudState() {
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.level == null || mc.player == null) {
+			hudActive = false;
+			hideBossBars = false;
+			trackedEntityId = -1;
 			LOGGER.debug("PRECOMPUTE skip: mc.level or mc.player null");
 			return;
 		}
@@ -121,16 +115,16 @@ public class L2HHealthOverlay implements IGuiOverlay {
 			return;
 		}
 		var target = getMouseOverEntity(mc, 0f);
-		if (target.isEmpty() || target.get() instanceof Player) {
-			hudActive = false;
-			hideBossBars = false;
-			trackedEntityId = -1;
-			LOGGER.debug("PRECOMPUTE: no valid target → hudActive=false");
+		boolean hasValidTarget = target.isPresent() && !(target.get() instanceof Player);
+		HudState state = l2fix$resolveHudState(hasValidTarget, bossEventsActive,
+				ClientL2HConfig.CLIENT.hideHudWithBossbar.get());
+		hudActive = state.hudActive();
+		hideBossBars = state.hideBossBars();
+		trackedEntityId = state.hudActive() ? target.get().getId() : -1;
+		if (!state.hudActive()) {
+			LOGGER.debug("PRECOMPUTE: hudActive=false");
 			return;
 		}
-		hudActive = true;
-		hideBossBars = true;
-		trackedEntityId = target.get().getId();
 		LOGGER.debug("PRECOMPUTE: target={} → hudActive=true trackedId={}", target.get().getName().getString(), trackedEntityId);
 	}
 
