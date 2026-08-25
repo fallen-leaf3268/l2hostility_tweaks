@@ -17,8 +17,15 @@ class ReprintTraitMixinIntegrationTest {
     @Test
     void bothReprintPathsUseSharedCalculator() throws IOException {
         String source = Files.readString(SOURCE);
+        String mobPath = section(source,
+                "private void l2fix$handleReprint(",
+                "private void l2fix$playerReprint(");
+        String playerPath = section(source,
+                "private void l2fix$playerReprint(",
+                "private void l2fix$addLinearInfo(");
 
-        assertEquals(2, count(source, "ReprintDamageCalculator.calculate("));
+        assertEquals(1, count(mobPath, "ReprintDamageCalculator.calculate(linear, points)"));
+        assertEquals(1, count(playerPath, "ReprintDamageCalculator.calculate(linear, points)"));
     }
 
     @Test
@@ -40,5 +47,14 @@ class ReprintTraitMixinIntegrationTest {
             index += needle.length();
         }
         return count;
+    }
+
+    private static String section(String source, String startMarker, String endMarker) {
+        int start = source.indexOf(startMarker);
+        int end = source.indexOf(endMarker, start + startMarker.length());
+        if (start < 0 || end < 0) {
+            throw new IllegalArgumentException("Missing method marker");
+        }
+        return source.substring(start, end);
     }
 }
