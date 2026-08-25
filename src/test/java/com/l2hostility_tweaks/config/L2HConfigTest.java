@@ -2,7 +2,10 @@ package com.l2hostility_tweaks.config;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -11,6 +14,16 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class L2HConfigTest {
+
+    @Test
+    void exponentialCostDescriptionMatchesRuntimeSchedule() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/config/L2HConfig.java"));
+
+        assertTrue(source.contains(
+                "3 = 指数: 消耗 2^当前等级 个（依次为 1、2、4、8……）"));
+        assertFalse(source.contains("2^(当前等级 - 1)"));
+    }
 
     @Test
     void invalidatesEveryParsedCommonConfigCache() throws Exception {

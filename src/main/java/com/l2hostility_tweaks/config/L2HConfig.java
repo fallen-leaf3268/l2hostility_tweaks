@@ -259,7 +259,7 @@ public class L2HConfig {
             playerSelfTraitCostMode = builder.comment("自我词条消耗模式",
                     "1 = 正常: 每次消耗 1 个",
                     "2 = 叠加: 消耗 (当前等级 + 1) 个",
-                    "3 = 指数: 消耗 2^(当前等级 - 1) 个")
+                    "3 = 指数: 消耗 2^当前等级 个（依次为 1、2、4、8……）")
                     .defineInRange("self_cost_mode", 1, 1, 3);
             playerTraitOverrides = builder.comment("格式: \"词条id,最低等级,消耗\"",
                     "例: \"l2hostility:reprint,100,200\"")
