@@ -9,12 +9,14 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ShulkerBullet;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -82,6 +84,11 @@ public abstract class ShulkerTraitMixin {
 
 		for (Entity entity : player.level().getEntities(player, box,
 				e -> e instanceof LivingEntity && e.isAlive())) {
+			boolean ownedByPlayer = entity instanceof OwnableEntity ownable
+					&& player.getUUID().equals(ownable.getOwnerUUID());
+			if (l2fix$isFriendlyCandidate(
+					entity.isAlliedTo(player), player.isAlliedTo(entity), ownedByPlayer)) continue;
+
 			Vec3 toEntity = entity.getBoundingBox().getCenter().subtract(eye);
 			double dist = toEntity.length();
 			if (dist > range) continue;
@@ -98,5 +105,11 @@ public abstract class ShulkerTraitMixin {
 			}
 		}
 		return best;
+	}
+
+	@Unique
+	static boolean l2fix$isFriendlyCandidate(boolean candidateAlliedToPlayer,
+			boolean playerAlliedToCandidate, boolean ownedByPlayer) {
+		return candidateAlliedToPlayer || playerAlliedToCandidate || ownedByPlayer;
 	}
 }
