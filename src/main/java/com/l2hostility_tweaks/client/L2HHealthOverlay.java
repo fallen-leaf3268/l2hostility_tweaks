@@ -5,12 +5,15 @@ import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.util.RomanNumeral;
 
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
+import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import dev.xkmc.l2hostility.content.traits.legendary.LegendaryTrait;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.util.FastColor;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -74,7 +77,7 @@ public class L2HHealthOverlay implements IGuiOverlay {
 	private int cachedRealityLv;
 	private ItemStack cachedRealityIcon;
 	private List<ItemStack> cachedLegendIcons;
-	private List<List<MutableComponent>> cachedTraitLines;
+	private List<List<TraitTextLayout.Segment<MobTrait, FormattedCharSequence>>> cachedTraitLines;
 
 	private final Map<String, ItemStack> iconReuse = new HashMap<>();
 
@@ -338,11 +341,10 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		Minecraft mc = Minecraft.getInstance();
 		float padding = BAR_H / 2f + 1;
 		float lineY = barY + padding + 2;
-		for (List<MutableComponent> line : cachedTraitLines) {
-			int x = (int) barX;
-			for (MutableComponent c : line) {
-				g.drawString(mc.font, c, x, (int) lineY, 0xFFFFFF, true);
-				x += mc.font.width(c);
+		for (List<TraitTextLayout.Segment<MobTrait, FormattedCharSequence>> line : cachedTraitLines) {
+			for (TraitTextLayout.Segment<MobTrait, FormattedCharSequence> segment : line) {
+				g.drawString(mc.font, segment.text(), (int) barX + segment.xOffset(),
+						(int) lineY, 0xFFFFFF, true);
 			}
 			lineY += 10;
 		}
@@ -382,31 +384,16 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		int barW = ClientL2HConfig.CLIENT.hudBarWidth.get();
 		int maxW = barW - 6;
 		Minecraft mc = Minecraft.getInstance();
-		int sepWidth = mc.font.width("  ");
-
-		this.cachedTraitLines = new ArrayList<>();
-		List<MutableComponent> curLine = new ArrayList<>();
-		int curWidth = 0;
+		List<TraitTextLayout.Entry<MobTrait, FormattedText>> entries = new ArrayList<>();
 
 		for (var entry : cap.traits.entrySet()) {
-		MutableComponent tc = entry.getValue() < 0 ?
-				entry.getKey().getFullDesc(-entry.getValue()).copy().withStyle(net.minecraft.ChatFormatting.GRAY, net.minecraft.ChatFormatting.STRIKETHROUGH) :
-				entry.getKey().getFullDesc(entry.getValue());
-		int tw = mc.font.width(tc);
-			int needed = curWidth > 0 ? sepWidth + tw : tw;
-			if (curWidth + needed > maxW) {
-				cachedTraitLines.add(curLine);
-				curLine = new ArrayList<>();
-				curWidth = 0;
-			}
-			if (curWidth > 0) {
-				curLine.add(Component.literal("  "));
-				curWidth += sepWidth;
-			}
-			curLine.add(tc);
-			curWidth += tw;
+			MutableComponent tc = entry.getValue() < 0 ?
+					entry.getKey().getFullDesc(-entry.getValue()).copy().withStyle(net.minecraft.ChatFormatting.GRAY, net.minecraft.ChatFormatting.STRIKETHROUGH) :
+					entry.getKey().getFullDesc(entry.getValue());
+			entries.add(new TraitTextLayout.Entry<>(entry.getKey(), tc));
 		}
-		if (!curLine.isEmpty()) cachedTraitLines.add(curLine);
+		this.cachedTraitLines = TraitTextLayout.layout(entries, maxW,
+				Component.literal("  ").getVisualOrderText(), mc.font::width, mc.font::split);
 		} finally {
 			com.l2hostility_tweaks.util.TraitDisableHelper.clearDisplayEntity();
 		}

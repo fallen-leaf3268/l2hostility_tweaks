@@ -6,9 +6,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TraitTextLayoutTest {
+
+	record StyledText(String value, String style) {}
 
 	private static List<String> split(String text, int width) {
 		List<String> result = new ArrayList<>();
@@ -67,5 +70,20 @@ class TraitTextLayoutTest {
 
 		assertEquals(1, rows.size());
 		assertEquals("x", rows.get(0).get(0).text());
+	}
+
+	@Test
+	void preservesStyledFragmentsAndOwnerForInteraction() {
+		StyledText first = new StyledText("abc", "gray-strikethrough");
+		StyledText second = new StyledText("def", "gray-strikethrough");
+		var rows = TraitTextLayout.layout(List.of(
+				new TraitTextLayout.Entry<>("sealed", "source")),
+				3, new StyledText(" ", "plain"), text -> text.value().length(),
+				(text, width) -> List.of(first, second));
+
+		assertSame(first, rows.get(0).get(0).text());
+		assertSame(second, rows.get(1).get(0).text());
+		assertEquals("sealed", rows.get(0).get(0).owner());
+		assertEquals("sealed", rows.get(1).get(0).owner());
 	}
 }

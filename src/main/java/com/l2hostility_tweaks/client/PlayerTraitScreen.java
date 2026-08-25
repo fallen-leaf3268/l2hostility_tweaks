@@ -18,8 +18,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fml.loading.FMLPaths;
 
@@ -52,12 +54,10 @@ public class PlayerTraitScreen extends BaseTextScreen {
 		}
 	}
 
-	private record TraitEntry(@javax.annotation.Nullable MobTrait trait, MutableComponent text, int xOffset, int width) {}
-
 	private final MenuLayoutConfig config;
 	private int currentPage;
 	private int totalPages;
-	private List<List<TraitEntry>> allLines;
+	private List<List<TraitTextLayout.Segment<MobTrait, FormattedCharSequence>>> allLines;
 	private int refreshCountdown = -1;
 	private Button toggleButton;
 	private Button prevButton;
@@ -230,26 +230,26 @@ public class PlayerTraitScreen extends BaseTextScreen {
 
 		for (int i = start; i < end; i++) {
 			int ly = traitY + (i - start) * lineHeight;
-			for (TraitEntry e : allLines.get(i)) {
+			for (TraitTextLayout.Segment<MobTrait, FormattedCharSequence> e : allLines.get(i)) {
 				g.drawString(font, e.text(), traitX + e.xOffset(), ly, 0x404040, false);
 			}
 		}
 
 		for (int i = start; i < end; i++) {
 			int ly = traitY + (i - start) * lineHeight;
-			for (TraitEntry e : allLines.get(i)) {
-				if (e.trait() == null) continue;
+			for (TraitTextLayout.Segment<MobTrait, FormattedCharSequence> e : allLines.get(i)) {
+				if (e.owner() == null) continue;
 				int ex = traitX + e.xOffset();
 				if (mx >= ex && mx < ex + e.width() && my >= ly && my < ly + lineHeight) {
-					ItemStack stack = new ItemStack(e.trait().asItem());
+					ItemStack stack = new ItemStack(e.owner().asItem());
 					List<Component> lines = new ArrayList<>(stack.getTooltipLines(
 							player, minecraft.options.advancedItemTooltips
 									? net.minecraft.world.item.TooltipFlag.Default.ADVANCED
 					: net.minecraft.world.item.TooltipFlag.Default.NORMAL));
-					Integer lvl = cap.traits.get(e.trait());
+					Integer lvl = cap.traits.get(e.owner());
 					int curLevel = lvl != null ? lvl : 0;
 						if (curLevel < 0) {
-							String expiryKey = TraitDisableHelper.sealExpiryKey(e.trait().getID());
+							String expiryKey = TraitDisableHelper.sealExpiryKey(e.owner().getID());
 							long remaining = -1;
 							try {
 								var server = Minecraft.getInstance().getSingleplayerServer();
@@ -268,7 +268,7 @@ public class PlayerTraitScreen extends BaseTextScreen {
 							} else {
 								lines.add(Component.translatable("gui.l2hostility_tweaks.trait_sealed").withStyle(ChatFormatting.RED));
 							}
-					} else if (curLevel >= e.trait().getMaxLevel()) {
+					} else if (curLevel >= e.owner().getMaxLevel()) {
 						lines.add(Component.translatable("gui.l2hostility_tweaks.max_level").withStyle(ChatFormatting.GOLD));
 						if (hasShiftDown()) {
 							lines.add(Component.translatable(L2HTweaksLang.UNLOAD_ALL_HINT).withStyle(ChatFormatting.GOLD));
@@ -299,33 +299,17 @@ public class PlayerTraitScreen extends BaseTextScreen {
 		}
 	}
 
-	private List<List<TraitEntry>> buildTraitLines(MobTraitCap cap) {
-		List<List<TraitEntry>> result = new ArrayList<>();
-		List<TraitEntry> curLine = new ArrayList<>();
-		int curWidth = 0;
-		int sepWidth = font.width("  ");
+	private List<List<TraitTextLayout.Segment<MobTrait, FormattedCharSequence>>> buildTraitLines(MobTraitCap cap) {
 		int maxW = config.getComp("traits").w;
-	for (var entry : cap.traits.entrySet()) {
-
+		List<TraitTextLayout.Entry<MobTrait, FormattedText>> entries = new ArrayList<>();
+		for (var entry : cap.traits.entrySet()) {
 			MutableComponent tc = entry.getValue() < 0 ?
 					entry.getKey().getFullDesc(-entry.getValue()).copy().withStyle(net.minecraft.ChatFormatting.GRAY, net.minecraft.ChatFormatting.STRIKETHROUGH) :
 					entry.getKey().getFullDesc(entry.getValue());
-		int tw = font.width(tc);
-			int needed = curWidth > 0 ? sepWidth + tw : tw;
-			if (curWidth + needed > maxW) {
-				result.add(curLine);
-				curLine = new ArrayList<>();
-				curWidth = 0;
-			}
-			if (curWidth > 0) {
-				curLine.add(new TraitEntry(null, Component.literal("  "), curWidth, sepWidth));
-				curWidth += sepWidth;
-			}
-			curLine.add(new TraitEntry(entry.getKey(), tc, curWidth, tw));
-			curWidth += tw;
+			entries.add(new TraitTextLayout.Entry<>(entry.getKey(), tc));
 		}
-		if (!curLine.isEmpty()) result.add(curLine);
-		return result;
+		return TraitTextLayout.layout(entries, maxW,
+				Component.literal("  ").getVisualOrderText(), font::width, font::split);
 	}
 
 	@Override
@@ -338,12 +322,12 @@ public class PlayerTraitScreen extends BaseTextScreen {
 			int end = Math.min(start + LINES_PER_PAGE, allLines.size());
 			for (int i = start; i < end; i++) {
 				int ly = traitY + (i - start) * lineHeight;
-				for (TraitEntry e : allLines.get(i)) {
-					if (e.trait() == null) continue;
+				for (TraitTextLayout.Segment<MobTrait, FormattedCharSequence> e : allLines.get(i)) {
+					if (e.owner() == null) continue;
 					int ex = traitX + e.xOffset();
 					if (mx >= ex && mx < ex + e.width() && my >= ly && my < ly + lineHeight) {
 						boolean unloadAll = hasShiftDown();
-						NetworkHandler.sendUnloadToServer(e.trait().getID(), unloadAll);
+						NetworkHandler.sendUnloadToServer(e.owner().getID(), unloadAll);
 						refreshCountdown = 3;
 						return true;
 					}
