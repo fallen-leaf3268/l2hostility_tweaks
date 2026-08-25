@@ -34,6 +34,7 @@
         "RealityTraitMixin",
         "TraitRomanMixin",
         "EntityInvisibleMixin",
+        "PlayerDetectorGlassesCacheMixin",
         "InvisibleTraitMixin",
         "UndyingTraitMixin",
         "LHAttackListenerMixin",
