@@ -10,6 +10,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -39,6 +40,11 @@ public class CounterStrikeTraitMixin {
 		var data = MobTraitCap.HOLDER.get(le).getOrCreateData(
 				((CounterStrikeTrait) (Object) this).getRegistryName(),
 				CounterStrikeTrait.Data::new);
+		Entity target = null;
+		if (data.strikeId != null) {
+			target = ((ServerLevel) player.level()).getEntity(data.strikeId);
+			data.strikeId = l2fix$clearInvalidTarget(data.strikeId, target != null && target.isAlive());
+		}
 		if (data.cooldown > 0) {
 			data.cooldown--;
 			ci.cancel();
@@ -48,12 +54,7 @@ public class CounterStrikeTraitMixin {
 			ci.cancel();
 			return;
 		}
-		if (data.strikeId == null) {
-			ci.cancel();
-			return;
-		}
-		Entity target = ((ServerLevel) player.level()).getEntity(data.strikeId);
-		if (target == null || !target.isAlive()) {
+		if (data.strikeId == null || target == null) {
 			ci.cancel();
 			return;
 		}
@@ -70,5 +71,10 @@ public class CounterStrikeTraitMixin {
 		data.duration = LHConfig.COMMON.counterStrikeDuration.get();
 		data.strikeId = null;
 		ci.cancel();
+	}
+
+	@Unique
+	static java.util.UUID l2fix$clearInvalidTarget(java.util.UUID strikeId, boolean targetValid) {
+		return targetValid ? strikeId : null;
 	}
 }
