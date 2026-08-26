@@ -53,15 +53,8 @@ public class TraitGeneratorMixin {
             shift = At.Shift.BEFORE), require = 1)
     private void l2fix$prepareFinalTraits(CallbackInfo ci) {
         TraitGenerator self = (TraitGenerator) (Object) this;
-        l2fix$runBeforeInitializationPipeline(
-                () -> l2fix$applyNbtPresets(self),
-                () -> TraitGenerationHelper.applyFinalFilters(self));
-    }
-
-    @Unique
-    static void l2fix$runBeforeInitializationPipeline(Runnable mergeNbtPresets, Runnable filterCandidates) {
-        mergeNbtPresets.run();
-        filterCandidates.run();
+        l2fix$applyNbtPresets(self);
+        TraitGenerationHelper.applyFinalFilters(self);
     }
 
     @Unique
