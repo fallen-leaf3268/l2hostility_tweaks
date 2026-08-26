@@ -5,6 +5,7 @@ import com.google.gson.JsonParser;
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.init.L2HTweaksLang;
 import com.l2hostility_tweaks.network.NetworkHandler;
+import com.l2hostility_tweaks.util.TraitCostHelper;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.capability.player.PlayerDifficulty;
@@ -276,16 +277,14 @@ public class PlayerTraitScreen extends BaseTextScreen {
 							lines.add(Component.translatable(L2HTweaksLang.UNLOAD_HINT).withStyle(ChatFormatting.GOLD));
 						}
 					} else {
-						int mode = L2HConfig.getPlayerSelfTraitCostMode();
-						int upgradeCost;
-						if (mode == 2) {
-							upgradeCost = curLevel + 1;
-						} else if (mode == 3) {
-							upgradeCost = 1 << curLevel;
+						int upgradeCost = L2HConfig.getUpgradeCost(curLevel, e.owner().asItem().getMaxStackSize());
+						if (upgradeCost == TraitCostHelper.UNPAYABLE) {
+							lines.add(Component.translatable(L2HTweaksLang.UPGRADE_UNPAYABLE)
+									.withStyle(ChatFormatting.GOLD));
 						} else {
-							upgradeCost = 1;
+							lines.add(Component.translatable(L2HTweaksLang.UPGRADE_COST, upgradeCost)
+									.withStyle(ChatFormatting.GOLD));
 						}
-						lines.add(Component.translatable(L2HTweaksLang.UPGRADE_COST, upgradeCost).withStyle(ChatFormatting.GOLD));
 						if (hasShiftDown()) {
 							lines.add(Component.translatable(L2HTweaksLang.UNLOAD_ALL_HINT).withStyle(ChatFormatting.GOLD));
 						} else {

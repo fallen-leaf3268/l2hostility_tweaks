@@ -54,6 +54,7 @@ public class L2HTweaksLang {
 	public static final String UNLOAD_HINT = "gui.l2hostility_tweaks.unload_hint";
 	public static final String UNLOAD_ALL_HINT = "gui.l2hostility_tweaks.unload_all_hint";
 	public static final String UPGRADE_COST = "gui.l2hostility_tweaks.upgrade_cost";
+	public static final String UPGRADE_UNPAYABLE = "gui.l2hostility_tweaks.upgrade_unpayable";
 
 	public static MutableComponent translate(String key, Object... args) {
 		return Component.translatable(key, args);

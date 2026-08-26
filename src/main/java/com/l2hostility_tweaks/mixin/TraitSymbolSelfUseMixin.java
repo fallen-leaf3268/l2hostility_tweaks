@@ -3,6 +3,7 @@ package com.l2hostility_tweaks.mixin;
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.init.L2HTweaksLang;
 import com.l2hostility_tweaks.util.ImmunityHelper;
+import com.l2hostility_tweaks.util.TraitCostHelper;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.capability.player.PlayerDifficulty;
 import dev.xkmc.l2hostility.content.item.traits.TraitSymbol;
@@ -118,12 +119,14 @@ public class TraitSymbolSelfUseMixin {
 			}
 		}
 
-		int cost = 1;
-		int mode = L2HConfig.getPlayerSelfTraitCostMode();
-		if (mode == 2) {
-			cost = currentLevel + 1;
-		} else if (mode == 3) {
-			cost = 1 << currentLevel;
+		int cost = L2HConfig.getUpgradeCost(currentLevel, stack.getMaxStackSize());
+		if (cost == TraitCostHelper.UNPAYABLE) {
+			if (player instanceof ServerPlayer sp) {
+				sp.sendSystemMessage(L2HTweaksLang.translate(L2HTweaksLang.UPGRADE_UNPAYABLE)
+						.withStyle(ChatFormatting.RED), true);
+			}
+			cir.setReturnValue(InteractionResultHolder.fail(stack));
+			return;
 		}
 
 		if (!player.getAbilities().instabuild && stack.getCount() < cost) {

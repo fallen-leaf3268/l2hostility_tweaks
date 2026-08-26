@@ -84,6 +84,7 @@
   "gui.l2hostility_tweaks.unload_hint": "Right-click to unload one level",
   "gui.l2hostility_tweaks.unload_all_hint": "Shift+Right-click to unload all levels",
   "gui.l2hostility_tweaks.upgrade_cost": "Upgrade cost: %s trait(s)",
+  "gui.l2hostility_tweaks.upgrade_unpayable": "Upgrade cost exceeds the single-payment limit",
   "gui.l2hostility_tweaks.trait_sealed": "Sealed",
   "gui.l2hostility_tweaks.seal_remaining": "This trait is sealed, remaining time %s s",
   "gui.l2hostility_tweaks.max_level": "This trait has reached max level",

@@ -84,6 +84,7 @@
   "gui.l2hostility_tweaks.unload_hint": "右键卸载一级",
   "gui.l2hostility_tweaks.unload_all_hint": "Shift+右键卸载全部等级",
   "gui.l2hostility_tweaks.upgrade_cost": "升级消耗: %s 个词条物品",
+  "gui.l2hostility_tweaks.upgrade_unpayable": "升级费用超过单次支付上限",
   "gui.l2hostility_tweaks.trait_sealed": "该词条已被封印",
   "gui.l2hostility_tweaks.seal_remaining": "该词条已被封印，剩余时间 %s 秒",
   "gui.l2hostility_tweaks.max_level": "该词条已达到最高值",
