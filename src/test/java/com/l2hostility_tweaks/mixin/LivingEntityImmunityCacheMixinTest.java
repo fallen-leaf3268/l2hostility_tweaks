@@ -2,11 +2,24 @@ package com.l2hostility_tweaks.mixin;
 
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Modifier;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LivingEntityImmunityCacheMixinTest {
+
+	@Test
+	void stampsPublishCachedResultsAcrossThreads() throws ReflectiveOperationException {
+		var forceStamp = LivingEntityImmunityCacheMixin.class
+				.getDeclaredField("l2fix$forceImmunityStamp");
+		var gravityStamp = LivingEntityImmunityCacheMixin.class
+				.getDeclaredField("l2fix$gravityImmunityStamp");
+
+		assertTrue(Modifier.isVolatile(forceStamp.getModifiers()));
+		assertTrue(Modifier.isVolatile(gravityStamp.getModifiers()));
+	}
 
 	@Test
 	void sameStampScansEachImmunityOnlyOnce() {

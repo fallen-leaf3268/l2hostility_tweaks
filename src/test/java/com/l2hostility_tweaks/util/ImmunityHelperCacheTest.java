@@ -9,6 +9,7 @@ import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,21 +42,27 @@ class ImmunityHelperCacheTest {
     }
 
     @Test
-    void generationIsVisibleAcrossQueryThreads() throws ReflectiveOperationException {
-        assertTrue(Modifier.isVolatile(field("immunityCacheGeneration").getModifiers()));
+    void generationUsesAtomicReloadUpdates() throws ReflectiveOperationException, IOException {
+        Field generation = field("immunityCacheGeneration");
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/util/ImmunityHelper.java"));
+
+        assertEquals(AtomicInteger.class, generation.getType());
+        assertTrue(Modifier.isFinal(generation.getModifiers()));
+        assertTrue(source.contains("immunityCacheGeneration.incrementAndGet()"));
     }
 
     @Test
     void invalidationClearsTraitCacheAndAdvancesEntityGeneration() throws ReflectiveOperationException {
         Map<String, Boolean> traitCache = traitCache();
         traitCache.put("l2hostility:test:l2hostility_tweaks:immune_to_force", true);
-        int beforeGeneration = field("immunityCacheGeneration").getInt(null);
+        int beforeGeneration = generation().get();
         long beforeStamp = ImmunityHelper.cacheStamp(beforeGeneration, 20);
 
         ImmunityHelper.invalidateTagCaches();
 
         assertTrue(traitCache.isEmpty());
-        int afterGeneration = field("immunityCacheGeneration").getInt(null);
+        int afterGeneration = generation().get();
         assertEquals(beforeGeneration + 1, afterGeneration);
         assertNotEquals(beforeStamp, ImmunityHelper.cacheStamp(afterGeneration, 20));
     }
@@ -88,6 +95,10 @@ class ImmunityHelperCacheTest {
     @SuppressWarnings("unchecked")
     private static Map<String, Boolean> traitCache() throws ReflectiveOperationException {
         return (Map<String, Boolean>) field("traitTagCache").get(null);
+    }
+
+    private static AtomicInteger generation() throws ReflectiveOperationException {
+        return (AtomicInteger) field("immunityCacheGeneration").get(null);
     }
 
     private static Field field(String name) throws ReflectiveOperationException {

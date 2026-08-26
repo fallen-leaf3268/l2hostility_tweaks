@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import top.theillusivec4.curios.api.CuriosApi;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 public class ImmunityHelper {
@@ -24,7 +25,7 @@ public class ImmunityHelper {
     private static final ConcurrentHashMap<String, Boolean> traitTagCache = new ConcurrentHashMap<>();
     private static final int TRAIT_TAG_CACHE_MAX = 2000;
 
-    private static volatile int immunityCacheGeneration;
+    private static final AtomicInteger immunityCacheGeneration = new AtomicInteger();
 
     private static void discoverTraitRegistry() {
         if (forceImmuneTraitTag != null) return;
@@ -82,12 +83,12 @@ public class ImmunityHelper {
     }
 
     public static boolean isImmuneToForce(LivingEntity entity) {
-        long stamp = cacheStamp(immunityCacheGeneration, entity.tickCount);
+        long stamp = cacheStamp(immunityCacheGeneration.get(), entity.tickCount);
         return ((EntityImmunityCache) entity).l2fix$isImmuneToForce(stamp);
     }
 
     public static boolean isImmuneToGravity(LivingEntity entity) {
-        long stamp = cacheStamp(immunityCacheGeneration, entity.tickCount);
+        long stamp = cacheStamp(immunityCacheGeneration.get(), entity.tickCount);
         return ((EntityImmunityCache) entity).l2fix$isImmuneToGravity(stamp);
     }
 
@@ -151,7 +152,7 @@ public class ImmunityHelper {
 
     public static void invalidateTagCaches() {
         traitTagCache.clear();
-        immunityCacheGeneration++;
+        immunityCacheGeneration.incrementAndGet();
     }
 
     static long cacheStamp(int generation, int tick) {

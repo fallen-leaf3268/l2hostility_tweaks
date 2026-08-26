@@ -22,9 +22,9 @@
 - 一个力免疫 `long` 缓存戳和 boolean 结果；
 - 一个重力免疫 `long` 缓存戳和 boolean 结果。
 
-每个缓存戳按 `((long) generation << 32) | (tickCount & 0xffffffffL)` 生成，使一个 int 代数和一个 int tick 完整占据 long 的高、低 32 位。`ImmunityHelper` 持有静态代数整数；`invalidateTagCaches()` 清空词条标签结果表后递增代数。实体无需集中登记或遍历清理，下一次查询会因代数不同而自动失效。
+每个缓存戳按 `((long) generation << 32) | (tickCount & 0xffffffffL)` 生成，使一个 int 代数和一个 int tick 完整占据 long 的高、低 32 位。`ImmunityHelper` 持有静态原子代数整数；`invalidateTagCaches()` 清空词条标签结果表后原子递增代数。实体无需集中登记或遍历清理，下一次查询会因代数不同而自动失效。
 
-`ImmunityHelper.isImmuneToForce` 和 `isImmuneToGravity` 生成当前缓存戳，将实体转换为 `EntityImmunityCache`，再调用对应实例查询。实例查询仅在缓存戳不同时执行实际扫描，并按“先结果、后缓存戳”的顺序发布。
+`ImmunityHelper.isImmuneToForce` 和 `isImmuneToGravity` 生成当前缓存戳，将实体转换为 `EntityImmunityCache`，再调用对应实例查询。实例查询仅在缓存戳不同时执行实际扫描，并按“先结果、后 volatile 缓存戳”的顺序发布，使命中线程读取 stamp 后能够观察到对应结果。
 
 实际扫描继续调用 `ImmunityHelper` 中现有的力免疫或重力免疫计算逻辑，顺序保持：
 

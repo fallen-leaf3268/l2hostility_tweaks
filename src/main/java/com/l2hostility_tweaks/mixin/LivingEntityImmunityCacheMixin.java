@@ -10,11 +10,11 @@ import org.spongepowered.asm.mixin.Unique;
 public class LivingEntityImmunityCacheMixin implements EntityImmunityCache {
 
 	@Unique
-	private long l2fix$forceImmunityStamp = Long.MIN_VALUE;
+	private volatile long l2fix$forceImmunityStamp = Long.MIN_VALUE;
 	@Unique
 	private boolean l2fix$forceImmunity;
 	@Unique
-	private long l2fix$gravityImmunityStamp = Long.MIN_VALUE;
+	private volatile long l2fix$gravityImmunityStamp = Long.MIN_VALUE;
 	@Unique
 	private boolean l2fix$gravityImmunity;
 

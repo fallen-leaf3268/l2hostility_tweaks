@@ -13,6 +13,7 @@
 - Preserve the existing Curios-first, trait-tag-second immunity semantics and debug logging.
 - Force and gravity caches are independent and owned by each `LivingEntity` instance.
 - Cache stamp is `((long) generation << 32) | (tickCount & 0xffffffffL)`.
+- Instance stamps are volatile publication fields and reload generation increments atomically.
 - A tag reload invalidates cached entity results even when the entity tick is unchanged.
 - Remove all shared entity `WeakReference`, tick, and boolean cache fields.
 - Do not add configuration, packets, tooltip text, or deploy the JAR to `mods`.
