@@ -49,6 +49,20 @@ public class EntityConfigMixin {
         };
     }
 
+    @Unique
+    static void l2fix$removeDisabledFromConditions(
+            Map<ResourceLocation, ArrayList<Pair<SpecialConfigCondition<?>, EntityConfig.Config>>> buckets,
+            EntityConfig.Config disabled) {
+        Iterator<Map.Entry<ResourceLocation,
+                ArrayList<Pair<SpecialConfigCondition<?>, EntityConfig.Config>>>> iterator =
+                buckets.entrySet().iterator();
+        while (iterator.hasNext()) {
+            var entries = iterator.next().getValue();
+            entries.removeIf(pair -> pair.getSecond() == disabled);
+            if (entries.isEmpty()) iterator.remove();
+        }
+    }
+
     @Inject(method = "postMerge", at = @At("TAIL"))
     private void l2fix$onPostMerge(CallbackInfo ci) {
         // Collect non-NBT defaults per entity type (for restoration)
@@ -72,6 +86,8 @@ public class EntityConfigMixin {
                 NbtCondition nbtCondition = new NbtCondition(data.l2fix$getNbtCondition());
                 conditions.computeIfAbsent(NBT_CONDITION_ID, k -> new ArrayList<>())
                         .add(Pair.of(nbtCondition, config));
+            } else {
+                l2fix$removeDisabledFromConditions(conditions, config);
             }
 
             for (EntityType<?> type : config.entities) {
