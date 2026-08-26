@@ -5,6 +5,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -129,5 +133,23 @@ class TraitDisableHelperTest {
         TraitDisableHelper.restoreRuntimeState(target, snapshot);
 
         assertFalse(target.contains(TraitDisableHelper.UNDYING_COUNT_KEY));
+    }
+
+    @Test
+    void resetsEveryInheritedTraitBeforeClearingCapabilityState() {
+        var traits = new LinkedHashMap<String, Integer>();
+        traits.put("first", 2);
+        traits.put("second", -1);
+        var resets = new ArrayList<String>();
+        var runtimeClears = new ArrayList<String>();
+
+        TraitDisableHelper.clearTraitState(traits, trait -> {
+            assertTrue(traits.containsKey(trait));
+            resets.add(trait);
+        }, runtimeClears::add);
+
+        assertTrue(traits.isEmpty());
+        assertEquals(List.of("first", "second"), resets);
+        assertEquals(List.of("first", "second"), runtimeClears);
     }
 }

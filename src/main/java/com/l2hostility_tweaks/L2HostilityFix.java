@@ -239,7 +239,15 @@ public class L2HostilityFix {
             LOGGER.info("CLONE: keepInventory=false — clearing traits from new player");
             if (MobTraitCap.HOLDER.isProper(newPlayer)) {
                 MobTraitCap newCap = MobTraitCap.HOLDER.get(newPlayer);
-                newCap.traits.clear();
+                CompoundTag data = newPlayer.getPersistentData();
+                TraitDisableHelper.clearTraitState(newCap.traits, trait -> {
+                    trait.initialize(newPlayer, 0);
+                    trait.postInit(newPlayer, 0);
+                }, trait -> {
+                    TraitDisableHelper.clearSealData(data, trait.getID());
+                    TraitDisableHelper.onTraitUnsealed(data, trait.getID());
+                });
+                newPlayer.setHealth(newPlayer.getMaxHealth());
                 newCap.syncToClient(newPlayer);
                 newCap.syncToPlayer(newPlayer, newPlayer);
             }

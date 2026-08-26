@@ -10,6 +10,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.function.Consumer;
+
 public class TraitDisableHelper {
 
 	public static final String SEAL_EXPIRY_PREFIX = "l2htweaks_seal_expiry_";
@@ -64,6 +68,16 @@ public class TraitDisableHelper {
 	public static void clearSealData(CompoundTag data, String traitId) {
 		data.remove(sealedLevelKey(traitId));
 		data.remove(sealExpiryKey(traitId));
+	}
+
+	public static <T> void clearTraitState(Map<T, Integer> traits, Consumer<T> reset,
+			Consumer<T> clearRuntime) {
+		var snapshot = new ArrayList<>(traits.keySet());
+		for (T trait : snapshot) {
+			reset.accept(trait);
+			clearRuntime.accept(trait);
+		}
+		traits.clear();
 	}
 
 	public static void onTraitUnsealed(CompoundTag data, String traitId) {
