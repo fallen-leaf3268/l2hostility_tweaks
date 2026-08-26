@@ -11,7 +11,6 @@ import net.minecraft.core.registries.Registries;
 import org.slf4j.Logger;
 import top.theillusivec4.curios.api.CuriosApi;
 
-import java.lang.ref.WeakReference;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
@@ -25,13 +24,7 @@ public class ImmunityHelper {
     private static final ConcurrentHashMap<String, Boolean> traitTagCache = new ConcurrentHashMap<>();
     private static final int TRAIT_TAG_CACHE_MAX = 2000;
 
-    private static WeakReference<LivingEntity> cachedEntityForceRef = new WeakReference<>(null);
-    private static int cacheTickForce = -1;
-    private static boolean cachedImmuneToForce;
-
-    private static WeakReference<LivingEntity> cachedEntityGravityRef = new WeakReference<>(null);
-    private static int cacheTickGravity = -1;
-    private static boolean cachedImmuneToGravity;
+    private static volatile int immunityCacheGeneration;
 
     private static void discoverTraitRegistry() {
         if (forceImmuneTraitTag != null) return;
@@ -89,25 +82,13 @@ public class ImmunityHelper {
     }
 
     public static boolean isImmuneToForce(LivingEntity entity) {
-        if (entity.tickCount == cacheTickForce && entity == cachedEntityForceRef.get()) {
-            return cachedImmuneToForce;
-        }
-        boolean result = computeImmuneToForce(entity);
-        cacheTickForce = entity.tickCount;
-        cachedEntityForceRef = new WeakReference<>(entity);
-        cachedImmuneToForce = result;
-        return result;
+        long stamp = cacheStamp(immunityCacheGeneration, entity.tickCount);
+        return ((EntityImmunityCache) entity).l2fix$isImmuneToForce(stamp);
     }
 
     public static boolean isImmuneToGravity(LivingEntity entity) {
-        if (entity.tickCount == cacheTickGravity && entity == cachedEntityGravityRef.get()) {
-            return cachedImmuneToGravity;
-        }
-        boolean result = computeImmuneToGravity(entity);
-        cacheTickGravity = entity.tickCount;
-        cachedEntityGravityRef = new WeakReference<>(entity);
-        cachedImmuneToGravity = result;
-        return result;
+        long stamp = cacheStamp(immunityCacheGeneration, entity.tickCount);
+        return ((EntityImmunityCache) entity).l2fix$isImmuneToGravity(stamp);
     }
 
     public static boolean isSelfBlacklisted(MobTrait trait) {
@@ -170,12 +151,11 @@ public class ImmunityHelper {
 
     public static void invalidateTagCaches() {
         traitTagCache.clear();
-        cachedEntityForceRef = new WeakReference<>(null);
-        cacheTickForce = -1;
-        cachedImmuneToForce = false;
-        cachedEntityGravityRef = new WeakReference<>(null);
-        cacheTickGravity = -1;
-        cachedImmuneToGravity = false;
+        immunityCacheGeneration++;
+    }
+
+    static long cacheStamp(int generation, int tick) {
+        return ((long) generation << 32) | (tick & 0xffffffffL);
     }
 
     private static final class ItemTags {

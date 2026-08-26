@@ -28,6 +28,7 @@
         "DispellTraitMixin",
         "DispealEquipmentTickMixin",
         "GeneralCapabilityHolderMixin",
+        "LivingEntityImmunityCacheMixin",
         "MobTraitCapTickMixin",
         "TraitSymbolSelfUseMixin",
         "DementorTraitMixin",
