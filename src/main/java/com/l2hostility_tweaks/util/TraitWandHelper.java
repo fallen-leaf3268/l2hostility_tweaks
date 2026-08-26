@@ -15,6 +15,7 @@ import java.util.function.BooleanSupplier;
 public class TraitWandHelper {
 
 	private static final String TRAIT_KEY = "l2hostility_trait";
+	private static final int MAX_DELIVERY_STACKS = 64;
 
 	public static ItemStack setTrait(ItemStack stack, MobTrait trait) {
 		stack.getOrCreateTag().putString(TRAIT_KEY, trait.getID());
@@ -27,6 +28,8 @@ public class TraitWandHelper {
 	}
 
 	public static boolean giveOrDrop(Player player, Item item, int totalCount) {
+		if (totalCount <= 0) return totalCount == 0;
+		if (!isSafeDelivery(totalCount, item.getMaxStackSize())) return false;
 		boolean delivered = true;
 		for (int count : splitCounts(totalCount, item.getMaxStackSize())) {
 			delivered &= giveOrDrop(player, new ItemStack(item, count));
@@ -36,6 +39,7 @@ public class TraitWandHelper {
 
 	static List<Integer> splitCounts(int totalCount, int maxStackSize) {
 		if (totalCount <= 0 || maxStackSize <= 0) return List.of();
+		if (!isSafeDelivery(totalCount, maxStackSize)) return List.of();
 		int fullStacks = totalCount / maxStackSize;
 		int remainder = totalCount % maxStackSize;
 		List<Integer> counts = new ArrayList<>(fullStacks + (remainder == 0 ? 0 : 1));
@@ -44,6 +48,19 @@ public class TraitWandHelper {
 		}
 		if (remainder > 0) counts.add(remainder);
 		return counts;
+	}
+
+	public static boolean isSafeDelivery(int totalCount, int maxStackSize) {
+		return isSafeStackCount(requiredStacks(totalCount, maxStackSize));
+	}
+
+	public static int requiredStacks(int totalCount, int maxStackSize) {
+		if (totalCount < 0 || maxStackSize <= 0) return -1;
+		return (int) (((long) totalCount + maxStackSize - 1) / maxStackSize);
+	}
+
+	public static boolean isSafeStackCount(long stackCount) {
+		return stackCount >= 0 && stackCount <= MAX_DELIVERY_STACKS;
 	}
 
 	static boolean deliver(Runnable insert, BooleanSupplier hasRemainder,

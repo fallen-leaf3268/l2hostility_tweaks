@@ -15,6 +15,7 @@
 - With maximum stack size 64, exponential single-level refund is capped at 64 and total refund at 127.
 - Modes 1 and 2 retain their existing numerical schedules.
 - Every refund `ItemStack` must have a positive count no greater than its item maximum stack size.
+- One unload operation may deliver at most 64 item stacks; reject larger exact refunds before mutating trait state.
 - Do not deploy the JAR into a `mods` directory.
 
 ---
@@ -73,6 +74,8 @@ Commit message: `fix: make trait cost calculations overflow safe`
 - [ ] **Step 1: Write failing split tests**
 
 Assert `splitCounts(127, 64)` equals `[64, 63]`, `splitCounts(64, 64)` equals `[64]`, and zero, negative count, or non-positive maximum returns an empty list. Assert every result is positive and no greater than the maximum.
+
+Also assert totals requiring more than 64 stacks are rejected without allocating a list, negative calculator levels refund zero, and stored `Integer.MIN_VALUE` cannot be normalized into a usable level.
 
 - [ ] **Step 2: Run the focused test and verify RED**
 

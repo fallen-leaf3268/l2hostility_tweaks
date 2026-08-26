@@ -67,6 +67,7 @@
   "message.l2hostility_tweaks.unloader_single": "%s reduced from Lv.%s to Lv.%s, trait item returned",
   "message.l2hostility_tweaks.unloader_group": "Unloaded %s (Lv.%s), returned %s trait item(s)",
   "message.l2hostility_tweaks.unloader_full": "Unloaded %s traits, returned %s trait item(s) total",
+  "message.l2hostility_tweaks.unloader_refund_too_large": "Refund exceeds the safe delivery limit; no traits were unloaded",
 
   "item.l2hostility_tweaks.trait_seal": "Trait Seal",
   "tooltip.l2hostility_tweaks.trait_seal": "RClick mob to seal/unseal, Sneak+Click to switch trait",

@@ -2,6 +2,7 @@ package com.l2hostility_tweaks.network;
 
 import com.l2hostility_tweaks.content.DimensionBreakerItem;
 import com.l2hostility_tweaks.content.TraitUnloaderWand;
+import com.l2hostility_tweaks.util.TraitCostHelper;
 import com.l2hostility_tweaks.init.L2HTweaksLang;
 import dev.xkmc.l2hostility.compat.curios.CurioCompat;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
@@ -169,7 +170,8 @@ public class NetworkHandler {
 				Integer currentLevel = cap.traits.get(trait);
 				if (currentLevel == null || currentLevel == 0) return;
 
-				int absLevel = Math.abs(currentLevel);
+				int absLevel = TraitCostHelper.normalizeStoredLevel(currentLevel);
+				if (absLevel == 0) return;
 				if (msg.unloadAll) {
 					TraitUnloaderWand.unloadGroupTrait(player, cap, trait, absLevel);
 				} else {

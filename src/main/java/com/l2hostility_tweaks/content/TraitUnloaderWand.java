@@ -2,6 +2,7 @@ package com.l2hostility_tweaks.content;
 
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.init.L2HTweaksLang;
+import com.l2hostility_tweaks.util.TraitCostHelper;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
 import com.l2hostility_tweaks.util.TraitWandHelper;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
@@ -56,6 +57,12 @@ public class TraitUnloaderWand extends Item {
 	}
 
 	public static void unloadSingleTrait(Player player, MobTraitCap cap, MobTrait trait, int absLevel) {
+		if (absLevel <= 0) return;
+		int refund = L2HConfig.getUnloadRefund(absLevel, trait.asItem().getMaxStackSize());
+		if (!TraitWandHelper.isSafeDelivery(refund, trait.asItem().getMaxStackSize())) {
+			l2fix$rejectUnsafeRefund(player);
+			return;
+		}
 		float hpRatio = player.getHealth() / player.getMaxHealth();
 		int newLevel = absLevel - 1;
 		cap.traits.put(trait, Math.max(0, newLevel));
@@ -68,13 +75,18 @@ public class TraitUnloaderWand extends Item {
 		syncCap(player, cap);
 		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
 
-		int refund = L2HConfig.getUnloadRefund(absLevel, trait.asItem().getMaxStackSize());
 		TraitWandHelper.giveOrDrop(player, trait.asItem(), refund);
 		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_SINGLE,
 				trait.getDesc(), absLevel, Math.max(0, newLevel)).withStyle(ChatFormatting.GREEN), true);
 	}
 
 	public static void unloadGroupTrait(Player player, MobTraitCap cap, MobTrait trait, int absLevel) {
+		if (absLevel <= 0) return;
+		int totalRefund = L2HConfig.getTotalUnloadRefund(absLevel, trait.asItem().getMaxStackSize());
+		if (!TraitWandHelper.isSafeDelivery(totalRefund, trait.asItem().getMaxStackSize())) {
+			l2fix$rejectUnsafeRefund(player);
+			return;
+		}
 		float hpRatio = player.getHealth() / player.getMaxHealth();
 		cap.traits.remove(trait);
 		trait.initialize(player, 0);
@@ -83,7 +95,6 @@ public class TraitUnloaderWand extends Item {
 		syncCap(player, cap);
 		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
 
-		int totalRefund = L2HConfig.getTotalUnloadRefund(absLevel, trait.asItem().getMaxStackSize());
 		TraitWandHelper.giveOrDrop(player, trait.asItem(), totalRefund);
 		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_GROUP,
 				trait.getDesc(), absLevel, totalRefund).withStyle(ChatFormatting.GREEN), true);
@@ -149,7 +160,9 @@ public class TraitUnloaderWand extends Item {
 					trait.getDesc()).withStyle(ChatFormatting.RED), true);
 			return;
 		}
-		unloadSingleTrait(player, cap, trait, Math.abs(currentLevel));
+		int absLevel = TraitCostHelper.normalizeStoredLevel(currentLevel);
+		if (absLevel == 0) return;
+		unloadSingleTrait(player, cap, trait, absLevel);
 	}
 
 	private void unloadGroup(Player player, MobTraitCap cap, ItemStack stack) {
@@ -161,16 +174,22 @@ public class TraitUnloaderWand extends Item {
 					trait.getDesc()).withStyle(ChatFormatting.RED), true);
 			return;
 		}
-		unloadGroupTrait(player, cap, trait, Math.abs(currentLevel));
+		int absLevel = TraitCostHelper.normalizeStoredLevel(currentLevel);
+		if (absLevel == 0) return;
+		unloadGroupTrait(player, cap, trait, absLevel);
 	}
 
 	private void unloadFull(Player player, MobTraitCap cap) {
 		List<Map.Entry<MobTrait, Integer>> entries = new ArrayList<>(cap.traits.entrySet());
+		if (!l2fix$canDeliverAllRefunds(entries)) {
+			l2fix$rejectUnsafeRefund(player);
+			return;
+		}
 		float hpRatio = player.getHealth() / player.getMaxHealth();
 		long total = 0;
 		for (var entry : entries) {
 			MobTrait trait = entry.getKey();
-			int absCount = Math.abs(entry.getValue());
+			int absCount = TraitCostHelper.normalizeStoredLevel(entry.getValue());
 			int refund = L2HConfig.getTotalUnloadRefund(absCount, trait.asItem().getMaxStackSize());
 			total += refund;
 			cap.traits.put(trait, 0);
@@ -184,6 +203,26 @@ public class TraitUnloaderWand extends Item {
 		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
 		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_FULL,
 				entries.size(), total).withStyle(ChatFormatting.GREEN), true);
+	}
+
+	private static boolean l2fix$canDeliverAllRefunds(List<Map.Entry<MobTrait, Integer>> entries) {
+		long stackCount = 0;
+		for (var entry : entries) {
+			int level = TraitCostHelper.normalizeStoredLevel(entry.getValue());
+			if (level == 0) return false;
+			Item item = entry.getKey().asItem();
+			int refund = L2HConfig.getTotalUnloadRefund(level, item.getMaxStackSize());
+			int required = TraitWandHelper.requiredStacks(refund, item.getMaxStackSize());
+			if (required < 0) return false;
+			stackCount += required;
+			if (!TraitWandHelper.isSafeStackCount(stackCount)) return false;
+		}
+		return true;
+	}
+
+	private static void l2fix$rejectUnsafeRefund(Player player) {
+		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_REFUND_TOO_LARGE)
+				.withStyle(ChatFormatting.RED), true);
 	}
 
 	@Override

@@ -45,9 +45,21 @@ class TraitCostHelperTest {
 	@Test
 	void nonPositiveRefundInputsReturnZero() {
 		assertEquals(0, TraitCostHelper.singleRefund(3, 0, 64));
+		assertEquals(0, TraitCostHelper.singleRefund(3, -1, 64));
+		assertEquals(0, TraitCostHelper.singleRefund(3, Integer.MIN_VALUE, 64));
 		assertEquals(0, TraitCostHelper.singleRefund(3, 1, 0));
 		assertEquals(0, TraitCostHelper.totalRefund(3, 0, 64));
+		assertEquals(0, TraitCostHelper.totalRefund(3, -1, 64));
+		assertEquals(0, TraitCostHelper.totalRefund(3, Integer.MIN_VALUE, 64));
 		assertEquals(0, TraitCostHelper.totalRefund(3, 1, 0));
+	}
+
+	@Test
+	void storedLevelsRejectUnrepresentableAbsoluteValue() {
+		assertEquals(3, TraitCostHelper.normalizeStoredLevel(3));
+		assertEquals(3, TraitCostHelper.normalizeStoredLevel(-3));
+		assertEquals(0, TraitCostHelper.normalizeStoredLevel(0));
+		assertEquals(0, TraitCostHelper.normalizeStoredLevel(Integer.MIN_VALUE));
 	}
 
 	@Test

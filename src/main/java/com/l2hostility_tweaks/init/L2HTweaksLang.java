@@ -42,6 +42,7 @@ public class L2HTweaksLang {
 	public static final String UNLOADER_SINGLE = "message.l2hostility_tweaks.unloader_single";
 	public static final String UNLOADER_GROUP = "message.l2hostility_tweaks.unloader_group";
 	public static final String UNLOADER_FULL = "message.l2hostility_tweaks.unloader_full";
+	public static final String UNLOADER_REFUND_TOO_LARGE = "message.l2hostility_tweaks.unloader_refund_too_large";
 
 	public static final String SEAL_TOOLTIP = "tooltip.l2hostility_tweaks.trait_seal";
 	public static final String SEAL_CURRENT = "tooltip.l2hostility_tweaks.trait_seal.current";

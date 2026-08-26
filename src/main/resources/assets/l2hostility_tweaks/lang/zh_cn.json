@@ -67,6 +67,7 @@
   "message.l2hostility_tweaks.unloader_single": "词条 %s 已从 %s 级降为 %s 级，并返还词条",
   "message.l2hostility_tweaks.unloader_group": "已卸载词条 %s (%s级)，返还 %s 个词条",
   "message.l2hostility_tweaks.unloader_full": "已卸载 %s 个词条，共计返还 %s 个词条",
+  "message.l2hostility_tweaks.unloader_refund_too_large": "退款超过安全交付上限，未卸载任何词条",
 
   "item.l2hostility_tweaks.trait_seal": "词条封印工具",
   "tooltip.l2hostility_tweaks.trait_seal": "右键方块选择词条,右键生物封印/解封词条,按住shift切换选择方向",

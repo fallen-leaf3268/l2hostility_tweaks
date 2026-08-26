@@ -17,8 +17,8 @@ public final class TraitCostHelper {
 	}
 
 	public static int singleRefund(int mode, int currentLevel, int maxStackSize) {
-		long level = Math.abs((long) currentLevel);
-		if (level == 0 || maxStackSize <= 0) return 0;
+		if (currentLevel <= 0 || maxStackSize <= 0) return 0;
+		long level = currentLevel;
 		if (mode == 2) return saturate(level);
 		if (mode != 3) return 1;
 		int largestPower = Integer.highestOneBit(maxStackSize);
@@ -27,8 +27,8 @@ public final class TraitCostHelper {
 	}
 
 	public static int totalRefund(int mode, int currentLevel, int maxStackSize) {
-		long level = Math.abs((long) currentLevel);
-		if (level == 0 || maxStackSize <= 0) return 0;
+		if (currentLevel <= 0 || maxStackSize <= 0) return 0;
+		long level = currentLevel;
 		if (mode == 2) return saturate(level * (level + 1) / 2);
 		if (mode != 3) return saturate(level);
 		int largestPower = Integer.highestOneBit(maxStackSize);
@@ -39,5 +39,9 @@ public final class TraitCostHelper {
 
 	private static int saturate(long value) {
 		return (int) Math.min(value, Integer.MAX_VALUE);
+	}
+
+	public static int normalizeStoredLevel(int rawLevel) {
+		return rawLevel == Integer.MIN_VALUE ? 0 : Math.abs(rawLevel);
 	}
 }

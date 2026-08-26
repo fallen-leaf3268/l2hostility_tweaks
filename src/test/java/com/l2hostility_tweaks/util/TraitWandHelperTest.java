@@ -29,6 +29,15 @@ class TraitWandHelperTest {
 		assertEquals(List.of(), TraitWandHelper.splitCounts(1, -1));
 	}
 
+	@Test
+	void rejectsRefundsThatExceedOperationStackLimit() {
+		assertTrue(TraitWandHelper.isSafeDelivery(4096, 64));
+		assertFalse(TraitWandHelper.isSafeDelivery(4097, 64));
+		assertFalse(TraitWandHelper.isSafeDelivery(Integer.MAX_VALUE, 64));
+		assertEquals(List.of(), TraitWandHelper.splitCounts(4097, 64));
+		assertEquals(List.of(), TraitWandHelper.splitCounts(Integer.MAX_VALUE, 64));
+	}
+
     @Test
     void parsesValidTraitId() {
         assertEquals("l2hostility:split",
