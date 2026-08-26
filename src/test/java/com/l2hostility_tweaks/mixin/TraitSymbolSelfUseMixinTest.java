@@ -14,6 +14,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TraitSymbolSelfUseMixinTest {
 
 	@Test
+	void selfUseUsesCentralRuntimeCleanup() throws IOException {
+		String source = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/mixin/TraitSymbolSelfUseMixin.java"));
+
+		assertTrue(source.contains("TraitDisableHelper.clearSealData(player.getPersistentData(), trait.getID())"));
+		assertFalse(source.contains("TraitDisableHelper.SEAL_EXPIRY_PREFIX + trait.getID()"));
+		assertFalse(source.contains("remove(\"l2htweaks_sealed_level_\""));
+	}
+
+	@Test
 	void serverRejectsUnpayableCostBeforeInventoryMutation() throws IOException {
 		String source = Files.readString(Path.of(
 				"src/main/java/com/l2hostility_tweaks/mixin/TraitSymbolSelfUseMixin.java"));

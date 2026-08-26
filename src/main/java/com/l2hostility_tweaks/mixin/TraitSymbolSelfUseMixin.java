@@ -4,6 +4,7 @@ import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.init.L2HTweaksLang;
 import com.l2hostility_tweaks.util.ImmunityHelper;
 import com.l2hostility_tweaks.util.TraitCostHelper;
+import com.l2hostility_tweaks.util.TraitDisableHelper;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.capability.player.PlayerDifficulty;
 import dev.xkmc.l2hostility.content.item.traits.TraitSymbol;
@@ -144,8 +145,7 @@ public class TraitSymbolSelfUseMixin {
 
 		float oldHealth = player.getHealth();
 		float oldMax = player.getMaxHealth();
-		player.getPersistentData().remove(com.l2hostility_tweaks.util.TraitDisableHelper.SEAL_EXPIRY_PREFIX + trait.getID());
-		player.getPersistentData().remove("l2htweaks_sealed_level_" + trait.getID());
+		TraitDisableHelper.clearSealData(player.getPersistentData(), trait.getID());
 		player.getPersistentData().remove("l2htweaks_disabled_" + trait.getID());
 		int val = cap.traits.compute(trait, (k, v) -> {
 			int base = (v == null) ? 0 : Math.abs(v);

@@ -30,8 +30,7 @@ public class TraitAdderWandMixin {
 			return;
 		}
 
-		target.getPersistentData().remove(TraitDisableHelper.sealExpiryKey(trait.getID()));
-		target.getPersistentData().remove("l2htweaks_sealed_level_" + trait.getID());
+		TraitDisableHelper.clearSealData(target.getPersistentData(), trait.getID());
 		cap.traits.put(trait, abs);
 		trait.initialize(target, abs);
 		trait.postInit(target, abs);

@@ -244,8 +244,7 @@ public class L2HostilityFix {
                     trait.initialize(newPlayer, 0);
                     trait.postInit(newPlayer, 0);
                 }, trait -> {
-                    TraitDisableHelper.clearSealData(data, trait.getID());
-                    TraitDisableHelper.onTraitUnsealed(data, trait.getID());
+					TraitDisableHelper.clearSealData(data, trait.getID());
                 });
                 newPlayer.setHealth(newPlayer.getMaxHealth());
                 newCap.syncToClient(newPlayer);

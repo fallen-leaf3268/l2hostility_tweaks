@@ -68,6 +68,7 @@ public class TraitDisableHelper {
 	public static void clearSealData(CompoundTag data, String traitId) {
 		data.remove(sealedLevelKey(traitId));
 		data.remove(sealExpiryKey(traitId));
+		onTraitUnsealed(data, traitId);
 	}
 
 	public static <T> void clearTraitState(Map<T, Integer> traits, Consumer<T> reset,
@@ -162,14 +163,12 @@ public class TraitDisableHelper {
 		} else {
 			int restore = entity.getPersistentData().getInt(sealedLevelKey(traitId));
 			if (restore <= 0) return;
-			entity.getPersistentData().remove(sealedLevelKey(traitId));
-			entity.getPersistentData().remove(sealExpiryKey(traitId));
+			clearSealData(entity.getPersistentData(), traitId);
 			for (var e : cap.traits.entrySet()) {
 				if (traitId.equals(e.getKey().getID())) {
 					e.setValue(restore);
 					e.getKey().initialize(entity, restore);
 					e.getKey().postInit(entity, restore);
-					onTraitUnsealed(entity.getPersistentData(), traitId);
 					break;
 				}
 			}

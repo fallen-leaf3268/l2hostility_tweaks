@@ -54,6 +54,26 @@ class TraitDisableHelperTest {
     }
 
     @Test
+    void clearingUndyingSealDataAlsoClearsItsResurrectionCount() {
+        CompoundTag data = new CompoundTag();
+        data.putInt(TraitDisableHelper.UNDYING_COUNT_KEY, 2);
+
+        TraitDisableHelper.clearSealData(data, TraitDisableHelper.UNDYING_TRAIT_ID);
+
+        assertFalse(data.contains(TraitDisableHelper.UNDYING_COUNT_KEY));
+    }
+
+    @Test
+    void clearingAnotherTraitsSealDataKeepsUndyingResurrectionCount() {
+        CompoundTag data = new CompoundTag();
+        data.putInt(TraitDisableHelper.UNDYING_COUNT_KEY, 2);
+
+        TraitDisableHelper.clearSealData(data, TRAIT_ID);
+
+        assertEquals(2, data.getInt(TraitDisableHelper.UNDYING_COUNT_KEY));
+    }
+
+    @Test
     void clearsUndyingCountAfterUndyingIsUnsealed() {
         CompoundTag data = new CompoundTag();
         data.putInt(TraitDisableHelper.UNDYING_COUNT_KEY, 3);
