@@ -4,6 +4,7 @@ import com.l2hostility_tweaks.util.EntityConfigNbtData;
 import com.mojang.datafixers.util.Pair;
 import dev.xkmc.l2hostility.content.config.EntityConfig;
 import dev.xkmc.l2hostility.content.config.SpecialConfigCondition;
+import dev.xkmc.l2library.serial.config.BaseConfig;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
@@ -12,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,6 +55,14 @@ class EntityNbtConditionPipelineTest {
 	}
 
 	@Test
+	void scansResourcesOnlyForEntityConfigMerges() {
+		assertFalse(ConfigMergerMixin.l2fix$containsEntityConfig(List.of(new BaseConfig())));
+		assertTrue(ConfigMergerMixin.l2fix$containsEntityConfig(List.of(new EntityConfig())));
+		assertTrue(ConfigMergerMixin.l2fix$containsEntityConfig(
+				List.of(new BaseConfig(), new EntityConfig())));
+	}
+
+	@Test
 	void pipelineUsesExplicitMetadataWithoutReflectionOrLossyMaps() throws IOException {
 		String merger = Files.readString(Path.of(
 				"src/main/java/com/l2hostility_tweaks/mixin/ConfigMergerMixin.java"));
@@ -68,6 +78,10 @@ class EntityNbtConditionPipelineTest {
 		assertFalse(merger.contains("Map<String, Object>"));
 		assertFalse(classifier.contains("Map<String, Object>"));
 		assertFalse(merger.contains("getAsInt()"));
+		assertFalse(merger.contains("nbtStoreBuilt"));
+		assertFalse(merger.contains("static volatile Map<ResourceLocation, Map<Integer, NbtEntry>> nbtStore"));
+		assertTrue(merger.indexOf("if (!l2fix$containsEntityConfig(list)) return;")
+				< merger.indexOf("l2fix$buildNbtStore(server)"));
 	}
 
 	private static ArrayList<Pair<SpecialConfigCondition<?>, EntityConfig.Config>> pairs(

@@ -13,6 +13,7 @@ import net.minecraftforge.server.ServerLifecycleHooks;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -25,24 +26,23 @@ public class ConfigMergerMixin {
 
     private static final Logger LOG = LogManager.getLogger("L2HostilityFix/ConfigMerger");
     private static final Gson GSON = new Gson();
-    private static volatile Map<ResourceLocation, Map<Integer, NbtEntry>> nbtStore;
-    private static volatile boolean nbtStoreBuilt;
 
     private record NbtEntry(EntityConfigNbtData.State state, JsonObject condition) {
     }
 
+    @Unique
+    static boolean l2fix$containsEntityConfig(List<? extends BaseConfig> list) {
+        return list.stream().anyMatch(EntityConfig.class::isInstance);
+    }
+
     @Inject(method = "merge", at = @At("HEAD"))
     private void l2fix$onBeforeMerge(List<BaseConfig> list, CallbackInfoReturnable<Object> cir) {
-        nbtStoreBuilt = false;
+        if (!l2fix$containsEntityConfig(list)) return;
         try {
             MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
             if (server == null) return;
 
-            // Build NBT store lazily using listResources (same method L2Serial uses)
-            if (!nbtStoreBuilt) {
-                nbtStore = l2fix$buildNbtStore(server);
-                nbtStoreBuilt = true;
-            }
+            Map<ResourceLocation, Map<Integer, NbtEntry>> nbtStore = l2fix$buildNbtStore(server);
             if (nbtStore == null || nbtStore.isEmpty()) return;
 
             int nbtSet = 0;
