@@ -68,7 +68,7 @@ public class TraitUnloaderWand extends Item {
 		syncCap(player, cap);
 		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
 
-		int refund = L2HConfig.getUnloadRefund(absLevel);
+		int refund = L2HConfig.getUnloadRefund(absLevel, trait.asItem().getMaxStackSize());
 		ItemStack symbol = new ItemStack(trait.asItem(), refund);
 		TraitWandHelper.giveOrDrop(player, symbol);
 		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_SINGLE,
@@ -84,7 +84,7 @@ public class TraitUnloaderWand extends Item {
 		syncCap(player, cap);
 		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
 
-		int totalRefund = L2HConfig.getTotalUnloadRefund(absLevel);
+		int totalRefund = L2HConfig.getTotalUnloadRefund(absLevel, trait.asItem().getMaxStackSize());
 		ItemStack symbol = new ItemStack(trait.asItem(), totalRefund);
 		TraitWandHelper.giveOrDrop(player, symbol);
 		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_GROUP,
@@ -173,7 +173,7 @@ public class TraitUnloaderWand extends Item {
 		for (var entry : entries) {
 			MobTrait trait = entry.getKey();
 			int absCount = Math.abs(entry.getValue());
-			int refund = L2HConfig.getTotalUnloadRefund(absCount);
+			int refund = L2HConfig.getTotalUnloadRefund(absCount, trait.asItem().getMaxStackSize());
 			total += refund;
 			cap.traits.put(trait, 0);
 			trait.initialize(player, 0);

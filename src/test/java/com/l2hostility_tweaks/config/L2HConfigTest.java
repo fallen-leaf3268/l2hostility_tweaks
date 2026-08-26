@@ -26,6 +26,14 @@ class L2HConfigTest {
     }
 
     @Test
+    void traitCostConfigContainsNoDirectBitShift() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/config/L2HConfig.java"));
+
+        assertFalse(source.contains("1 <<"));
+    }
+
+    @Test
     void invalidatesEveryParsedCommonConfigCache() throws Exception {
         List<String> cacheNames = List.of(
                 "parsedLevelThresholds",

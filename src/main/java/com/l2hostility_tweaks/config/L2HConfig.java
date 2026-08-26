@@ -1,5 +1,7 @@
 package com.l2hostility_tweaks.config;
 
+import com.l2hostility_tweaks.util.TraitCostHelper;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -542,26 +544,16 @@ public class L2HConfig {
         return COMMON.playerSelfTraitCostMode.get();
     }
 
-    public static int getUnloadRefund(int currentLevel) {
-        int lv = Math.abs(currentLevel);
-        int mode = getPlayerSelfTraitCostMode();
-        if (mode == 2) {
-            return lv;
-        } else if (mode == 3) {
-            return lv > 0 ? 1 << (lv - 1) : 0;
-        }
-        return lv > 0 ? 1 : 0;
+    public static int getUpgradeCost(int currentLevel, int maxStackSize) {
+        return TraitCostHelper.upgradeCost(getPlayerSelfTraitCostMode(), currentLevel, maxStackSize);
     }
 
-    public static int getTotalUnloadRefund(int currentLevel) {
-        int lv = Math.abs(currentLevel);
-        int mode = getPlayerSelfTraitCostMode();
-        if (mode == 2) {
-            return lv * (lv + 1) / 2;
-        } else if (mode == 3) {
-            return lv > 0 ? (1 << lv) - 1 : 0;
-        }
-        return lv;
+    public static int getUnloadRefund(int currentLevel, int maxStackSize) {
+        return TraitCostHelper.singleRefund(getPlayerSelfTraitCostMode(), currentLevel, maxStackSize);
+    }
+
+    public static int getTotalUnloadRefund(int currentLevel, int maxStackSize) {
+        return TraitCostHelper.totalRefund(getPlayerSelfTraitCostMode(), currentLevel, maxStackSize);
     }
 
     public static boolean isPlayerTraitLimitEnabled() {
