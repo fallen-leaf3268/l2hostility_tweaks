@@ -2,6 +2,7 @@ package com.l2hostility_tweaks.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -11,6 +12,22 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TraitWandHelperTest {
+
+	@Test
+	void splitsRefundIntoLegalStacks() {
+		assertEquals(List.of(64, 63), TraitWandHelper.splitCounts(127, 64));
+		assertEquals(List.of(64), TraitWandHelper.splitCounts(64, 64));
+		assertTrue(TraitWandHelper.splitCounts(127, 64).stream()
+				.allMatch(count -> count > 0 && count <= 64));
+	}
+
+	@Test
+	void invalidRefundSplitInputsReturnNoStacks() {
+		assertEquals(List.of(), TraitWandHelper.splitCounts(0, 64));
+		assertEquals(List.of(), TraitWandHelper.splitCounts(-1, 64));
+		assertEquals(List.of(), TraitWandHelper.splitCounts(1, 0));
+		assertEquals(List.of(), TraitWandHelper.splitCounts(1, -1));
+	}
 
     @Test
     void parsesValidTraitId() {

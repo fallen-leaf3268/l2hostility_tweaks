@@ -5,9 +5,11 @@ import dev.xkmc.l2hostility.init.registrate.LHTraits;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BooleanSupplier;
 
 public class TraitWandHelper {
@@ -22,6 +24,26 @@ public class TraitWandHelper {
 	public static boolean giveOrDrop(Player player, ItemStack stack) {
 		return deliver(() -> player.addItem(stack), () -> !stack.isEmpty(),
 				() -> player.drop(stack, false) != null);
+	}
+
+	public static boolean giveOrDrop(Player player, Item item, int totalCount) {
+		boolean delivered = true;
+		for (int count : splitCounts(totalCount, item.getMaxStackSize())) {
+			delivered &= giveOrDrop(player, new ItemStack(item, count));
+		}
+		return delivered;
+	}
+
+	static List<Integer> splitCounts(int totalCount, int maxStackSize) {
+		if (totalCount <= 0 || maxStackSize <= 0) return List.of();
+		int fullStacks = totalCount / maxStackSize;
+		int remainder = totalCount % maxStackSize;
+		List<Integer> counts = new ArrayList<>(fullStacks + (remainder == 0 ? 0 : 1));
+		for (int i = 0; i < fullStacks; i++) {
+			counts.add(maxStackSize);
+		}
+		if (remainder > 0) counts.add(remainder);
+		return counts;
 	}
 
 	static boolean deliver(Runnable insert, BooleanSupplier hasRemainder,

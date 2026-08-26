@@ -69,8 +69,7 @@ public class TraitUnloaderWand extends Item {
 		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
 
 		int refund = L2HConfig.getUnloadRefund(absLevel, trait.asItem().getMaxStackSize());
-		ItemStack symbol = new ItemStack(trait.asItem(), refund);
-		TraitWandHelper.giveOrDrop(player, symbol);
+		TraitWandHelper.giveOrDrop(player, trait.asItem(), refund);
 		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_SINGLE,
 				trait.getDesc(), absLevel, Math.max(0, newLevel)).withStyle(ChatFormatting.GREEN), true);
 	}
@@ -85,8 +84,7 @@ public class TraitUnloaderWand extends Item {
 		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
 
 		int totalRefund = L2HConfig.getTotalUnloadRefund(absLevel, trait.asItem().getMaxStackSize());
-		ItemStack symbol = new ItemStack(trait.asItem(), totalRefund);
-		TraitWandHelper.giveOrDrop(player, symbol);
+		TraitWandHelper.giveOrDrop(player, trait.asItem(), totalRefund);
 		player.displayClientMessage(L2HTweaksLang.translate(L2HTweaksLang.UNLOADER_GROUP,
 				trait.getDesc(), absLevel, totalRefund).withStyle(ChatFormatting.GREEN), true);
 	}
@@ -169,7 +167,7 @@ public class TraitUnloaderWand extends Item {
 	private void unloadFull(Player player, MobTraitCap cap) {
 		List<Map.Entry<MobTrait, Integer>> entries = new ArrayList<>(cap.traits.entrySet());
 		float hpRatio = player.getHealth() / player.getMaxHealth();
-		int total = 0;
+		long total = 0;
 		for (var entry : entries) {
 			MobTrait trait = entry.getKey();
 			int absCount = Math.abs(entry.getValue());
@@ -180,8 +178,7 @@ public class TraitUnloaderWand extends Item {
 			trait.postInit(player, 0);
 			cap.traits.remove(trait);
 			TraitDisableHelper.clearSealData(player.getPersistentData(), trait.getID());
-			ItemStack symbol = new ItemStack(trait.asItem(), refund);
-			TraitWandHelper.giveOrDrop(player, symbol);
+			TraitWandHelper.giveOrDrop(player, trait.asItem(), refund);
 		}
 		syncCap(player, cap);
 		player.setHealth(Math.max(1, player.getMaxHealth() * Math.min(1, hpRatio)));
