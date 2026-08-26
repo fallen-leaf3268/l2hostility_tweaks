@@ -32,29 +32,28 @@ public class PocketOfRestorationMixin {
 	private static final Logger LOGGER = LoggerFactory.getLogger("L2HF_AbyssPocket");
 
 	private static final ThreadLocal<Integer> l2fix$abyssLevel = new ThreadLocal<>();
-	private static final ThreadLocal<Integer> l2fix$gluttonyLevel = new ThreadLocal<>();
 
 	@Inject(method = "curioTick", at = @At("HEAD"), remap = false, cancellable = true)
 	private void l2fix$captureAndRoute(SlotContext slotContext, ItemStack stack, CallbackInfo ci) {
 		var le = slotContext.entity();
+		l2fix$abyssLevel.remove();
 		if (le.level().isClientSide) return;
 		if (!le.isAlive()) return;
 
 		int abyss = EnchantmentHelper.getTagEnchantmentLevel(L2HFEnchantments.ABYSS_POCKET.get(), stack);
 		int gluttony = EnchantmentHelper.getTagEnchantmentLevel(L2HFEnchantments.GLUTTONY_POCKET.get(), stack);
-		l2fix$abyssLevel.set(abyss);
-		l2fix$gluttonyLevel.set(gluttony);
 
 		if (gluttony > 0) {
 			ci.cancel();
-			l2fix$runMultiSlotTick(slotContext, stack);
+			l2fix$runMultiSlotTick(slotContext, stack, abyss, gluttony);
+			return;
 		}
+		l2fix$abyssLevel.set(abyss);
 	}
 
 	@Inject(method = "curioTick", at = @At("RETURN"), remap = false)
 	private void l2fix$cleanup(SlotContext slotContext, ItemStack stack, CallbackInfo ci) {
 		l2fix$abyssLevel.remove();
-		l2fix$gluttonyLevel.remove();
 	}
 
 	private static int l2fix$abyss() {
@@ -86,9 +85,9 @@ public class PocketOfRestorationMixin {
 	}
 
 	@Unique
-	private void l2fix$runMultiSlotTick(SlotContext slotContext, ItemStack stack) {
+	private void l2fix$runMultiSlotTick(SlotContext slotContext, ItemStack stack, int abyss, int gluttony) {
 		var le = slotContext.entity();
-		int maxSlots = 1 + l2fix$gluttonyLevel.get();
+		int maxSlots = 1 + gluttony;
 		var list = CurioCompat.getItemAccess(le);
 		boolean changed = false;
 
@@ -120,7 +119,7 @@ public class PocketOfRestorationMixin {
 			int emptySlot = l2fix$findEmptySlot(stack, maxSlots);
 			if (emptySlot < 0) break;
 
-			if (stack.getDamageValue() + 1 + l2fix$abyssLevel.get() >= stack.getMaxDamage()) break;
+			if (stack.getDamageValue() + 1 + abyss >= stack.getMaxDamage()) break;
 
 			ItemStack sealed = e.get();
 			ItemStack stored = l2fix$readStoredItem(sealed.getTag());
@@ -129,12 +128,12 @@ public class PocketOfRestorationMixin {
 			String id = e.getID();
 			long gameTime = le.level().getGameTime();
 
-			stack.hurtAndBreak(1 + l2fix$abyssLevel.get(), le, x -> {});
+			stack.hurtAndBreak(1 + abyss, le, x -> {});
 
 			String key = l2fix$slotKey(emptySlot);
 			var tag = stack.getOrCreateTagElement(key);
 			int origTime = sealed.getOrCreateTag().getInt(SealedItem.TIME);
-			tag.putInt(SealedItem.TIME, origTime / (l2fix$abyssLevel.get() + 1));
+			tag.putInt(SealedItem.TIME, origTime / (abyss + 1));
 			tag.put(SealedItem.DATA, stored.save(new CompoundTag()));
 			tag.putString(PocketOfRestoration.KEY, id);
 			tag.putLong(PocketOfRestoration.START, gameTime);
