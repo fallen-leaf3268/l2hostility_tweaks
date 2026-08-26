@@ -11,7 +11,6 @@ import java.util.ArrayList;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -23,20 +22,6 @@ import java.util.function.IntFunction;
 @Mixin(value = DrainTrait.class, remap = false)
 public class DrainTraitMixin {
 
-	@Unique
-	private int l2fix$drainLevel;
-
-	@Inject(method = "onHurtTarget", at = @At("HEAD"))
-	private void l2fix$captureHurt(int level, LivingEntity attacker, AttackCache cache,
-								   dev.xkmc.l2hostility.content.logic.TraitEffectCache traitCache, CallbackInfo ci) {
-		this.l2fix$drainLevel = level;
-	}
-
-	@Inject(method = "postHurtImpl", at = @At("HEAD"))
-	private void l2fix$capturePostHurt(int level, LivingEntity attacker, LivingEntity target, CallbackInfo ci) {
-		this.l2fix$drainLevel = level;
-	}
-
 	@Inject(method = "onHurtTarget", at = @At("HEAD"), cancellable = true)
 	private void l2fix$drainOnHurt(int level, LivingEntity attacker, AttackCache cache,
 									dev.xkmc.l2hostility.content.logic.TraitEffectCache traitCache, CallbackInfo ci) {
@@ -45,7 +30,7 @@ public class DrainTraitMixin {
 		var target = cache.getAttackTarget();
 		var neg = target.getActiveEffects().stream()
 				.filter(e -> e.getEffect().getCategory() == MobEffectCategory.HARMFUL).count();
-		cache.addHurtModifier(DamageModifier.multTotal((float) (1 + L2HConfig.getDrainDamage(this.l2fix$drainLevel) * neg)));
+		cache.addHurtModifier(DamageModifier.multTotal((float) (1 + L2HConfig.getDrainDamage(level) * neg)));
 	}
 
 	@Inject(method = "postHurtImpl", at = @At("HEAD"), cancellable = true)

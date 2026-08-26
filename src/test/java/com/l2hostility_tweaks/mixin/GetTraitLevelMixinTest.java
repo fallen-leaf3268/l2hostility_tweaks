@@ -72,4 +72,15 @@ class GetTraitLevelMixinTest {
         assertTrue(validation < cooldown);
         assertTrue(validation < onGround);
     }
+
+    @Test
+    void drainUsesCallbackLevelWithoutSharedCaptureState() throws Exception {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/DrainTraitMixin.java"));
+
+        assertFalse(source.contains("l2fix$drainLevel"));
+        assertFalse(source.contains("l2fix$captureHurt"));
+        assertFalse(source.contains("l2fix$capturePostHurt"));
+        assertTrue(source.contains("L2HConfig.getDrainDamage(level)"));
+    }
 }
