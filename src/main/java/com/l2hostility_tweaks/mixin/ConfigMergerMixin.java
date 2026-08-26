@@ -1,6 +1,8 @@
 package com.l2hostility_tweaks.mixin;
 
 import com.google.gson.*;
+import com.l2hostility_tweaks.condition.NbtCondition;
+import com.l2hostility_tweaks.util.EntityConfigNbtData;
 import dev.xkmc.l2hostility.content.config.EntityConfig;
 import dev.xkmc.l2library.serial.config.BaseConfig;
 import dev.xkmc.l2library.serial.config.ConfigMerger;
@@ -16,7 +18,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.io.InputStreamReader;
-import java.lang.reflect.Field;
 import java.util.*;
 
 @Mixin(value = ConfigMerger.class, remap = false)
@@ -24,10 +25,11 @@ public class ConfigMergerMixin {
 
     private static final Logger LOG = LogManager.getLogger("L2HostilityFix/ConfigMerger");
     private static final Gson GSON = new Gson();
-    private static volatile Field NBT_FIELD;
-    private static volatile boolean NBT_FIELD_LOOKED_UP;
-    private static volatile Map<ResourceLocation, Map<Integer, Map<String, Object>>> nbtStore;
+    private static volatile Map<ResourceLocation, Map<Integer, NbtEntry>> nbtStore;
     private static volatile boolean nbtStoreBuilt;
+
+    private record NbtEntry(EntityConfigNbtData.State state, JsonObject condition) {
+    }
 
     @Inject(method = "merge", at = @At("HEAD"))
     private void l2fix$onBeforeMerge(List<BaseConfig> list, CallbackInfoReturnable<Object> cir) {
@@ -48,16 +50,18 @@ public class ConfigMergerMixin {
                 if (!(baseConfig instanceof EntityConfig ec)) continue;
                 if (ec.getID() == null) continue;
 
-                Map<Integer, Map<String, Object>> indexMap = nbtStore.get(ec.getID());
+                Map<Integer, NbtEntry> indexMap = nbtStore.get(ec.getID());
                 if (indexMap == null) continue;
 
-                for (Map.Entry<Integer, Map<String, Object>> nbtEntry : indexMap.entrySet()) {
-                    int i = nbtEntry.getKey();
+                for (Map.Entry<Integer, NbtEntry> entry : indexMap.entrySet()) {
+                    int i = entry.getKey();
                     if (i < ec.list.size()) {
-                        l2fix$setNbt(ec.list.get(i), nbtEntry.getValue());
+                        NbtEntry nbtEntry = entry.getValue();
+                        ((EntityConfigNbtData) (Object) ec.list.get(i))
+                                .l2fix$setNbtCondition(nbtEntry.state(), nbtEntry.condition());
                         nbtSet++;
-                        LOG.info("[ConfigMergerMixin] Set NBT on config[{}] from '{}': {}",
-                                i, ec.getID(), nbtEntry.getValue());
+                        LOG.info("[ConfigMergerMixin] Set NBT state {} on config[{}] from '{}'",
+                                nbtEntry.state(), i, ec.getID());
                     }
                 }
             }
@@ -71,8 +75,8 @@ public class ConfigMergerMixin {
         }
     }
 
-    private static Map<ResourceLocation, Map<Integer, Map<String, Object>>> l2fix$buildNbtStore(MinecraftServer server) {
-        Map<ResourceLocation, Map<Integer, Map<String, Object>>> store = new LinkedHashMap<>();
+    private static Map<ResourceLocation, Map<Integer, NbtEntry>> l2fix$buildNbtStore(MinecraftServer server) {
+        Map<ResourceLocation, Map<Integer, NbtEntry>> store = new LinkedHashMap<>();
         int totalFound = 0;
 
         // Use listResources — exactly how SimpleJsonResourceReloadListener finds JSON files
@@ -99,18 +103,35 @@ public class ConfigMergerMixin {
                 if (listArray == null) continue;
 
                 for (int i = 0; i < listArray.size(); i++) {
-                    JsonObject entryObj = listArray.get(i).getAsJsonObject();
-                    JsonObject nbtObj = entryObj.getAsJsonObject("nbt");
-                    if (nbtObj == null) continue;
+                    JsonElement configElement = listArray.get(i);
+                    if (!configElement.isJsonObject()) continue;
+                    JsonElement nbtElement = configElement.getAsJsonObject().get("nbt");
+                    if (nbtElement == null) continue;
 
-                    Map<String, Object> nbtMap = l2fix$parseNbt(nbtObj);
-                    if (nbtMap.isEmpty()) continue;
+                    NbtEntry nbtEntry;
+                    if (!nbtElement.isJsonObject()) {
+                        nbtEntry = new NbtEntry(EntityConfigNbtData.State.INVALID, null);
+                        LOG.warn("[ConfigMergerMixin] Invalid NBT condition in {}[{}]: nbt must be an object",
+                                configId, i);
+                    } else {
+                        JsonObject condition = nbtElement.getAsJsonObject();
+                        Optional<String> error = NbtCondition.validate(condition);
+                        if (error.isPresent()) {
+                            nbtEntry = new NbtEntry(EntityConfigNbtData.State.INVALID, null);
+                            LOG.warn("[ConfigMergerMixin] Invalid NBT condition in {}[{}]: {}",
+                                    configId, i, error.get());
+                        } else {
+                            nbtEntry = new NbtEntry(EntityConfigNbtData.State.VALID, condition.deepCopy());
+                        }
+                    }
 
-                    store.computeIfAbsent(configId, k -> new LinkedHashMap<>()).put(i, nbtMap);
+                    store.computeIfAbsent(configId, k -> new LinkedHashMap<>()).put(i, nbtEntry);
                     totalFound++;
-                    LOG.info("[ConfigMergerMixin] Found NBT in {}[{}]: {}", configId, i, nbtMap);
+                    LOG.info("[ConfigMergerMixin] Found NBT state {} in {}[{}]",
+                            nbtEntry.state(), configId, i);
                 }
-            } catch (Exception ignored) {
+            } catch (Exception exception) {
+                LOG.warn("[ConfigMergerMixin] Failed to inspect entity config resource {}", id, exception);
             }
         }
 
@@ -118,34 +139,4 @@ public class ConfigMergerMixin {
         return store;
     }
 
-    private static Map<String, Object> l2fix$parseNbt(JsonObject nbtObj) {
-        Map<String, Object> map = new LinkedHashMap<>();
-        for (Map.Entry<String, JsonElement> kv : nbtObj.entrySet()) {
-            JsonElement val = kv.getValue();
-            if (val instanceof JsonPrimitive p) {
-                if (p.isBoolean()) map.put(kv.getKey(), p.getAsBoolean());
-                else if (p.isNumber()) map.put(kv.getKey(), p.getAsInt());
-                else map.put(kv.getKey(), p.getAsString());
-            }
-        }
-        return map;
-    }
-
-    private static void l2fix$setNbt(EntityConfig.Config config, Map<String, Object> nbt) {
-        if (!NBT_FIELD_LOOKED_UP) {
-            try {
-                NBT_FIELD = EntityConfig.Config.class.getField("nbt");
-                LOG.info("[ConfigMergerMixin] Found 'nbt' field via reflection: {}", NBT_FIELD);
-            } catch (NoSuchFieldException e) {
-                LOG.error("[ConfigMergerMixin] Could not find 'nbt' field on Config class!", e);
-            }
-            NBT_FIELD_LOOKED_UP = true;
-        }
-        if (NBT_FIELD == null) return;
-        try {
-            NBT_FIELD.set(config, nbt);
-        } catch (IllegalAccessException e) {
-            LOG.error("[ConfigMergerMixin] Failed to set nbt field", e);
-        }
-    }
 }

@@ -1,6 +1,5 @@
 package com.l2hostility_tweaks.condition;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
@@ -22,12 +21,7 @@ import java.util.Optional;
 
 public class NbtCondition extends SpecialConfigCondition<LivingEntity> {
 
-	private static final Gson GSON = new Gson();
 	private final JsonObject expectedNbt;
-
-	public NbtCondition(Map<String, Object> expectedNbt) {
-		this(GSON.toJsonTree(expectedNbt).getAsJsonObject());
-	}
 
 	public NbtCondition(JsonObject expectedNbt) {
 		super(LivingEntity.class);
