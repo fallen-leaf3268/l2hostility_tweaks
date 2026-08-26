@@ -47,10 +47,26 @@ public class TraitGeneratorMixin {
     }
 
     @SuppressWarnings("unchecked")
-    @Inject(method = "generate", at = @At("TAIL"))
-    private void l2fix$afterGenerate(CallbackInfo ci) {
+    @Inject(method = "generate", at = @At(
+            value = "INVOKE",
+            target = "Ljava/util/HashMap;entrySet()Ljava/util/Set;",
+            shift = At.Shift.BEFORE), require = 1)
+    private void l2fix$prepareFinalTraits(CallbackInfo ci) {
+        TraitGenerator self = (TraitGenerator) (Object) this;
+        l2fix$runBeforeInitializationPipeline(
+                () -> l2fix$applyNbtPresets(self),
+                () -> TraitGenerationHelper.applyFinalFilters(self));
+    }
+
+    @Unique
+    static void l2fix$runBeforeInitializationPipeline(Runnable mergeNbtPresets, Runnable filterCandidates) {
+        mergeNbtPresets.run();
+        filterCandidates.run();
+    }
+
+    @Unique
+    private static void l2fix$applyNbtPresets(TraitGenerator self) {
         try {
-            TraitGenerator self = (TraitGenerator) (Object) this;
             LivingEntity entity = TraitGenerationHelper.getEntity(self);
             if (entity == null) return;
 
@@ -100,7 +116,6 @@ public class TraitGeneratorMixin {
                 if (!l2fix$shouldApplyPreset(currentRank, minLevel)) continue;
 
                 traits.put(mt, minLevel);
-                mt.initialize(entity, minLevel);
                 appliedCount++;
             }
             if (appliedCount > 0) {

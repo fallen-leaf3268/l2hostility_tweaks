@@ -18,9 +18,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -204,38 +202,7 @@ public class TraitPostRollMixin {
         MobTraitCap cap = MobTraitCap.HOLDER.get(entity);
         if (cap == null) return;
 
-        HashMap<MobTrait, Integer> traits = cap.traits;
-        if (traits.isEmpty()) return;
-
-        int difficulty = TraitGenerationHelper.getMobLevel(self);
-        Set<String> protectedIds = TraitGenerationHelper.getDataPackPresetIds(entity);
-
-        // Legendary limit cleanup — catches genBase-set traits that bypassed setRank redirect
-        if (L2HConfig.COMMON.legendaryEnabled.get()) {
-            int diff = difficulty;
-            Set<String> extraLegendaryIds = L2HConfig.getExtraLegendaryIds();
-
-            if (diff < L2HConfig.COMMON.legendaryUnlimited.get()) {
-                int maxAllowed = L2HConfig.getThreshold(L2HConfig.getLegendaryThresholds(), diff);
-                List<Map.Entry<MobTrait, Integer>> legendaries = new ArrayList<>();
-                for (Map.Entry<MobTrait, Integer> e : traits.entrySet()) {
-                    String id = e.getKey().getID();
-                    boolean isLegendary = e.getKey() instanceof LegendaryTrait || extraLegendaryIds.contains(id);
-                    if (isLegendary && !protectedIds.contains(id) && e.getValue() > 0) {
-                        legendaries.add(e);
-                    }
-                }
-                legendaries.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
-                for (int i = maxAllowed; i < legendaries.size(); i++) {
-                    traits.remove(legendaries.get(i).getKey());
-                }
-            }
-        }
-
-        // Trait exclusions
-        if (L2HConfig.COMMON.exclusionEnabled.get()) {
-            TraitGenerationHelper.applyExclusions(traits, difficulty);
-        }
+        if (cap.traits.isEmpty()) return;
 
         if (!entity.level().isClientSide()) {
             cap.syncToClient(entity);

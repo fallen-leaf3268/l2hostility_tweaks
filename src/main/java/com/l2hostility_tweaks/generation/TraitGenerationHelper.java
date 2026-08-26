@@ -7,6 +7,7 @@ import dev.xkmc.l2hostility.content.config.EntityConfig;
 import dev.xkmc.l2hostility.content.logic.MobDifficultyCollector;
 import dev.xkmc.l2hostility.content.logic.TraitGenerator;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
+import dev.xkmc.l2hostility.content.traits.legendary.LegendaryTrait;
 import net.minecraft.world.entity.LivingEntity;
 
 import org.slf4j.Logger;
@@ -131,6 +132,38 @@ public class TraitGenerationHelper {
                     removeTraitById(traits, id);
                 }
             }
+        }
+    }
+
+    public static void applyFinalFilters(TraitGenerator self) {
+        LivingEntity entity = getEntity(self);
+        HashMap<MobTrait, Integer> traits = getTraits(self);
+        if (entity == null || !entity.isAlive() || traits == null || traits.isEmpty()) return;
+
+        int difficulty = getMobLevel(self);
+        Set<String> protectedIds = getDataPackPresetIds(entity);
+
+        if (L2HConfig.COMMON.legendaryEnabled.get()) {
+            Set<String> extraLegendaryIds = L2HConfig.getExtraLegendaryIds();
+            if (difficulty < L2HConfig.COMMON.legendaryUnlimited.get()) {
+                int maxAllowed = L2HConfig.getThreshold(L2HConfig.getLegendaryThresholds(), difficulty);
+                List<Map.Entry<MobTrait, Integer>> legendaries = new ArrayList<>();
+                for (Map.Entry<MobTrait, Integer> entry : traits.entrySet()) {
+                    String id = entry.getKey().getID();
+                    boolean isLegendary = entry.getKey() instanceof LegendaryTrait || extraLegendaryIds.contains(id);
+                    if (isLegendary && !protectedIds.contains(id) && entry.getValue() > 0) {
+                        legendaries.add(entry);
+                    }
+                }
+                legendaries.sort((first, second) -> Integer.compare(second.getValue(), first.getValue()));
+                for (int index = maxAllowed; index < legendaries.size(); index++) {
+                    traits.remove(legendaries.get(index).getKey());
+                }
+            }
+        }
+
+        if (L2HConfig.COMMON.exclusionEnabled.get()) {
+            applyExclusions(traits, difficulty);
         }
     }
 
