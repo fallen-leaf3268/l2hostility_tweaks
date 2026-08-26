@@ -1,10 +1,26 @@
 package com.l2hostility_tweaks.mixin;
 
+import com.google.gson.JsonParser;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TraitSymbolMixinTest {
+
+    @Test
+    void loadsSealedUpgradeMixinOnDedicatedServers() throws IOException {
+        var config = JsonParser.parseString(Files.readString(Path.of(
+                "src/main/resources/l2hostility_tweaks.mixins.json"))).getAsJsonObject();
+
+        assertTrue(config.getAsJsonArray("mixins").contains(JsonParser.parseString("\"TraitSymbolMixin\"")));
+        assertFalse(config.getAsJsonArray("client").contains(JsonParser.parseString("\"TraitSymbolMixin\"")));
+    }
 
     @Test
     void displaysInvalidTraitIdAsLiteralText() {

@@ -10,6 +10,7 @@
         "AbrahadabraReflectMixin",
         "AntiBuildBeneficialMixin",
         "TraitSymbolBudgetMixin",
+        "TraitSymbolMixin",
         "AntibuildBlockImmuneMixin",
         "PlayerAntibuildBypassCacheMixin",
         "AntibuildPlaceBypassMixin",
@@ -63,7 +64,6 @@
     ],
     "client": [
         "DifficultyScreenMixin",
-        "TraitSymbolMixin",
         "RenderNamePlateMixin",
         "BossOverlayDetector",
         "BossHealthOverlayAccessor",
