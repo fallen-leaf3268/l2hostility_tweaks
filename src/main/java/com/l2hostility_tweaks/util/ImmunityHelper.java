@@ -135,7 +135,7 @@ public class ImmunityHelper {
                 .map(h -> h.is(tag)).orElse(false);
     }
 
-    private static boolean computeImmuneToForce(LivingEntity entity) {
+    public static boolean computeImmuneToForce(LivingEntity entity) {
         if (hasItemWithTag(entity, ItemTags.IMMUNE_TO_FORCE)) {
             LOGGER.debug("[ForceImmunity] Force immunity (Curios tag) for {}", entity.getName().getString());
             return true;
@@ -149,7 +149,7 @@ public class ImmunityHelper {
         return false;
     }
 
-    private static boolean computeImmuneToGravity(LivingEntity entity) {
+    public static boolean computeImmuneToGravity(LivingEntity entity) {
         if (hasItemWithTag(entity, ItemTags.IMMUNE_TO_GRAVITY)) {
             LOGGER.debug("[GravityImmunity] Gravity immunity (Curios tag) for {}", entity.getName().getString());
             return true;
