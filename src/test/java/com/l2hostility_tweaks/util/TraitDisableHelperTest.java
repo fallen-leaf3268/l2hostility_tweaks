@@ -339,6 +339,28 @@ class TraitDisableHelperTest {
     }
 
     @Test
+    void livingTickFullyClearsSealStateWhenTheTraitIsGone() throws Exception {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/L2HostilityFix.java"));
+        String normalizedSource = source.replace("\r\n", "\n");
+        int orphanStart = normalizedSource.indexOf("if (traitGone)");
+        int orphanEnd = normalizedSource.indexOf("continue;", orphanStart);
+        String orphanBranch = normalizedSource.substring(orphanStart, orphanEnd);
+
+        assertTrue(orphanBranch.contains("orphanedTraits.add(traitId)"));
+        assertFalse(orphanBranch.contains("toRemove.add(key)"));
+
+        int cleanupStart = normalizedSource.indexOf("if (orphanedTraits != null)", orphanEnd);
+        assertTrue(cleanupStart >= 0);
+        assertTrue(normalizedSource.contains(
+                "        }\n        if (orphanedTraits != null) {"));
+        int expiryCleanupStart = normalizedSource.indexOf("if (toRemove != null)", cleanupStart);
+        assertTrue(expiryCleanupStart > cleanupStart);
+        String orphanCleanup = normalizedSource.substring(cleanupStart, expiryCleanupStart);
+        assertTrue(orphanCleanup.contains("TraitDisableHelper.clearSealData(data, traitId)"));
+    }
+
+    @Test
     void deathRecoveryUsesDebugForNormalDiagnosticsAndWarnForFailures() throws Exception {
         String source = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/L2HostilityFix.java"));

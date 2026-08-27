@@ -112,6 +112,7 @@ public class L2HostilityFix {
         if ((self.tickCount + self.getId()) % 20 != 0) return;
         var data = self.getPersistentData();
         java.util.List<String> toRemove = null;
+        java.util.List<String> orphanedTraits = null;
         long gameTime = self.level().getGameTime();
         boolean hasCap = dev.xkmc.l2hostility.content.capability.mob.MobTraitCap.HOLDER.isProper(self);
         var cap = hasCap ? dev.xkmc.l2hostility.content.capability.mob.MobTraitCap.HOLDER.get(self) : null;
@@ -120,8 +121,8 @@ public class L2HostilityFix {
             String traitId = key.substring(com.l2hostility_tweaks.util.TraitDisableHelper.SEAL_EXPIRY_PREFIX.length());
             boolean traitGone = cap == null || cap.traits.keySet().stream().noneMatch(t -> t.getID().equals(traitId));
             if (traitGone) {
-                if (toRemove == null) toRemove = new java.util.ArrayList<>();
-                toRemove.add(key);
+                if (orphanedTraits == null) orphanedTraits = new java.util.ArrayList<>();
+                orphanedTraits.add(traitId);
                 continue;
             }
             long expiry = data.getLong(key);
@@ -129,6 +130,11 @@ public class L2HostilityFix {
             if (gameTime >= expiry) {
                 if (toRemove == null) toRemove = new java.util.ArrayList<>();
                 toRemove.add(key);
+            }
+        }
+        if (orphanedTraits != null) {
+            for (String traitId : orphanedTraits) {
+                TraitDisableHelper.clearSealData(data, traitId);
             }
         }
         if (toRemove != null) {
