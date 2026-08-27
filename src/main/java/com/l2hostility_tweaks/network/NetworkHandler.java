@@ -14,7 +14,6 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
@@ -25,7 +24,7 @@ import java.util.function.Supplier;
 
 public class NetworkHandler {
 
-	private static final String PROTOCOL_VERSION = "1";
+	private static final String PROTOCOL_VERSION = "2";
 	public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
 			new ResourceLocation("l2hostility_tweaks", "toggle_glow"),
 			() -> PROTOCOL_VERSION,
@@ -54,12 +53,12 @@ public class NetworkHandler {
 				ToggleProtectPacket::handle);
 	}
 
-	public static void sendToggleToServer(int slotIndex) {
-		CHANNEL.sendToServer(new ToggleGlowPacket(slotIndex));
+	public static void sendToggleToServer(int containerId, int slotIndex) {
+		CHANNEL.sendToServer(new ToggleGlowPacket(containerId, slotIndex));
 	}
 
-	public static void sendToggleProtectToServer(int slotIndex) {
-		CHANNEL.sendToServer(new ToggleProtectPacket(slotIndex));
+	public static void sendToggleProtectToServer(int containerId, int slotIndex) {
+		CHANNEL.sendToServer(new ToggleProtectPacket(containerId, slotIndex));
 	}
 
 	public static void sendCycleToServer(boolean reverse) {
@@ -70,14 +69,15 @@ public class NetworkHandler {
 		CHANNEL.sendToServer(new UnloadTraitPacket(traitId, unloadAll));
 	}
 
-	public record ToggleGlowPacket(int slotIndex) {
+	public record ToggleGlowPacket(int containerId, int slotIndex) {
 
 		public static void encode(ToggleGlowPacket msg, FriendlyByteBuf buf) {
+			buf.writeInt(msg.containerId);
 			buf.writeInt(msg.slotIndex);
 		}
 
 		public static ToggleGlowPacket decode(FriendlyByteBuf buf) {
-			return new ToggleGlowPacket(buf.readInt());
+			return new ToggleGlowPacket(buf.readInt(), buf.readInt());
 		}
 
 		public static void handle(ToggleGlowPacket msg, Supplier<NetworkEvent.Context> ctxSupplier) {
@@ -86,19 +86,9 @@ public class NetworkHandler {
 				ServerPlayer player = ctx.getSender();
 				if (player == null) return;
 
-				// 按槽位索引精确切换
-				if (player.containerMenu != null && msg.slotIndex >= 0 && msg.slotIndex < player.containerMenu.slots.size()) {
+				if (player.containerMenu != null && player.containerMenu.containerId == msg.containerId &&
+						msg.slotIndex >= 0 && msg.slotIndex < player.containerMenu.slots.size()) {
 					ItemStack stack = player.containerMenu.getSlot(msg.slotIndex).getItem();
-					if (stack.getItem() instanceof DetectorGlasses) {
-						boolean disabled = !stack.getOrCreateTag().getBoolean(TAG_GLOW_DISABLED);
-						stack.getOrCreateTag().putBoolean(TAG_GLOW_DISABLED, disabled);
-						return;
-					}
-				}
-
-				// Fallback: 扫装备栏
-				for (EquipmentSlot slot : EquipmentSlot.values()) {
-					ItemStack stack = player.getItemBySlot(slot);
 					if (stack.getItem() instanceof DetectorGlasses) {
 						boolean disabled = !stack.getOrCreateTag().getBoolean(TAG_GLOW_DISABLED);
 						stack.getOrCreateTag().putBoolean(TAG_GLOW_DISABLED, disabled);
@@ -182,14 +172,15 @@ public class NetworkHandler {
 		}
 	}
 
-	public record ToggleProtectPacket(int slotIndex) {
+	public record ToggleProtectPacket(int containerId, int slotIndex) {
 
 		public static void encode(ToggleProtectPacket msg, FriendlyByteBuf buf) {
+			buf.writeInt(msg.containerId);
 			buf.writeInt(msg.slotIndex);
 		}
 
 		public static ToggleProtectPacket decode(FriendlyByteBuf buf) {
-			return new ToggleProtectPacket(buf.readInt());
+			return new ToggleProtectPacket(buf.readInt(), buf.readInt());
 		}
 
 		public static void handle(ToggleProtectPacket msg, Supplier<NetworkEvent.Context> ctxSupplier) {
@@ -198,19 +189,14 @@ public class NetworkHandler {
 				ServerPlayer player = ctx.getSender();
 				if (player == null) return;
 
-				// 按槽位索引精确切换
-				if (player.containerMenu != null && msg.slotIndex >= 0 && msg.slotIndex < player.containerMenu.slots.size()) {
+				if (player.containerMenu != null && player.containerMenu.containerId == msg.containerId &&
+						msg.slotIndex >= 0 && msg.slotIndex < player.containerMenu.slots.size()) {
 					ItemStack stack = player.containerMenu.getSlot(msg.slotIndex).getItem();
 					if (stack.getItem() instanceof DimensionBreakerItem) {
 						DimensionBreakerItem.toggleProtect(stack);
 						return;
 					}
 				}
-
-				// Fallback
-				ItemStack stack = DimensionBreakerItem.findEquipped(player);
-				if (stack.isEmpty()) return;
-				DimensionBreakerItem.toggleProtect(stack);
 			});
 			ctx.setPacketHandled(true);
 		}

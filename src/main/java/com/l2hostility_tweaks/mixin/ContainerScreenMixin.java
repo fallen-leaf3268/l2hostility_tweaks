@@ -23,13 +23,15 @@ public class ContainerScreenMixin {
 		if (slot == null || !slot.hasItem()) return;
 
 		ItemStack stack = slot.getItem();
+		int menuSlot = screen.getMenu().slots.indexOf(slot);
+		if (menuSlot < 0) return;
 		if (stack.getItem() instanceof DetectorGlasses) {
-			NetworkHandler.sendToggleToServer(slot.index);
+			NetworkHandler.sendToggleToServer(screen.getMenu().containerId, menuSlot);
 			cir.setReturnValue(true);
 			return;
 		}
 		if (stack.getItem() instanceof DimensionBreakerItem) {
-			NetworkHandler.sendToggleProtectToServer(slot.index);
+			NetworkHandler.sendToggleProtectToServer(screen.getMenu().containerId, menuSlot);
 			cir.setReturnValue(true);
 		}
 	}

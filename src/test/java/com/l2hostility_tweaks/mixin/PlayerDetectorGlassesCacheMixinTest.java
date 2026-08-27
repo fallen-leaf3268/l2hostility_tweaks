@@ -58,6 +58,26 @@ class PlayerDetectorGlassesCacheMixinTest {
 		assertFalse(visibilityMixin.contains("playerGlassesTick"));
 	}
 
+	@Test
+	void rightClickPacketsUseExactMenuSlotWithoutEquipmentFallback() throws IOException {
+		String client = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/mixin/ContainerScreenMixin.java"));
+		String network = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/network/NetworkHandler.java"));
+
+		assertTrue(client.contains("int menuSlot = screen.getMenu().slots.indexOf(slot);"));
+		assertTrue(client.contains("NetworkHandler.sendToggleToServer(screen.getMenu().containerId, menuSlot)"));
+		assertTrue(client.contains("NetworkHandler.sendToggleProtectToServer(screen.getMenu().containerId, menuSlot)"));
+		assertFalse(client.contains("sendToggleToServer(slot.index)"));
+		assertFalse(client.contains("sendToggleProtectToServer(slot.index)"));
+		assertFalse(network.contains("for (EquipmentSlot slot : EquipmentSlot.values())"));
+		assertFalse(network.contains("DimensionBreakerItem.findEquipped(player)"));
+		assertTrue(network.contains("record ToggleGlowPacket(int containerId, int slotIndex)"));
+		assertTrue(network.contains("record ToggleProtectPacket(int containerId, int slotIndex)"));
+		assertTrue(network.contains("player.containerMenu.containerId == msg.containerId"));
+		assertTrue(network.contains("PROTOCOL_VERSION = \"2\""));
+	}
+
 	private static final class CountingCache extends PlayerDetectorGlassesCacheMixin {
 
 		private int scanCount;
