@@ -30,6 +30,7 @@ import net.minecraft.world.level.GameRules;
 import net.minecraftforge.common.MinecraftForge;
 
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.living.LivingEquipmentChangeEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent;
@@ -177,6 +178,12 @@ public class L2HostilityFix {
     @SubscribeEvent
     public void onCurioChange(CurioChangeEvent event) {
         ImmunityHelper.invalidateCombatCurios(event.getEntity());
+        ImmunityHelper.invalidateDimensionBreaker(event.getEntity());
+    }
+
+    @SubscribeEvent
+    public void onEquipmentChange(LivingEquipmentChangeEvent event) {
+        ImmunityHelper.invalidateDimensionBreaker(event.getEntity());
     }
 
     @SubscribeEvent

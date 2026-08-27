@@ -2,6 +2,7 @@ package com.l2hostility_tweaks.network;
 
 import com.l2hostility_tweaks.content.DimensionBreakerItem;
 import com.l2hostility_tweaks.content.TraitUnloaderWand;
+import com.l2hostility_tweaks.util.ImmunityHelper;
 import com.l2hostility_tweaks.util.TraitCostHelper;
 import com.l2hostility_tweaks.init.L2HTweaksLang;
 import dev.xkmc.l2hostility.compat.curios.CurioCompat;
@@ -194,6 +195,7 @@ public class NetworkHandler {
 					ItemStack stack = player.containerMenu.getSlot(msg.slotIndex).getItem();
 					if (stack.getItem() instanceof DimensionBreakerItem) {
 						DimensionBreakerItem.toggleProtect(stack);
+						ImmunityHelper.invalidateDimensionBreaker(player);
 						return;
 					}
 				}

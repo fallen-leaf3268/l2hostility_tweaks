@@ -1,5 +1,7 @@
 package com.l2hostility_tweaks.content;
 
+import com.l2hostility_tweaks.util.EntityImmunityCache;
+import com.l2hostility_tweaks.util.ImmunityHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.tags.BlockTags;
@@ -26,26 +28,42 @@ public class DimensionBreakerItem extends Item {
 	}
 
 	public static boolean isEquippedBy(LivingEntity entity) {
+		return getEquippedState(entity).equipped();
+	}
+
+	public static EntityImmunityCache.DimensionBreakerState getEquippedState(LivingEntity entity) {
+		return ImmunityHelper.getDimensionBreakerState(entity);
+	}
+
+	public static EntityImmunityCache.DimensionBreakerState computeEquippedState(LivingEntity entity) {
+		boolean equipped = false;
 		for (EquipmentSlot slot : EquipmentSlot.values()) {
-			if (entity.getItemBySlot(slot).getItem() instanceof DimensionBreakerItem) {
-				return true;
+			ItemStack stack = entity.getItemBySlot(slot);
+			if (stack.getItem() instanceof DimensionBreakerItem) {
+				equipped = true;
+				if (isProtectMode(stack)) return EntityImmunityCache.DimensionBreakerState.PROTECTED;
 			}
 		}
 		try {
-			return CuriosApi.getCuriosInventory(entity).resolve().map(handler -> {
-				for (var stacksHandler : handler.getCurios().values()) {
+			var inventory = CuriosApi.getCuriosInventory(entity).resolve();
+			if (inventory.isPresent()) {
+				for (var stacksHandler : inventory.get().getCurios().values()) {
 					var stacks = stacksHandler.getStacks();
 					for (int i = 0; i < stacks.getSlots(); i++) {
-						if (stacks.getStackInSlot(i).getItem() instanceof DimensionBreakerItem) {
-							return true;
+						ItemStack stack = stacks.getStackInSlot(i);
+						if (stack.getItem() instanceof DimensionBreakerItem) {
+							equipped = true;
+							if (isProtectMode(stack)) {
+								return EntityImmunityCache.DimensionBreakerState.PROTECTED;
+							}
 						}
 					}
 				}
-				return false;
-			}).orElse(false);
+			}
 		} catch (Exception ignored) {
-			return false;
 		}
+		return equipped ? EntityImmunityCache.DimensionBreakerState.EQUIPPED
+				: EntityImmunityCache.DimensionBreakerState.EMPTY;
 	}
 
 	@Nullable
@@ -79,8 +97,7 @@ public class DimensionBreakerItem extends Item {
 	}
 
 	public static boolean isProtectActive(Player player) {
-		ItemStack stack = findEquipped(player);
-		return !stack.isEmpty() && isProtectMode(stack);
+		return getEquippedState(player).protectActive();
 	}
 
 	public static void toggleProtect(ItemStack stack) {

@@ -58,6 +58,15 @@ public class ImmunityHelper {
         ((EntityImmunityCache) entity).l2fix$invalidateCombatCurios();
     }
 
+    public static EntityImmunityCache.DimensionBreakerState getDimensionBreakerState(
+            LivingEntity entity) {
+        return ((EntityImmunityCache) entity).l2fix$getDimensionBreakerState(entity.tickCount);
+    }
+
+    public static void invalidateDimensionBreaker(LivingEntity entity) {
+        ((EntityImmunityCache) entity).l2fix$invalidateDimensionBreaker();
+    }
+
     public static CombatCurioSnapshot computeCombatCurios(LivingEntity entity) {
         boolean bypassDispell = false;
         boolean bypassDementor = false;

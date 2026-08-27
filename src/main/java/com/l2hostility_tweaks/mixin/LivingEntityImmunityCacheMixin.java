@@ -2,6 +2,7 @@ package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.util.EntityImmunityCache;
 import com.l2hostility_tweaks.util.ImmunityHelper;
+import com.l2hostility_tweaks.content.DimensionBreakerItem;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -22,6 +23,11 @@ public class LivingEntityImmunityCacheMixin implements EntityImmunityCache {
 	@Unique
 	private ImmunityHelper.CombatCurioSnapshot l2fix$combatCurios =
 			ImmunityHelper.CombatCurioSnapshot.EMPTY;
+	@Unique
+	private volatile long l2fix$dimensionBreakerStamp = Long.MIN_VALUE;
+	@Unique
+	private EntityImmunityCache.DimensionBreakerState l2fix$dimensionBreakerState =
+			EntityImmunityCache.DimensionBreakerState.EMPTY;
 
 	@Override
 	public boolean l2fix$isImmuneToForce(long stamp) {
@@ -55,6 +61,20 @@ public class LivingEntityImmunityCacheMixin implements EntityImmunityCache {
 		l2fix$combatCurioStamp = Long.MIN_VALUE;
 	}
 
+	@Override
+	public EntityImmunityCache.DimensionBreakerState l2fix$getDimensionBreakerState(long stamp) {
+		if (l2fix$dimensionBreakerStamp != stamp) {
+			l2fix$dimensionBreakerState = l2fix$scanDimensionBreakerState();
+			l2fix$dimensionBreakerStamp = stamp;
+		}
+		return l2fix$dimensionBreakerState;
+	}
+
+	@Override
+	public void l2fix$invalidateDimensionBreaker() {
+		l2fix$dimensionBreakerStamp = Long.MIN_VALUE;
+	}
+
 	@Unique
 	boolean l2fix$scanForceImmunity() {
 		return ImmunityHelper.computeImmuneToForce((LivingEntity) (Object) this);
@@ -68,5 +88,10 @@ public class LivingEntityImmunityCacheMixin implements EntityImmunityCache {
 	@Unique
 	ImmunityHelper.CombatCurioSnapshot l2fix$scanCombatCurios() {
 		return ImmunityHelper.computeCombatCurios((LivingEntity) (Object) this);
+	}
+
+	@Unique
+	EntityImmunityCache.DimensionBreakerState l2fix$scanDimensionBreakerState() {
+		return DimensionBreakerItem.computeEquippedState((LivingEntity) (Object) this);
 	}
 }
