@@ -42,7 +42,7 @@ class TraitSymbolSelfUseMixinTest {
 				"src/main/java/com/l2hostility_tweaks/client/PlayerTraitScreen.java"));
 
 		assertTrue(source.contains(
-				"L2HConfig.getUpgradeCost(curLevel, e.owner().asItem().getMaxStackSize())"));
+				"L2HConfig.getDisplayUpgradeCost(curLevel, e.owner().asItem().getMaxStackSize())"));
 		assertTrue(source.contains("L2HTweaksLang.UPGRADE_UNPAYABLE"));
 		assertFalse(source.contains("1 << curLevel"));
 	}

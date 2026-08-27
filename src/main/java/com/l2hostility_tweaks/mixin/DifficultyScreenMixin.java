@@ -32,18 +32,18 @@ public class DifficultyScreenMixin {
 
 		int diff = l2fix$getDifficulty(player);
 
-		boolean levelCapOn = L2HConfig.COMMON.levelCapEnabled.get();
-		boolean legendaryOn = L2HConfig.COMMON.legendaryEnabled.get();
+		boolean levelCapOn = L2HConfig.isDisplayLevelCapEnabled();
+		boolean legendaryOn = L2HConfig.isDisplayLegendaryEnabled();
 		if ((levelCapOn || legendaryOn) && RANK_CAP_IDX < list.size()) {
 			list.remove(RANK_CAP_IDX);
 		}
 
 		if (levelCapOn) {
 			MutableComponent text;
-			if (diff >= L2HConfig.COMMON.levelCapUnlimited.get()) {
+			if (diff >= L2HConfig.getDisplayLevelCapUnlimited()) {
 				text = L2HTweaksLang.translate(L2HTweaksLang.LEVEL_CAP_UNLIMITED);
 			} else {
-				int cap = L2HConfig.getThreshold(L2HConfig.getLevelThresholds(), diff);
+				int cap = L2HConfig.getThreshold(L2HConfig.getDisplayLevelThresholds(), diff);
 				text = L2HTweaksLang.translate(L2HTweaksLang.LEVEL_CAP, cap);
 			}
 			list.add(RANK_CAP_IDX, Pair.of(text, () -> java.util.List.of()));
@@ -51,10 +51,10 @@ public class DifficultyScreenMixin {
 
 		if (legendaryOn) {
 			MutableComponent text;
-			if (diff >= L2HConfig.COMMON.legendaryUnlimited.get()) {
+			if (diff >= L2HConfig.getDisplayLegendaryUnlimited()) {
 				text = L2HTweaksLang.translate(L2HTweaksLang.LEGENDARY_UNLIMITED);
 			} else {
-				List<int[]> thresholds = L2HConfig.getLegendaryThresholds();
+				List<int[]> thresholds = L2HConfig.getDisplayLegendaryThresholds();
 				if (thresholds.isEmpty()) {
 					text = L2HTweaksLang.translate(L2HTweaksLang.LEGENDARY_PRESET);
 				} else {

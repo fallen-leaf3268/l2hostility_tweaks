@@ -2,6 +2,9 @@ package com.l2hostility_tweaks.config;
 
 import com.l2hostility_tweaks.util.TraitCostHelper;
 
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.ModLoadingContext;
@@ -11,6 +14,10 @@ import org.apache.commons.lang3.tuple.Pair;
 import java.util.*;
 
 public class L2HConfig {
+
+    public static final int MAX_DISPLAY_CONFIG_ENTRIES = 4096;
+    public static final int MAX_DISPLAY_CONFIG_STRING_LENGTH = 21_845;
+    public static final int MAX_DISPLAY_CONFIG_TOTAL_STRING_LENGTH = 262_144;
 
     public static final ForgeConfigSpec SPEC;
     public static final Common COMMON;
@@ -22,6 +29,7 @@ public class L2HConfig {
     private static volatile List<ExclusionGroup> parsedExclusionGroups;
     private static volatile List<Integer> parsedSealDurationArray;
     private static volatile Map<String, PlayerTraitOverride> parsedPlayerTraitOverrides;
+    private static volatile DisplaySnapshot displaySnapshot;
 
     static {
         Pair<Common, ForgeConfigSpec> pair = new ForgeConfigSpec.Builder().configure(Common::new);
@@ -564,7 +572,11 @@ public class L2HConfig {
         return COMMON.playerTraitBudgetRatio.get();
     }
 
-    public record ExclusionGroup(String rule, List<String> traitIds) {}
+    public record ExclusionGroup(String rule, List<String> traitIds) {
+        public ExclusionGroup {
+            traitIds = List.copyOf(traitIds);
+        }
+    }
 
     public record PlayerTraitOverride(int minLevel, int cost) {}
 
@@ -584,6 +596,574 @@ public class L2HConfig {
             }
         }
         return parsedPlayerTraitOverrides;
+    }
+
+    public static void installDisplaySnapshot(CompoundTag tag) {
+        validateDisplaySnapshot(tag);
+        displaySnapshot = new DisplaySnapshot(
+                readBoolean(tag, "reprintLinearEnabled"),
+                readDouble(tag, "reprintDamageFactor"),
+                tag.contains("antiReprintReduction", Tag.TAG_ANY_NUMERIC)
+                        ? tag.getDouble("antiReprintReduction") : null,
+                readBoolean(tag, "adaptiveLinearEnabled"),
+                readDouble(tag, "adaptiveReductionPerStack"),
+                readDouble(tag, "adaptiveMaxReduction"),
+                readBoolean(tag, "detectorGlassesReveal"),
+                readInteger(tag, "detectorGlassesRange"),
+                readBoolean(tag, "oldDispell"),
+                readBoolean(tag, "oldDementor"),
+                readInteger(tag, "undyingMaxResurrections"),
+                readInteger(tag, "undyingSealDuration"),
+                readIntList(tag, "dispellTimeArray"),
+                readInteger(tag, "dispellBaseTime"),
+                readIntList(tag, "dispellCountArray"),
+                readIntList(tag, "ragnarokCountArray"),
+                readIntList(tag, "ragnarokTimeArray"),
+                readInteger(tag, "ragnarokBaseTime"),
+                readIntList(tag, "killerAuraDamageArray"),
+                readInteger(tag, "killerAuraBaseDamage"),
+                readIntList(tag, "killerAuraIntervalArray"),
+                readInteger(tag, "killerAuraBaseInterval"),
+                readInteger(tag, "killerAuraRange"),
+                readInteger(tag, "bottleOfCurseLevel"),
+                readIntList(tag, "drainDamageArray"),
+                readDouble(tag, "drainBaseDamage"),
+                readIntList(tag, "drainDurationArray"),
+                readDouble(tag, "drainBaseDuration"),
+                readIntList(tag, "drainDurationMaxArray"),
+                readInteger(tag, "drainBaseDurationMax"),
+                readIntList(tag, "drainCountArray"),
+                readBoolean(tag, "levelCapEnabled"),
+                readInteger(tag, "levelCapUnlimited"),
+                readThresholds(tag, "levelCapThresholds"),
+                readBoolean(tag, "legendaryEnabled"),
+                readInteger(tag, "legendaryUnlimited"),
+                readThresholds(tag, "legendaryThresholds"),
+                readStringSet(tag, "extraLegendaryIds"),
+                tag.contains("exclusionEnabled", Tag.TAG_BYTE) ? tag.getBoolean("exclusionEnabled") : null,
+                readExclusionGroups(tag, "exclusionGroups"),
+                tag.contains("playerSelfTraitBalanceEnabled", Tag.TAG_BYTE)
+                        ? tag.getBoolean("playerSelfTraitBalanceEnabled") : null,
+                tag.contains("playerSelfTraitBudgetRatio", Tag.TAG_ANY_NUMERIC)
+                        ? tag.getDouble("playerSelfTraitBudgetRatio") : null,
+                tag.contains("playerSelfTraitCostMode", Tag.TAG_ANY_NUMERIC)
+                        ? tag.getInt("playerSelfTraitCostMode") : null,
+                readPlayerTraitOverrides(tag, "playerTraitOverrides"));
+    }
+
+    public static CompoundTag createDisplaySnapshot() {
+        CompoundTag tag = new CompoundTag();
+        tag.putBoolean("reprintLinearEnabled", COMMON.reprintLinearEnabled.get());
+        tag.putDouble("reprintDamageFactor", COMMON.reprintDamageFactor.get());
+        tag.putDouble("antiReprintReduction", COMMON.antiReprintReduction.get());
+        tag.putBoolean("adaptiveLinearEnabled", COMMON.adaptiveLinearEnabled.get());
+        tag.putDouble("adaptiveReductionPerStack", COMMON.adaptiveReductionPerStack.get());
+        tag.putDouble("adaptiveMaxReduction", COMMON.adaptiveMaxReduction.get());
+        tag.putBoolean("detectorGlassesReveal", COMMON.detectorGlassesReveal.get());
+        tag.putInt("detectorGlassesRange", COMMON.detectorGlassesRange.get());
+        tag.putBoolean("oldDispell", COMMON.oldDispell.get());
+        tag.putBoolean("oldDementor", COMMON.oldDementor.get());
+        tag.putInt("undyingMaxResurrections", COMMON.undyingMaxResurrections.get());
+        tag.putInt("undyingSealDuration", COMMON.undyingSealDuration.get());
+        putIntList(tag, "dispellTimeArray", COMMON.dispellTimeArray.get());
+        tag.putInt("dispellBaseTime",
+                dev.xkmc.l2hostility.init.data.LHConfig.COMMON.dispellTime.get());
+        putIntList(tag, "dispellCountArray", COMMON.dispellCountArray.get());
+        putIntList(tag, "ragnarokCountArray", COMMON.ragnarokCountArray.get());
+        putIntList(tag, "ragnarokTimeArray", COMMON.ragnarokTimeArray.get());
+        tag.putInt("ragnarokBaseTime",
+                dev.xkmc.l2hostility.init.data.LHConfig.COMMON.ragnarokTime.get());
+        putIntList(tag, "killerAuraDamageArray", COMMON.killerAuraDamageArray.get());
+        tag.putInt("killerAuraBaseDamage",
+                dev.xkmc.l2hostility.init.data.LHConfig.COMMON.killerAuraDamage.get());
+        putIntList(tag, "killerAuraIntervalArray", COMMON.killerAuraIntervalArray.get());
+        tag.putInt("killerAuraBaseInterval",
+                dev.xkmc.l2hostility.init.data.LHConfig.COMMON.killerAuraInterval.get());
+        tag.putInt("killerAuraRange",
+                dev.xkmc.l2hostility.init.data.LHConfig.COMMON.killerAuraRange.get());
+        tag.putInt("bottleOfCurseLevel",
+                dev.xkmc.l2hostility.init.data.LHConfig.COMMON.bottleOfCurseLevel.get());
+        putIntList(tag, "drainDamageArray", COMMON.drainDamageArray.get());
+        tag.putDouble("drainBaseDamage",
+                dev.xkmc.l2hostility.init.data.LHConfig.COMMON.drainDamage.get());
+        putIntList(tag, "drainDurationArray", COMMON.drainDurationArray.get());
+        tag.putDouble("drainBaseDuration",
+                dev.xkmc.l2hostility.init.data.LHConfig.COMMON.drainDuration.get());
+        putIntList(tag, "drainDurationMaxArray", COMMON.drainDurationMaxArray.get());
+        tag.putInt("drainBaseDurationMax",
+                dev.xkmc.l2hostility.init.data.LHConfig.COMMON.drainDurationMax.get());
+        putIntList(tag, "drainCountArray", COMMON.drainCountArray.get());
+        tag.putBoolean("levelCapEnabled", COMMON.levelCapEnabled.get());
+        tag.putInt("levelCapUnlimited", COMMON.levelCapUnlimited.get());
+        putStringList(tag, "levelCapThresholds", COMMON.levelCapThresholds.get());
+        tag.putBoolean("legendaryEnabled", COMMON.legendaryEnabled.get());
+        tag.putInt("legendaryUnlimited", COMMON.legendaryUnlimited.get());
+        putStringList(tag, "legendaryThresholds", COMMON.legendaryThresholds.get());
+        putStringList(tag, "extraLegendaryIds", COMMON.extraLegendaryIds.get());
+        tag.putBoolean("exclusionEnabled", COMMON.exclusionEnabled.get());
+        putStringList(tag, "exclusionGroups", COMMON.exclusionGroups.get());
+        tag.putBoolean("playerSelfTraitBalanceEnabled", COMMON.playerSelfTraitBalanceEnabled.get());
+        tag.putDouble("playerSelfTraitBudgetRatio", COMMON.playerSelfTraitBudgetRatio.get());
+        tag.putInt("playerSelfTraitCostMode", COMMON.playerSelfTraitCostMode.get());
+        putStringList(tag, "playerTraitOverrides", COMMON.playerTraitOverrides.get());
+        validateDisplaySnapshot(tag);
+        return tag;
+    }
+
+    public static void clearDisplaySnapshot() {
+        displaySnapshot = null;
+    }
+
+    public static boolean hasDisplaySnapshot() {
+        return displaySnapshot != null;
+    }
+
+    public static double getDisplayAntiReprintReduction() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.antiReprintReduction() != null
+                ? snapshot.antiReprintReduction() : getAntiReprintReduction();
+    }
+
+    public static boolean isDisplayReprintLinearEnabled() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.reprintLinearEnabled() != null
+                ? snapshot.reprintLinearEnabled() : isReprintLinearEnabled();
+    }
+
+    public static double getDisplayReprintDamage() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.reprintDamageFactor() != null
+                ? snapshot.reprintDamageFactor() : getReprintDamage();
+    }
+
+    public static boolean isDisplayAdaptiveLinearEnabled() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.adaptiveLinearEnabled() != null
+                ? snapshot.adaptiveLinearEnabled() : isAdaptiveLinearEnabled();
+    }
+
+    public static double getDisplayAdaptiveReductionPerStack() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.adaptiveReductionPerStack() != null
+                ? snapshot.adaptiveReductionPerStack() : getAdaptiveReductionPerStack();
+    }
+
+    public static double getDisplayAdaptiveMaxReduction() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.adaptiveMaxReduction() != null
+                ? snapshot.adaptiveMaxReduction() : getAdaptiveMaxReduction();
+    }
+
+    public static boolean isDisplayDetectorGlassesRevealEnabled() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.detectorGlassesReveal() != null
+                ? snapshot.detectorGlassesReveal() : isDetectorGlassesRevealEnabled();
+    }
+
+    public static int getDisplayDetectorGlassesRange() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.detectorGlassesRange() != null
+                ? snapshot.detectorGlassesRange() : getDetectorGlassesRange();
+    }
+
+    public static boolean isDisplayOldDispellEnabled() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.oldDispell() != null
+                ? snapshot.oldDispell() : isOldDispellEnabled();
+    }
+
+    public static boolean isDisplayOldDementorEnabled() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.oldDementor() != null
+                ? snapshot.oldDementor() : isOldDementorEnabled();
+    }
+
+    public static int getDisplayUndyingMaxResurrections() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.undyingMaxResurrections() != null
+                ? snapshot.undyingMaxResurrections() : getUndyingMaxResurrections();
+    }
+
+    public static int getDisplayUndyingSealDuration() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.undyingSealDuration() != null
+                ? snapshot.undyingSealDuration() : getUndyingSealDuration();
+    }
+
+    public static int getDisplayDispellTime(int level) {
+        DisplaySnapshot snapshot = displaySnapshot;
+        List<Integer> values = snapshot == null ? null : snapshot.dispellTimeArray();
+        if (values == null) return getDispellTime(level);
+        if (values.isEmpty()) {
+            return snapshot.dispellBaseTime() == null
+                    ? getDispellTime(level) : snapshot.dispellBaseTime() * level;
+        }
+        return valueAtLevel(values, level);
+    }
+
+    public static int getDisplayDispellCount(int level) {
+        DisplaySnapshot snapshot = displaySnapshot;
+        List<Integer> values = snapshot == null ? null : snapshot.dispellCountArray();
+        if (values == null) return getDispellCount(level);
+        return values.isEmpty() ? level : valueAtLevel(values, level);
+    }
+
+    public static int getDisplayRagnarokCount(int level) {
+        DisplaySnapshot snapshot = displaySnapshot;
+        List<Integer> values = snapshot == null ? null : snapshot.ragnarokCountArray();
+        if (values == null) return getRagnarokCount(level);
+        return values.isEmpty() ? level : valueAtLevel(values, level);
+    }
+
+    public static int getDisplayRagnarokTime(int level) {
+        DisplaySnapshot snapshot = displaySnapshot;
+        List<Integer> values = snapshot == null ? null : snapshot.ragnarokTimeArray();
+        if (values == null) return getRagnarokTime(level);
+        if (values.isEmpty()) {
+            return snapshot.ragnarokBaseTime() == null
+                    ? getRagnarokTime(level) : snapshot.ragnarokBaseTime() * level;
+        }
+        if (level <= values.size()) return values.get(Math.max(1, level) - 1);
+        return values.get(values.size() - 1) + (level - values.size()) * 100;
+    }
+
+    public static int getDisplayKillerAuraDamage(int level) {
+        DisplaySnapshot snapshot = displaySnapshot;
+        List<Integer> values = snapshot == null ? null : snapshot.killerAuraDamageArray();
+        if (values == null) return getKillerAuraDamage(level);
+        if (values.isEmpty()) {
+            return snapshot.killerAuraBaseDamage() == null
+                    ? getKillerAuraDamage(level) : snapshot.killerAuraBaseDamage() * level;
+        }
+        return valueAtLevel(values, level);
+    }
+
+    public static int getDisplayKillerAuraInterval(int level) {
+        DisplaySnapshot snapshot = displaySnapshot;
+        List<Integer> values = snapshot == null ? null : snapshot.killerAuraIntervalArray();
+        if (values == null) return getKillerAuraInterval(level);
+        if (values.isEmpty()) {
+            return snapshot.killerAuraBaseInterval() == null
+                    ? getKillerAuraInterval(level)
+                    : sanitizeKillerAuraInterval(snapshot.killerAuraBaseInterval() / Math.max(1, level));
+        }
+        return sanitizeKillerAuraInterval(valueAtLevel(values, level));
+    }
+
+    public static int getDisplayKillerAuraRange() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.killerAuraRange() != null
+                ? snapshot.killerAuraRange()
+                : dev.xkmc.l2hostility.init.data.LHConfig.COMMON.killerAuraRange.get();
+    }
+
+    public static int getDisplayBottleOfCurseLevel() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.bottleOfCurseLevel() != null
+                ? snapshot.bottleOfCurseLevel()
+                : dev.xkmc.l2hostility.init.data.LHConfig.COMMON.bottleOfCurseLevel.get();
+    }
+
+    public static double getDisplayDrainDamage(int level) {
+        DisplaySnapshot snapshot = displaySnapshot;
+        List<Integer> values = snapshot == null ? null : snapshot.drainDamageArray();
+        if (values == null) return getDrainDamage(level);
+        if (values.isEmpty()) {
+            return snapshot.drainBaseDamage() == null
+                    ? getDrainDamage(level) : snapshot.drainBaseDamage() * level;
+        }
+        return valueAtLevel(values, level) / 100.0;
+    }
+
+    public static double getDisplayDrainDuration(int level) {
+        DisplaySnapshot snapshot = displaySnapshot;
+        List<Integer> values = snapshot == null ? null : snapshot.drainDurationArray();
+        if (values == null) return getDrainDuration(level);
+        if (values.isEmpty()) {
+            return snapshot.drainBaseDuration() == null
+                    ? getDrainDuration(level) : snapshot.drainBaseDuration() * level;
+        }
+        return valueAtLevel(values, level) / 100.0;
+    }
+
+    public static int getDisplayDrainDurationMax(int level) {
+        DisplaySnapshot snapshot = displaySnapshot;
+        List<Integer> values = snapshot == null ? null : snapshot.drainDurationMaxArray();
+        if (values == null) return getDrainDurationMax(level);
+        if (values.isEmpty()) {
+            return snapshot.drainBaseDurationMax() == null
+                    ? getDrainDurationMax(level) : snapshot.drainBaseDurationMax() * level;
+        }
+        return valueAtLevel(values, level) * 20;
+    }
+
+    public static int getDisplayDrainCount(int level) {
+        DisplaySnapshot snapshot = displaySnapshot;
+        List<Integer> values = snapshot == null ? null : snapshot.drainCountArray();
+        if (values == null) return getDrainCount(level);
+        return values.isEmpty() ? level : valueAtLevel(values, level);
+    }
+
+    public static Set<String> getDisplayExtraLegendaryIds() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.extraLegendaryIds() != null
+                ? snapshot.extraLegendaryIds() : getExtraLegendaryIds();
+    }
+
+    public static boolean isDisplayLevelCapEnabled() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.levelCapEnabled() != null
+                ? snapshot.levelCapEnabled() : COMMON.levelCapEnabled.get();
+    }
+
+    public static int getDisplayLevelCapUnlimited() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.levelCapUnlimited() != null
+                ? snapshot.levelCapUnlimited() : COMMON.levelCapUnlimited.get();
+    }
+
+    public static List<int[]> getDisplayLevelThresholds() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        List<int[]> values = snapshot != null && snapshot.levelCapThresholds() != null
+                ? snapshot.levelCapThresholds() : getLevelThresholds();
+        return copyThresholds(values);
+    }
+
+    public static boolean isDisplayLegendaryEnabled() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.legendaryEnabled() != null
+                ? snapshot.legendaryEnabled() : COMMON.legendaryEnabled.get();
+    }
+
+    public static int getDisplayLegendaryUnlimited() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.legendaryUnlimited() != null
+                ? snapshot.legendaryUnlimited() : COMMON.legendaryUnlimited.get();
+    }
+
+    public static List<int[]> getDisplayLegendaryThresholds() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        List<int[]> values = snapshot != null && snapshot.legendaryThresholds() != null
+                ? snapshot.legendaryThresholds() : getLegendaryThresholds();
+        return copyThresholds(values);
+    }
+
+    public static boolean isDisplayExclusionEnabled() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.exclusionEnabled() != null
+                ? snapshot.exclusionEnabled() : isExclusionEnabled();
+    }
+
+    public static List<ExclusionGroup> getDisplayExclusionGroups() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.exclusionGroups() != null
+                ? snapshot.exclusionGroups() : getExclusionGroups();
+    }
+
+    public static boolean isDisplayPlayerSelfTraitBalanceEnabled() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.playerSelfTraitBalanceEnabled() != null
+                ? snapshot.playerSelfTraitBalanceEnabled() : isPlayerSelfTraitBalanceEnabled();
+    }
+
+    public static double getDisplayPlayerSelfTraitBudgetRatio() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.playerSelfTraitBudgetRatio() != null
+                ? snapshot.playerSelfTraitBudgetRatio() : getPlayerSelfTraitBudgetRatio();
+    }
+
+    public static int getDisplayUpgradeCost(int currentLevel, int maxStackSize) {
+        DisplaySnapshot snapshot = displaySnapshot;
+        int mode = snapshot != null && snapshot.playerSelfTraitCostMode() != null
+                ? snapshot.playerSelfTraitCostMode() : getPlayerSelfTraitCostMode();
+        return TraitCostHelper.upgradeCost(mode, currentLevel, maxStackSize);
+    }
+
+    public static Map<String, PlayerTraitOverride> getDisplayPlayerTraitOverrides() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.playerTraitOverrides() != null
+                ? snapshot.playerTraitOverrides() : getPlayerTraitOverrides();
+    }
+
+    private static int valueAtLevel(List<Integer> values, int level) {
+        return values.get(Math.max(0, Math.min(level, values.size()) - 1));
+    }
+
+    private static List<int[]> copyThresholds(List<int[]> values) {
+        return values.stream().map(int[]::clone).toList();
+    }
+
+    public static UpstreamDisplayConfig getUpstreamDisplayConfig() {
+        var common = dev.xkmc.l2hostility.init.data.LHConfig.COMMON;
+        return new UpstreamDisplayConfig(
+                common.bottleOfCurseLevel.get(),
+                common.dispellTime.get(),
+                common.ragnarokTime.get(),
+                common.killerAuraDamage.get(),
+                common.killerAuraInterval.get(),
+                common.killerAuraRange.get(),
+                common.drainDamage.get(),
+                common.drainDuration.get(),
+                common.drainDurationMax.get());
+    }
+
+    private static List<Integer> readIntList(CompoundTag tag, String key) {
+        if (!tag.contains(key, Tag.TAG_INT_ARRAY)) return null;
+        return Arrays.stream(tag.getIntArray(key)).boxed().toList();
+    }
+
+    private static Integer readInteger(CompoundTag tag, String key) {
+        return tag.contains(key, Tag.TAG_ANY_NUMERIC) ? tag.getInt(key) : null;
+    }
+
+    private static Double readDouble(CompoundTag tag, String key) {
+        return tag.contains(key, Tag.TAG_ANY_NUMERIC) ? tag.getDouble(key) : null;
+    }
+
+    private static Boolean readBoolean(CompoundTag tag, String key) {
+        return tag.contains(key, Tag.TAG_BYTE) ? tag.getBoolean(key) : null;
+    }
+
+    private static List<int[]> readThresholds(CompoundTag tag, String key) {
+        List<String> values = readStrings(tag, key);
+        return values == null ? null : List.copyOf(parseThresholds(values));
+    }
+
+    public static void validateDisplaySnapshot(CompoundTag tag) {
+        for (String key : List.of(
+                "dispellTimeArray", "dispellCountArray",
+                "ragnarokCountArray", "ragnarokTimeArray",
+                "killerAuraDamageArray", "killerAuraIntervalArray",
+                "drainDamageArray", "drainDurationArray",
+                "drainDurationMaxArray", "drainCountArray")) {
+            if (tag.contains(key, Tag.TAG_INT_ARRAY)
+                    && tag.getIntArray(key).length > MAX_DISPLAY_CONFIG_ENTRIES) {
+                throw new IllegalArgumentException("Too many display config entries for " + key);
+            }
+        }
+        int totalStringLength = 0;
+        for (String key : List.of(
+                "levelCapThresholds", "legendaryThresholds", "extraLegendaryIds",
+                "exclusionGroups", "playerTraitOverrides")) {
+            if (!tag.contains(key, Tag.TAG_LIST)) continue;
+            ListTag values = tag.getList(key, Tag.TAG_STRING);
+            if (values.size() > MAX_DISPLAY_CONFIG_ENTRIES) {
+                throw new IllegalArgumentException("Too many display config entries for " + key);
+            }
+            for (int i = 0; i < values.size(); i++) {
+                int length = values.getString(i).length();
+                if (length > MAX_DISPLAY_CONFIG_STRING_LENGTH) {
+                    throw new IllegalArgumentException("Display config value is too long for " + key);
+                }
+                totalStringLength += length;
+                if (totalStringLength > MAX_DISPLAY_CONFIG_TOTAL_STRING_LENGTH) {
+                    throw new IllegalArgumentException("Display config strings exceed total size limit");
+                }
+            }
+        }
+    }
+
+    private static void putIntList(CompoundTag tag, String key, List<? extends Integer> values) {
+        tag.putIntArray(key, values.stream().mapToInt(Integer::intValue).toArray());
+    }
+
+    private static void putStringList(CompoundTag tag, String key, List<? extends String> values) {
+        ListTag list = new ListTag();
+        for (String value : values) list.add(net.minecraft.nbt.StringTag.valueOf(value));
+        tag.put(key, list);
+    }
+
+    private static List<String> readStrings(CompoundTag tag, String key) {
+        if (!tag.contains(key, Tag.TAG_LIST)) return null;
+        ListTag list = tag.getList(key, Tag.TAG_STRING);
+        List<String> values = new ArrayList<>(list.size());
+        for (int i = 0; i < list.size(); i++) values.add(list.getString(i));
+        return List.copyOf(values);
+    }
+
+    private static Set<String> readStringSet(CompoundTag tag, String key) {
+        List<String> values = readStrings(tag, key);
+        return values == null ? null : Collections.unmodifiableSet(new LinkedHashSet<>(values));
+    }
+
+    private static List<ExclusionGroup> readExclusionGroups(CompoundTag tag, String key) {
+        List<String> values = readStrings(tag, key);
+        return values == null ? null : List.copyOf(parseExclusionGroups(values));
+    }
+
+    private static Map<String, PlayerTraitOverride> readPlayerTraitOverrides(CompoundTag tag, String key) {
+        List<String> values = readStrings(tag, key);
+        if (values == null) return null;
+        Map<String, PlayerTraitOverride> result = new LinkedHashMap<>();
+        for (String entry : values) {
+            String[] parts = entry.split(",");
+            if (parts.length < 3 || parts[0].trim().isEmpty()) continue;
+            try {
+                result.put(parts[0].trim(), new PlayerTraitOverride(
+                        Integer.parseInt(parts[1].trim()), Integer.parseInt(parts[2].trim())));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return Collections.unmodifiableMap(result);
+    }
+
+    private record DisplaySnapshot(
+            Boolean reprintLinearEnabled,
+            Double reprintDamageFactor,
+            Double antiReprintReduction,
+            Boolean adaptiveLinearEnabled,
+            Double adaptiveReductionPerStack,
+            Double adaptiveMaxReduction,
+            Boolean detectorGlassesReveal,
+            Integer detectorGlassesRange,
+            Boolean oldDispell,
+            Boolean oldDementor,
+            Integer undyingMaxResurrections,
+            Integer undyingSealDuration,
+            List<Integer> dispellTimeArray,
+            Integer dispellBaseTime,
+            List<Integer> dispellCountArray,
+            List<Integer> ragnarokCountArray,
+            List<Integer> ragnarokTimeArray,
+            Integer ragnarokBaseTime,
+            List<Integer> killerAuraDamageArray,
+            Integer killerAuraBaseDamage,
+            List<Integer> killerAuraIntervalArray,
+            Integer killerAuraBaseInterval,
+            Integer killerAuraRange,
+            Integer bottleOfCurseLevel,
+            List<Integer> drainDamageArray,
+            Double drainBaseDamage,
+            List<Integer> drainDurationArray,
+            Double drainBaseDuration,
+            List<Integer> drainDurationMaxArray,
+            Integer drainBaseDurationMax,
+            List<Integer> drainCountArray,
+            Boolean levelCapEnabled,
+            Integer levelCapUnlimited,
+            List<int[]> levelCapThresholds,
+            Boolean legendaryEnabled,
+            Integer legendaryUnlimited,
+            List<int[]> legendaryThresholds,
+            Set<String> extraLegendaryIds,
+            Boolean exclusionEnabled,
+            List<ExclusionGroup> exclusionGroups,
+            Boolean playerSelfTraitBalanceEnabled,
+            Double playerSelfTraitBudgetRatio,
+            Integer playerSelfTraitCostMode,
+            Map<String, PlayerTraitOverride> playerTraitOverrides) {
+    }
+
+    public record UpstreamDisplayConfig(
+            int bottleOfCurseLevel,
+            int dispellTime,
+            int ragnarokTime,
+            int killerAuraDamage,
+            int killerAuraInterval,
+            int killerAuraRange,
+            double drainDamage,
+            double drainDuration,
+            int drainDurationMax) {
     }
 
     public static void invalidateCaches() {

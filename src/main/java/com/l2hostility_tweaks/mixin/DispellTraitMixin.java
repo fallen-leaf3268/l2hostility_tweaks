@@ -45,16 +45,16 @@ public class DispellTraitMixin {
 	private boolean l2fix$dispellDetail(List<Component> list, Object component) {
 		int max = ((DispellTrait) (Object) this).getMaxLevel();
 		return list.add(Component.translatable(((DispellTrait) (Object) this).getDescriptionId() + ".desc",
-				l2fix$mapLevel(i -> Component.literal(L2HConfig.getDispellCount(i) + "")
+				l2fix$mapLevel(i -> Component.literal(L2HConfig.getDisplayDispellCount(i) + "")
 						.withStyle(ChatFormatting.AQUA), max),
 				l2fix$mapLevel(i -> Component.literal(
-						Math.round(L2HConfig.getDispellTime(i) / 20f) + "").withStyle(ChatFormatting.AQUA), max))
+						Math.round(L2HConfig.getDisplayDispellTime(i) / 20f) + "").withStyle(ChatFormatting.AQUA), max))
 				.withStyle(ChatFormatting.GRAY));
 	}
 
 	@Inject(method = "addDetail", at = @At("TAIL"), remap = false)
 	private void l2fix$dispellImmunityDetail(List<Component> list, CallbackInfo ci) {
-		if (L2HConfig.isOldDispellEnabled()) {
+		if (L2HConfig.isDisplayOldDispellEnabled()) {
 			list.add(Component.translatable("trait.l2hostility_tweaks.dispell.immunity")
 					.withStyle(ChatFormatting.GOLD));
 		}

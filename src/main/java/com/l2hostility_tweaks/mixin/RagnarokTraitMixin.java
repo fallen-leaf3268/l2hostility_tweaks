@@ -61,9 +61,9 @@ public class RagnarokTraitMixin {
 			target = "Ljava/util/List;add(Ljava/lang/Object;)Z"), remap = false)
 	private boolean l2fix$ragnarokDetail(List<Component> list, Object component) {
 		int max = ((RagnarokTrait) (Object) this).getMaxLevel();
-		Component countText = l2fix$mapLevel(i -> Component.literal(L2HConfig.getRagnarokCount(i) + "")
+		Component countText = l2fix$mapLevel(i -> Component.literal(L2HConfig.getDisplayRagnarokCount(i) + "")
 				.withStyle(ChatFormatting.AQUA), max);
-		Component timeText = l2fix$mapLevel(i -> Component.literal(Math.round(L2HConfig.getRagnarokTime(i) / 20f) + "")
+		Component timeText = l2fix$mapLevel(i -> Component.literal(Math.round(L2HConfig.getDisplayRagnarokTime(i) / 20f) + "")
 				.withStyle(ChatFormatting.AQUA), max);
 		return list.add(Component.translatable(((RagnarokTrait) (Object) this).getDescriptionId() + ".desc",
 				countText, timeText).withStyle(ChatFormatting.GRAY));

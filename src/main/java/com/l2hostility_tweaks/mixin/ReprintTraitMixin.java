@@ -138,10 +138,10 @@ public class ReprintTraitMixin {
 
 	@Inject(method = "addDetail", at = @At("TAIL"), remap = false)
 	private void l2fix$addLinearInfo(List<Component> list, CallbackInfo ci) {
-		if (!L2HConfig.isReprintLinearEnabled()) return;
+		if (!L2HConfig.isDisplayReprintLinearEnabled()) return;
 
 		list.add(Component.translatable("trait.l2hostility_tweaks.reprint.linear_info",
-				String.format("%.0f%%", L2HConfig.getReprintDamage() * 100))
+				String.format("%.0f%%", L2HConfig.getDisplayReprintDamage() * 100))
 				.withStyle(ChatFormatting.LIGHT_PURPLE));
 	}
 }

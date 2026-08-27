@@ -17,7 +17,7 @@ public class ClientGlowingHandlerMixin {
 	@Inject(method = "isGlowingImpl", at = @At("RETURN"), cancellable = true, remap = false)
 	private static void l2fix$disableDetectorGlow(LivingEntity entity, CallbackInfoReturnable<Boolean> cir) {
 		if (!cir.getReturnValue()) return;
-		if (!L2HConfig.isDetectorGlassesRevealEnabled()) return;
+		if (!L2HConfig.isDisplayDetectorGlassesRevealEnabled()) return;
 
 		Player player = Proxy.getClientPlayer();
 		if (player == null) return;

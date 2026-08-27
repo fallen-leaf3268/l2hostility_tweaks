@@ -81,7 +81,7 @@ public class TraitSymbolMixin {
 		if (trait.isBanned()) return;
 
 		if (!(trait instanceof LegendaryTrait)) {
-			Set<String> extraIds = L2HConfig.getExtraLegendaryIds();
+			Set<String> extraIds = L2HConfig.getDisplayExtraLegendaryIds();
 			if (!extraIds.isEmpty() && extraIds.contains(trait.getID())) {
 				if (tooltip.size() < 2) {
 					tooltip.add(LangData.TOOLTIP_LEGENDARY.get().withStyle(ChatFormatting.GOLD));
@@ -91,8 +91,8 @@ public class TraitSymbolMixin {
 				}
 		}
 
-		if (L2HConfig.isExclusionEnabled() && !ImmunityHelper.isSelfBlacklisted(trait)) {
-			for (var group : L2HConfig.getExclusionGroups()) {
+		if (L2HConfig.isDisplayExclusionEnabled() && !ImmunityHelper.isSelfBlacklisted(trait)) {
+			for (var group : L2HConfig.getDisplayExclusionGroups()) {
 				if (group.traitIds().contains(trait.getID())) {
 					for (var otherId : group.traitIds()) {
 						if (!otherId.equals(trait.getID())) {
@@ -124,7 +124,7 @@ public class TraitSymbolMixin {
 				fixes.add(Component.translatable("tooltip.l2hostility_tweaks.player_override.dementor"));
 				}
 
-			var override = L2HConfig.getPlayerTraitOverrides().get(trait.getID());
+			var override = L2HConfig.getDisplayPlayerTraitOverrides().get(trait.getID());
 			if (override != null) {
 				fixes.add(Component.translatable("tooltip.l2hostility_tweaks.player_override.override",
 						override.minLevel(), override.cost()));

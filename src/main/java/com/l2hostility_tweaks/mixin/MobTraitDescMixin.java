@@ -34,7 +34,7 @@ public class MobTraitDescMixin {
 		MobTrait self = (MobTrait) (Object) this;
 		if (!TraitDisableHelper.UNDYING_TRAIT_ID.equals(self.getID())) return;
 		Component detail = TraitDisableHelper.buildUndyingLimitDetail(
-				L2HConfig.getUndyingMaxResurrections(), L2HConfig.getUndyingSealDuration());
+				L2HConfig.getDisplayUndyingMaxResurrections(), L2HConfig.getDisplayUndyingSealDuration());
 		if (detail != null) {
 			list.add(detail.copy().withStyle(ChatFormatting.GOLD));
 		}

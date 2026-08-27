@@ -365,7 +365,7 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		this.cachedRealityIcon = null;
 		this.cachedLegendIcons = new ArrayList<>();
 
-		Set<String> extraIds = L2HConfig.getExtraLegendaryIds();
+		Set<String> extraIds = L2HConfig.getDisplayExtraLegendaryIds();
 		for (var entry : cap.traits.entrySet()) {
 			String id = entry.getKey().getID();
 			if ("curseofpandora:reality".equals(id)) {

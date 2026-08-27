@@ -1,6 +1,7 @@
 package com.l2hostility_tweaks.client;
 
 import com.l2hostility_tweaks.content.TraitUnloaderWand;
+import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.network.NetworkHandler;
 import dev.xkmc.l2tabs.tabs.core.TabRegistry;
 import dev.xkmc.l2tabs.tabs.core.TabToken;
@@ -9,6 +10,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -52,6 +54,11 @@ public class ClientEventHandler {
 				boolean reverse = event.getEntity().isShiftKeyDown();
 				NetworkHandler.sendCycleToServer(reverse);
 			}
+		}
+
+		@SubscribeEvent
+		public static void onLogout(ClientPlayerNetworkEvent.LoggingOut event) {
+			L2HConfig.clearDisplaySnapshot();
 		}
 
 	}

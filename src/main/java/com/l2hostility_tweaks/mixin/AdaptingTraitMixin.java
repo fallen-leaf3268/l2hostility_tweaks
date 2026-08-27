@@ -73,10 +73,10 @@ public class AdaptingTraitMixin {
 
 	@Inject(method = "addDetail", at = @At("TAIL"), remap = false)
 	private void l2fix$addLinearInfo(List<Component> list, CallbackInfo ci) {
-		if (!L2HConfig.isAdaptiveLinearEnabled()) return;
+		if (!L2HConfig.isDisplayAdaptiveLinearEnabled()) return;
 
-		double reductionPerStack = L2HConfig.getAdaptiveReductionPerStack();
-		double maxReduction = L2HConfig.getAdaptiveMaxReduction();
+		double reductionPerStack = L2HConfig.getDisplayAdaptiveReductionPerStack();
+		double maxReduction = L2HConfig.getDisplayAdaptiveMaxReduction();
 		list.add(Component.translatable("trait.l2hostility_tweaks.adaptive.linear_info",
 				String.format("%.0f%%", reductionPerStack * 100),
 				String.format("%.0f%%", maxReduction * 100))

@@ -205,12 +205,12 @@ public class PlayerTraitScreen extends BaseTextScreen {
 		}
 
 		Component headerText;
-		if (L2HConfig.isPlayerSelfTraitBalanceEnabled()) {
-			int budget = (int) (playerLevel * L2HConfig.getPlayerSelfTraitBudgetRatio());
+		if (L2HConfig.isDisplayPlayerSelfTraitBalanceEnabled()) {
+			int budget = (int) (playerLevel * L2HConfig.getDisplayPlayerSelfTraitBudgetRatio());
 			int usedCost = 0;
 			if (cap != null && cap.isInitialized()) {
 				for (var entry : cap.traits.entrySet()) {
-					var override = L2HConfig.getPlayerTraitOverrides().get(entry.getKey().getID());
+					var override = L2HConfig.getDisplayPlayerTraitOverrides().get(entry.getKey().getID());
 					int cost = override != null ? override.cost() : entry.getKey().getConfig().cost;
 					usedCost += cost * Math.abs(entry.getValue());
 				}
@@ -284,7 +284,7 @@ public class PlayerTraitScreen extends BaseTextScreen {
 							lines.add(Component.translatable(L2HTweaksLang.UNLOAD_HINT).withStyle(ChatFormatting.GOLD));
 						}
 					} else {
-						int upgradeCost = L2HConfig.getUpgradeCost(curLevel, e.owner().asItem().getMaxStackSize());
+						int upgradeCost = L2HConfig.getDisplayUpgradeCost(curLevel, e.owner().asItem().getMaxStackSize());
 						if (upgradeCost == TraitCostHelper.UNPAYABLE) {
 							lines.add(Component.translatable(L2HTweaksLang.UPGRADE_UNPAYABLE)
 									.withStyle(ChatFormatting.GOLD));

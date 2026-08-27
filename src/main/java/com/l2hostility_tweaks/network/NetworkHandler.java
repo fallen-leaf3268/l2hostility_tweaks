@@ -3,6 +3,7 @@ package com.l2hostility_tweaks.network;
 import com.l2hostility_tweaks.L2HostilityFix;
 import com.l2hostility_tweaks.content.DimensionBreakerItem;
 import com.l2hostility_tweaks.content.TraitUnloaderWand;
+import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.util.ImmunityHelper;
 import com.l2hostility_tweaks.util.TraitCostHelper;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
@@ -14,6 +15,7 @@ import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import dev.xkmc.l2hostility.init.registrate.LHTraits;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -23,6 +25,7 @@ import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
+import net.minecraftforge.server.ServerLifecycleHooks;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,7 +35,7 @@ import java.util.function.Supplier;
 
 public class NetworkHandler {
 
-	private static final String PROTOCOL_VERSION = "3";
+	private static final String PROTOCOL_VERSION = "4";
 	public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
 			new ResourceLocation("l2hostility_tweaks", "toggle_glow"),
 			() -> PROTOCOL_VERSION,
@@ -69,6 +72,11 @@ public class NetworkHandler {
 				SealStateSyncPacket::decode,
 				SealStateSyncPacket::handle,
 				Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+		CHANNEL.registerMessage(6, DisplayConfigSyncPacket.class,
+				DisplayConfigSyncPacket::encode,
+				DisplayConfigSyncPacket::decode,
+				DisplayConfigSyncPacket::handle,
+				Optional.of(NetworkDirection.PLAY_TO_CLIENT));
 	}
 
 	public static void sendToggleToServer(int containerId, int slotIndex) {
@@ -98,6 +106,18 @@ public class NetworkHandler {
 				new SealStateSyncPacket(remainingTicks));
 	}
 
+	public static void sendDisplayConfigToPlayer(ServerPlayer player) {
+		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
+				new DisplayConfigSyncPacket(L2HConfig.createDisplaySnapshot()));
+	}
+
+	public static void broadcastDisplayConfig() {
+		var server = ServerLifecycleHooks.getCurrentServer();
+		if (server == null) return;
+		CHANNEL.send(PacketDistributor.ALL.noArg(),
+				new DisplayConfigSyncPacket(L2HConfig.createDisplaySnapshot()));
+	}
+
 	public record SealStateRequestPacket() {
 
 		public static void encode(SealStateRequestPacket msg, FriendlyByteBuf buf) {
@@ -114,6 +134,37 @@ public class NetworkHandler {
 				ServerPlayer player = ctx.getSender();
 				if (player != null) sendSealStateToPlayer(player);
 			});
+			ctx.setPacketHandled(true);
+		}
+	}
+
+	public record DisplayConfigSyncPacket(CompoundTag values) {
+
+		public DisplayConfigSyncPacket {
+			if (values == null) throw new IllegalArgumentException("Display config snapshot must not be null");
+			L2HConfig.validateDisplaySnapshot(values);
+			values = values.copy();
+		}
+
+		@Override
+		public CompoundTag values() {
+			return values.copy();
+		}
+
+		public static void encode(DisplayConfigSyncPacket msg, FriendlyByteBuf buf) {
+			buf.writeNbt(msg.values);
+		}
+
+		public static DisplayConfigSyncPacket decode(FriendlyByteBuf buf) {
+			CompoundTag values = buf.readNbt();
+			if (values == null) throw new IllegalArgumentException("Missing display config snapshot");
+			return new DisplayConfigSyncPacket(values);
+		}
+
+		public static void handle(DisplayConfigSyncPacket msg,
+				Supplier<NetworkEvent.Context> ctxSupplier) {
+			NetworkEvent.Context ctx = ctxSupplier.get();
+			ctx.enqueueWork(() -> L2HConfig.installDisplaySnapshot(msg.values()));
 			ctx.setPacketHandled(true);
 		}
 	}

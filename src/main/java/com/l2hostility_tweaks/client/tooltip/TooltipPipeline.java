@@ -3,7 +3,6 @@ package com.l2hostility_tweaks.client.tooltip;
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.init.L2HFEnchantments;
 import dev.xkmc.l2hostility.content.item.traits.SealedItem;
-import dev.xkmc.l2hostility.init.data.LHConfig;
 import dev.xkmc.l2hostility.init.data.LangData;
 import dev.xkmc.l2hostility.init.registrate.LHItems;
 import net.minecraft.ChatFormatting;
@@ -79,7 +78,7 @@ public final class TooltipPipeline {
             applyDescription(tooltip, enchantments, reprint, REPRINT_DESCRIPTIONS,
                     reprintDescription(stack.getItem() instanceof ArmorItem,
                             stack.is(Items.ENCHANTED_BOOK), reprintLevel,
-                            L2HConfig.getAntiReprintReduction()));
+                            L2HConfig.getDisplayAntiReprintReduction()));
         }
 
         applyStaticDescription(tooltip, enchantments, L2HFEnchantments.ABYSS_POCKET.get(), ABYSS_DESC);
@@ -148,7 +147,7 @@ public final class TooltipPipeline {
         }
         if (stack.is(LHItems.HOSTILITY_ESSENCE.get())) {
             applyStaticItemTooltip(tooltip, Set.of(ESSENCE_TOOLTIP),
-                    Component.translatable(ESSENCE_TOOLTIP, LHConfig.COMMON.bottleOfCurseLevel.get())
+                    Component.translatable(ESSENCE_TOOLTIP, L2HConfig.getDisplayBottleOfCurseLevel())
                             .withStyle(ChatFormatting.GRAY));
         }
         if (RESTORATION_POCKET_ID.equals(itemId)) {

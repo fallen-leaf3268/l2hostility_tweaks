@@ -33,7 +33,9 @@ public class KillerAuraTraitMixin {
 		ci.cancel();
 		int itv = L2HConfig.getKillerAuraInterval(level);
 		int damage = L2HConfig.getKillerAuraDamage(level);
-		int range = dev.xkmc.l2hostility.init.data.LHConfig.COMMON.killerAuraRange.get();
+		int range = mob.level().isClientSide()
+				? L2HConfig.getDisplayKillerAuraRange()
+				: dev.xkmc.l2hostility.init.data.LHConfig.COMMON.killerAuraRange.get();
 		if (!mob.level().isClientSide() && mob.tickCount % itv == 0) {
 			MobTraitCap cap = MobTraitCap.HOLDER.get(mob);
 			AABB box = mob.getBoundingBox().inflate(range);
@@ -77,11 +79,11 @@ public class KillerAuraTraitMixin {
 	private boolean l2fix$killerAuraDetail(List<Component> list, Object component) {
 		int max = ((KillerAuraTrait) (Object) this).getMaxLevel();
 		return list.add(Component.translatable(((KillerAuraTrait) (Object) this).getDescriptionId() + ".desc",
-				l2fix$mapLevel(i -> Component.literal(L2HConfig.getKillerAuraDamage(i) + "")
+				l2fix$mapLevel(i -> Component.literal(L2HConfig.getDisplayKillerAuraDamage(i) + "")
 						.withStyle(ChatFormatting.AQUA), max),
-				Component.literal("" + dev.xkmc.l2hostility.init.data.LHConfig.COMMON.killerAuraRange.get()).withStyle(ChatFormatting.AQUA),
+				Component.literal("" + L2HConfig.getDisplayKillerAuraRange()).withStyle(ChatFormatting.AQUA),
 				l2fix$mapLevel(i -> Component.literal(
-						String.format("%.1f", L2HConfig.getKillerAuraInterval(i) / 20.0))
+						String.format("%.1f", L2HConfig.getDisplayKillerAuraInterval(i) / 20.0))
 						.withStyle(ChatFormatting.AQUA), max))
 				.withStyle(ChatFormatting.GRAY));
 	}

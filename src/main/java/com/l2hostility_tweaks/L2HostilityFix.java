@@ -68,6 +68,7 @@ public class L2HostilityFix {
     private static final java.util.Map<java.util.UUID, CompoundTag> deathTraitRuntimeState = new java.util.HashMap<>();
     private static final java.util.Map<java.util.UUID, int[]> deathMeta = new java.util.HashMap<>();
     private static final Set<java.util.UUID> pendingTraitSync = Collections.synchronizedSet(new HashSet<>());
+    private static L2HConfig.UpstreamDisplayConfig lastUpstreamDisplayConfig;
 
     public L2HostilityFix() {
         PROXY = net.minecraftforge.fml.DistExecutor.safeRunForDist(
@@ -99,6 +100,9 @@ public class L2HostilityFix {
 
     private void onConfigReload(ModConfigEvent.Reloading event) {
         ConfigCacheReloadHandler.invalidate(event.getConfig().getSpec());
+        if (event.getConfig().getSpec() == L2HConfig.SPEC) {
+            NetworkHandler.broadcastDisplayConfig();
+        }
     }
 
     @SubscribeEvent
@@ -168,6 +172,7 @@ public class L2HostilityFix {
         deathTraitRuntimeState.clear();
         deathMeta.clear();
         pendingTraitSync.clear();
+        lastUpstreamDisplayConfig = null;
     }
 
     @SubscribeEvent
@@ -189,6 +194,10 @@ public class L2HostilityFix {
     @SubscribeEvent
     public void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer sp) {
+            if (lastUpstreamDisplayConfig == null) {
+                lastUpstreamDisplayConfig = L2HConfig.getUpstreamDisplayConfig();
+            }
+            NetworkHandler.sendDisplayConfigToPlayer(sp);
             if (MobTraitCap.HOLDER.isProper(sp)) {
                 MobTraitCap cap = MobTraitCap.HOLDER.get(sp);
                 if (cap.isInitialized()) {
@@ -209,7 +218,15 @@ public class L2HostilityFix {
 
     @SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase != TickEvent.Phase.END || pendingTraitSync.isEmpty()) return;
+        if (event.phase != TickEvent.Phase.END) return;
+        if (event.getServer().getTickCount() % 100 == 0) {
+            L2HConfig.UpstreamDisplayConfig current = L2HConfig.getUpstreamDisplayConfig();
+            if (lastUpstreamDisplayConfig != null && !lastUpstreamDisplayConfig.equals(current)) {
+                NetworkHandler.broadcastDisplayConfig();
+            }
+            lastUpstreamDisplayConfig = current;
+        }
+        if (pendingTraitSync.isEmpty()) return;
         Iterator<java.util.UUID> it = pendingTraitSync.iterator();
         while (it.hasNext()) {
             java.util.UUID uuid = it.next();

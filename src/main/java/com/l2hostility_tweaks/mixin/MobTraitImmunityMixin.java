@@ -50,7 +50,7 @@ public class MobTraitImmunityMixin {
 	@Inject(method = "addDetail", at = @At("TAIL"), remap = false)
 	private void l2fix$immunityDetail(List<Component> list, CallbackInfo ci) {
 		String id = ((MobTrait) (Object) this).getID();
-		if ("l2hostility:dementor".equals(id) && L2HConfig.isOldDementorEnabled()) {
+		if ("l2hostility:dementor".equals(id) && L2HConfig.isDisplayOldDementorEnabled()) {
 			list.add(Component.translatable("trait.l2hostility_tweaks.dementor.immunity")
 					.withStyle(ChatFormatting.GOLD));
 		}

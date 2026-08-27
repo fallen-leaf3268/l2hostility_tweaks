@@ -18,8 +18,11 @@ public class EntityInvisibleMixin {
 	@Inject(method = "isInvisibleTo", at = @At("RETURN"), cancellable = true)
 	private void l2fix$revealInvisibleEntity(Player player, CallbackInfoReturnable<Boolean> cir) {
 		if (!cir.getReturnValue()) return;
-		if (!L2HConfig.isDetectorGlassesRevealEnabled()) return;
 		if (!((Object) this instanceof LivingEntity entity)) return;
+		boolean revealEnabled = entity.level().isClientSide()
+				? L2HConfig.isDisplayDetectorGlassesRevealEnabled()
+				: L2HConfig.isDetectorGlassesRevealEnabled();
+		if (!revealEnabled) return;
 
 		if (l2fix$playerHasDetectorGlasses(player) && l2fix$isInRevealRange(entity, player)) {
 			cir.setReturnValue(false);
@@ -29,9 +32,9 @@ public class EntityInvisibleMixin {
 	@Inject(method = "isInvisible", at = @At("RETURN"), cancellable = true)
 	private void l2fix$revealInvisible(CallbackInfoReturnable<Boolean> cir) {
 		if (!cir.getReturnValue()) return;
-		if (!L2HConfig.isDetectorGlassesRevealEnabled()) return;
 		if (!((Object) this instanceof LivingEntity entity)) return;
 		if (!entity.level().isClientSide()) return;
+		if (!L2HConfig.isDisplayDetectorGlassesRevealEnabled()) return;
 
 		Player player = Proxy.getClientPlayer();
 		if (player == null) return;
@@ -48,7 +51,9 @@ public class EntityInvisibleMixin {
 
 	@Unique
 	private static boolean l2fix$isInRevealRange(LivingEntity entity, Player player) {
-		int range = L2HConfig.getDetectorGlassesRange();
+		int range = entity.level().isClientSide()
+				? L2HConfig.getDisplayDetectorGlassesRange()
+				: L2HConfig.getDetectorGlassesRange();
 		double distSqr = entity.distanceToSqr(player);
 		return distSqr <= (double) range * range;
 	}

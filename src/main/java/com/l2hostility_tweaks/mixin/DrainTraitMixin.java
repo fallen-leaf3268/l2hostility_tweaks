@@ -70,13 +70,13 @@ public class DrainTraitMixin {
 	private boolean l2fix$drainDetail(List<Component> list, Object component) {
 		int max = ((DrainTrait) (Object) this).getMaxLevel();
 		return list.add(Component.translatable(((DrainTrait) (Object) this).getDescriptionId() + ".desc",
-				l2fix$mapLevel(i -> Component.literal(L2HConfig.getDrainCount(i) + "").withStyle(ChatFormatting.AQUA), max),
+				l2fix$mapLevel(i -> Component.literal(L2HConfig.getDisplayDrainCount(i) + "").withStyle(ChatFormatting.AQUA), max),
 				l2fix$mapLevel(i -> Component.literal(
-						Math.round(L2HConfig.getDrainDamage(i) * 100) + "%").withStyle(ChatFormatting.AQUA), max),
+						Math.round(L2HConfig.getDisplayDrainDamage(i) * 100) + "%").withStyle(ChatFormatting.AQUA), max),
 				l2fix$mapLevel(i -> Component.literal(
-						Math.round(L2HConfig.getDrainDuration(i) * 100) + "%").withStyle(ChatFormatting.AQUA), max),
+						Math.round(L2HConfig.getDisplayDrainDuration(i) * 100) + "%").withStyle(ChatFormatting.AQUA), max),
 				l2fix$mapLevel(i -> Component.literal(
-						Math.round(L2HConfig.getDrainDurationMax(i) / 20f) + "").withStyle(ChatFormatting.AQUA), max))
+						Math.round(L2HConfig.getDisplayDrainDurationMax(i) / 20f) + "").withStyle(ChatFormatting.AQUA), max))
 				.withStyle(ChatFormatting.GRAY));
 	}
 
