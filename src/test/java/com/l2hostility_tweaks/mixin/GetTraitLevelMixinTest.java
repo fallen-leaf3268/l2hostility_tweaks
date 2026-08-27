@@ -85,6 +85,28 @@ class GetTraitLevelMixinTest {
     }
 
     @Test
+    void drainCachesIgnoreTagKeyAndBuildsOneCandidateList() throws Exception {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/DrainTraitMixin.java"));
+        String compact = source.replaceAll("\\s+", " ");
+        assertTrue(compact.contains("@Unique private static final TagKey<MobEffect> l2fix$drainIgnore"));
+        assertTrue(source.contains("private static final TagKey<MobEffect> l2fix$drainIgnore"));
+
+        int start = source.indexOf("private void l2fix$drainPostHurt");
+        int end = source.indexOf("@Redirect", start);
+        String postHurt = source.substring(start, end);
+        assertFalse(postHurt.contains("TagKey.create"));
+        assertFalse(postHurt.contains(".stream()"));
+        assertFalse(postHurt.contains(".toList()"));
+        assertTrue(postHurt.contains("new ArrayList<MobEffectInstance>()"));
+        assertTrue(postHurt.contains("for (var effect : target.getActiveEffects())"));
+        assertTrue(postHurt.contains("BuiltInRegistries.MOB_EFFECT.getTag(l2fix$drainIgnore)"));
+        assertTrue(postHurt.contains("getCategory() != MobEffectCategory.BENEFICIAL"));
+        assertTrue(postHurt.contains("ignored.contains("));
+        assertTrue(postHurt.contains("pos.remove(target.getRandom().nextInt(pos.size()))"));
+    }
+
+    @Test
     void arenaRedirectUsesCurrentAttackWithoutSharedBypassState() throws Exception {
         String source = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/mixin/ArenaTraitMixin.java"));
