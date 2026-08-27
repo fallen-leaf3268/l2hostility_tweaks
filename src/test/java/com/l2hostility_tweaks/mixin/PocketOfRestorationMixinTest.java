@@ -68,4 +68,14 @@ class PocketOfRestorationMixinTest {
         assertTrue(capture >= 0);
         assertTrue(clear > capture && clear < clientReturn);
     }
+
+    @Test
+    void normalPocketOperationsOnlyUseDebugLogging() throws Exception {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/PocketOfRestorationMixin.java"));
+
+        assertFalse(source.contains("LOGGER.info("));
+        assertTrue(source.contains("LOGGER.debug(\"speedUp original={} reduced={} level={}\""));
+        assertTrue(source.contains("LOGGER.debug(\"sync forced for slot {}\""));
+    }
 }

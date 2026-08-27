@@ -81,7 +81,7 @@ public class PocketOfRestorationMixin {
 		int original = tag.getInt(SealedItem.TIME);
 		int reduced = original / (l2fix$abyss() + 1);
 		tag.putInt(SealedItem.TIME, reduced);
-		LOGGER.info("speedUp original={} reduced={} level={}", original, reduced, l2fix$abyss());
+		LOGGER.debug("speedUp original={} reduced={} level={}", original, reduced, l2fix$abyss());
 	}
 
 	@Unique
@@ -153,7 +153,7 @@ public class PocketOfRestorationMixin {
 			var handlerOpt = curiosInv.get().getStacksHandler(slotContext.identifier());
 			handlerOpt.ifPresent(handler -> {
 				handler.getStacks().setStackInSlot(slotContext.index(), stack);
-				LOGGER.info("sync forced for slot {}", slotContext.identifier());
+				LOGGER.debug("sync forced for slot {}", slotContext.identifier());
 			});
 		}
 	}
