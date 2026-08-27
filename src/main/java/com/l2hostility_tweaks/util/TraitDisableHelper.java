@@ -14,7 +14,9 @@ import net.minecraft.world.entity.LivingEntity;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public class TraitDisableHelper {
@@ -23,6 +25,7 @@ public class TraitDisableHelper {
 	public static final int MAX_SEAL_STATE_ENTRIES = 1024;
 	public static final String UNDYING_TRAIT_ID = "l2hostility:undying";
 	public static final String UNDYING_COUNT_KEY = "l2fix$undying_count";
+	public static final String SEAL_STATE_MARKER = "l2htweaks_has_seal_state";
 	private static final String SEALED_LEVEL_PREFIX = "l2htweaks_sealed_level_";
 	private static final ThreadLocal<LivingEntity> DISPLAY_ENTITY = new ThreadLocal<>();
 	private static final ThreadLocal<Boolean> HIDE_REALITY_DETAIL = ThreadLocal.withInitial(() -> false);
@@ -73,11 +76,11 @@ public class TraitDisableHelper {
 			}
 		}
 		if (snapshot.contains(UNDYING_COUNT_KEY, Tag.TAG_INT)) {
-			target.putInt(UNDYING_COUNT_KEY, snapshot.getInt(UNDYING_COUNT_KEY));
+			syncUndyingCountData(target, snapshot.getInt(UNDYING_COUNT_KEY));
 		}
 	}
 
-	private static String sealedLevelKey(String traitId) {
+	public static String sealedLevelKey(String traitId) {
 		return SEALED_LEVEL_PREFIX + traitId;
 	}
 
@@ -85,15 +88,109 @@ public class TraitDisableHelper {
 		String key = sealedLevelKey(traitId);
 		if (rawLevel < 0) {
 			data.putInt(key, Math.abs(rawLevel));
+			data.putBoolean(SEAL_STATE_MARKER, true);
 		} else {
 			data.remove(key);
+			refreshSealStateMarker(data);
 		}
 	}
 
+	public static void syncUndyingCountData(CompoundTag data, int count) {
+		data.putInt(UNDYING_COUNT_KEY, count);
+		data.putBoolean(SEAL_STATE_MARKER, true);
+	}
+
 	public static void clearSealData(CompoundTag data, String traitId) {
+		clearSealDataEntries(data, traitId);
+		refreshSealStateMarker(data);
+	}
+
+	private static void clearSealDataEntries(CompoundTag data, String traitId) {
 		data.remove(sealedLevelKey(traitId));
 		data.remove(sealExpiryKey(traitId));
 		onTraitUnsealed(data, traitId);
+	}
+
+	public static boolean hasSealStateMarker(CompoundTag data) {
+		return data.getBoolean(SEAL_STATE_MARKER);
+	}
+
+	public static Set<String> reconcileSealData(CompoundTag data, Map<String, Integer> rawLevels,
+			long gameTime) {
+		Set<String> traitIds = new LinkedHashSet<>();
+		for (String key : data.getAllKeys()) {
+			if (key.startsWith(SEAL_EXPIRY_PREFIX)) {
+				traitIds.add(key.substring(SEAL_EXPIRY_PREFIX.length()));
+			} else if (key.startsWith(SEALED_LEVEL_PREFIX)) {
+				traitIds.add(key.substring(SEALED_LEVEL_PREFIX.length()));
+			}
+		}
+
+		Set<String> expired = new LinkedHashSet<>();
+		for (String traitId : traitIds) {
+			Integer rawLevel = rawLevels.get(traitId);
+			if (rawLevel == null || rawLevel >= 0) {
+				clearSealDataEntries(data, traitId);
+				continue;
+			}
+
+			String levelKey = sealedLevelKey(traitId);
+			if (!data.contains(levelKey, Tag.TAG_INT) || data.getInt(levelKey) <= 0) {
+				int restoredLevel = rawLevel == Integer.MIN_VALUE ? Integer.MAX_VALUE : Math.abs(rawLevel);
+				data.putInt(levelKey, restoredLevel);
+			}
+
+			String expiryKey = sealExpiryKey(traitId);
+			if (!data.contains(expiryKey, Tag.TAG_LONG)) {
+				data.putLong(expiryKey, -1L);
+			} else {
+				long expiry = data.getLong(expiryKey);
+				if (expiry > 0 && gameTime >= expiry) {
+					expired.add(traitId);
+				}
+			}
+		}
+
+		Integer undyingLevel = rawLevels.get(UNDYING_TRAIT_ID);
+		if (data.contains(UNDYING_COUNT_KEY, Tag.TAG_INT)
+				&& (undyingLevel == null || undyingLevel == 0)) {
+			data.remove(UNDYING_COUNT_KEY);
+		}
+		refreshSealStateMarker(data);
+		return Set.copyOf(expired);
+	}
+
+	public static void maintainSealState(LivingEntity entity) {
+		Map<String, Integer> rawLevels = new LinkedHashMap<>();
+		if (MobTraitCap.HOLDER.isProper(entity)) {
+			MobTraitCap cap = MobTraitCap.HOLDER.get(entity);
+			for (Map.Entry<MobTrait, Integer> entry : cap.traits.entrySet()) {
+				rawLevels.put(entry.getKey().getID(), entry.getValue());
+			}
+		}
+		Set<String> expired = reconcileSealData(
+				entity.getPersistentData(), rawLevels, entity.level().getGameTime());
+		for (String traitId : expired) {
+			setDisabled(entity, traitId, false);
+		}
+	}
+
+	private static void refreshSealStateMarker(CompoundTag data) {
+		boolean hasSealState = false;
+		for (String key : data.getAllKeys()) {
+			if (key.startsWith(SEAL_EXPIRY_PREFIX) || key.startsWith(SEALED_LEVEL_PREFIX)) {
+				hasSealState = true;
+				break;
+			}
+		}
+		if (data.contains(UNDYING_COUNT_KEY, Tag.TAG_INT)) {
+			hasSealState = true;
+		}
+		if (hasSealState) {
+			data.putBoolean(SEAL_STATE_MARKER, true);
+		} else {
+			data.remove(SEAL_STATE_MARKER);
+		}
 	}
 
 	public static <T> void clearTraitState(Map<T, Integer> traits, Consumer<T> reset,
@@ -187,8 +284,9 @@ public class TraitDisableHelper {
 			var opt = cap.traits.entrySet().stream().filter(e -> traitId.equals(e.getKey().getID())).findFirst();
 			if (opt.isEmpty()) return;
 			var entry = opt.get();
-			entity.getPersistentData().putInt(sealedLevelKey(traitId), Math.abs(entry.getValue()));
-			entry.setValue(-Math.abs(entry.getValue()));
+			int disabledLevel = -Math.abs(entry.getValue());
+			syncSealedLevelData(entity.getPersistentData(), traitId, disabledLevel);
+			entry.setValue(disabledLevel);
 			entry.getKey().initialize(entity, 0);
 		} else {
 			int restore = entity.getPersistentData().getInt(sealedLevelKey(traitId));

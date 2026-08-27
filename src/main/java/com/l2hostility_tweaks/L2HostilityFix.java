@@ -31,7 +31,6 @@ import net.minecraftforge.common.MinecraftForge;
 
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingEquipmentChangeEvent;
-import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -105,48 +104,6 @@ public class L2HostilityFix {
         }
     }
 
-    @SubscribeEvent
-    public void onLivingTick(LivingEvent.LivingTickEvent event) {
-        var self = event.getEntity();
-        if (self.level().isClientSide()) return;
-        if ((self.tickCount + self.getId()) % 20 != 0) return;
-        var data = self.getPersistentData();
-        java.util.List<String> toRemove = null;
-        java.util.List<String> orphanedTraits = null;
-        long gameTime = self.level().getGameTime();
-        boolean hasCap = dev.xkmc.l2hostility.content.capability.mob.MobTraitCap.HOLDER.isProper(self);
-        var cap = hasCap ? dev.xkmc.l2hostility.content.capability.mob.MobTraitCap.HOLDER.get(self) : null;
-        for (String key : data.getAllKeys()) {
-            if (!key.startsWith(com.l2hostility_tweaks.util.TraitDisableHelper.SEAL_EXPIRY_PREFIX)) continue;
-            String traitId = key.substring(com.l2hostility_tweaks.util.TraitDisableHelper.SEAL_EXPIRY_PREFIX.length());
-            boolean traitGone = cap == null || cap.traits.keySet().stream().noneMatch(t -> t.getID().equals(traitId));
-            if (traitGone) {
-                if (orphanedTraits == null) orphanedTraits = new java.util.ArrayList<>();
-                orphanedTraits.add(traitId);
-                continue;
-            }
-            long expiry = data.getLong(key);
-            if (expiry <= 0) continue;
-            if (gameTime >= expiry) {
-                if (toRemove == null) toRemove = new java.util.ArrayList<>();
-                toRemove.add(key);
-            }
-        }
-        if (orphanedTraits != null) {
-            for (String traitId : orphanedTraits) {
-                TraitDisableHelper.clearSealData(data, traitId);
-            }
-        }
-        if (toRemove != null) {
-            for (String key : toRemove) {
-                String traitId = key.substring(com.l2hostility_tweaks.util.TraitDisableHelper.SEAL_EXPIRY_PREFIX.length());
-                data.remove(key);
-                if (cap != null) {
-                    com.l2hostility_tweaks.util.TraitDisableHelper.setDisabled(self, traitId, false);
-                }
-            }
-        }
-    }
     @SubscribeEvent
     public void onLivingDeath(LivingDeathEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;

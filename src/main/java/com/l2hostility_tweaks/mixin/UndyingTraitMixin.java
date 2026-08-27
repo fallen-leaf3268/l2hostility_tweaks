@@ -43,7 +43,7 @@ public class UndyingTraitMixin {
 
 		CompoundTag pd = entity.getPersistentData();
 		int count = pd.getInt(TraitDisableHelper.UNDYING_COUNT_KEY) + 1;
-		pd.putInt(TraitDisableHelper.UNDYING_COUNT_KEY, count);
+		TraitDisableHelper.syncUndyingCountData(pd, count);
 
 		if (count >= max) {
 			int duration = L2HConfig.getUndyingSealDuration();

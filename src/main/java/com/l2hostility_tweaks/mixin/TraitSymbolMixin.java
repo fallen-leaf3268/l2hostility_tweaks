@@ -58,7 +58,7 @@ public class TraitSymbolMixin {
 		float oldHealth = target.getHealth();
 		float oldMaxHealth = target.getMaxHealth();
 		int next = -(abs + 1);
-		target.getPersistentData().putInt("l2htweaks_sealed_level_" + trait.getID(), abs + 1);
+		TraitDisableHelper.syncSealedLevelData(target.getPersistentData(), trait.getID(), next);
 		cap.traits.put(trait, next);
 		trait.initialize(target, 0);
 		cap.syncToClient(target);

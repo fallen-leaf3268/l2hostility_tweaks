@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -339,25 +340,123 @@ class TraitDisableHelperTest {
     }
 
     @Test
-    void livingTickFullyClearsSealStateWhenTheTraitIsGone() throws Exception {
-        String source = Files.readString(Path.of(
+    void legacySealedLevelWithoutExpiryBecomesATrackedPermanentSeal() throws Exception {
+        CompoundTag data = new CompoundTag();
+        data.putInt(SEALED_LEVEL_KEY, 3);
+
+        Set<String> expired = reconcileSealData(data, Map.of(TRAIT_ID, -3), 200L);
+
+        assertTrue(expired.isEmpty());
+        assertEquals(-1L, data.getLong(TraitDisableHelper.sealExpiryKey(TRAIT_ID)));
+        assertTrue(data.getBoolean("l2htweaks_has_seal_state"));
+    }
+
+    @Test
+    void staleSealDataIsClearedWhenTheCurrentTraitLevelIsPositive() throws Exception {
+        CompoundTag data = new CompoundTag();
+        data.putInt(SEALED_LEVEL_KEY, 3);
+        data.putLong(TraitDisableHelper.sealExpiryKey(TRAIT_ID), 500L);
+
+        reconcileSealData(data, Map.of(TRAIT_ID, 3), 200L);
+
+        assertFalse(data.contains(SEALED_LEVEL_KEY));
+        assertFalse(data.contains(TraitDisableHelper.sealExpiryKey(TRAIT_ID)));
+        assertFalse(data.contains("l2htweaks_has_seal_state"));
+    }
+
+    @Test
+    void expiredNegativeTraitIsReturnedForAuthoritativeUnsealing() throws Exception {
+        CompoundTag data = new CompoundTag();
+        data.putInt(SEALED_LEVEL_KEY, 3);
+        data.putLong(TraitDisableHelper.sealExpiryKey(TRAIT_ID), 150L);
+
+        Set<String> expired = reconcileSealData(data, Map.of(TRAIT_ID, -3), 200L);
+
+        assertEquals(Set.of(TRAIT_ID), expired);
+        assertTrue(data.contains(SEALED_LEVEL_KEY));
+    }
+
+    @Test
+    void legacyUndyingCountIsRemovedWhenUndyingNoLongerExists() throws Exception {
+        CompoundTag data = new CompoundTag();
+        data.putInt(TraitDisableHelper.UNDYING_COUNT_KEY, 4);
+
+        reconcileSealData(data, Map.of(), 200L);
+
+        assertFalse(data.contains(TraitDisableHelper.UNDYING_COUNT_KEY));
+    }
+
+    @Test
+    void activeUndyingCountKeepsMaintenanceMarkerUntilTheTraitDisappears() throws Exception {
+        CompoundTag data = new CompoundTag();
+        data.putInt(TraitDisableHelper.UNDYING_COUNT_KEY, 2);
+
+        reconcileSealData(data, Map.of(TraitDisableHelper.UNDYING_TRAIT_ID, 1), 200L);
+
+        assertTrue(data.getBoolean("l2htweaks_has_seal_state"));
+        assertEquals(2, data.getInt(TraitDisableHelper.UNDYING_COUNT_KEY));
+
+        reconcileSealData(data, Map.of(), 220L);
+
+        assertFalse(data.contains(TraitDisableHelper.UNDYING_COUNT_KEY));
+        assertFalse(data.contains("l2htweaks_has_seal_state"));
+    }
+
+    @Test
+    void sealedLevelWritesMaintainTheFastPathMarker() {
+        CompoundTag data = new CompoundTag();
+
+        TraitDisableHelper.syncSealedLevelData(data, TRAIT_ID, -2);
+        assertTrue(data.getBoolean("l2htweaks_has_seal_state"));
+
+        TraitDisableHelper.syncSealedLevelData(data, TRAIT_ID, 2);
+        assertFalse(data.contains("l2htweaks_has_seal_state"));
+    }
+
+    @Test
+    void clearingTheLastSealRemovesTheFastPathMarker() {
+        CompoundTag data = new CompoundTag();
+        data.putBoolean("l2htweaks_has_seal_state", true);
+        data.putInt(SEALED_LEVEL_KEY, 2);
+        data.putLong(TraitDisableHelper.sealExpiryKey(TRAIT_ID), -1L);
+
+        TraitDisableHelper.clearSealData(data, TRAIT_ID);
+
+        assertFalse(data.contains("l2htweaks_has_seal_state"));
+    }
+
+    @Test
+    void capabilityTickOwnsSealMaintenanceWithoutAGlobalLivingTickScan() throws Exception {
+        String main = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/L2HostilityFix.java"));
-        String normalizedSource = source.replace("\r\n", "\n");
-        int orphanStart = normalizedSource.indexOf("if (traitGone)");
-        int orphanEnd = normalizedSource.indexOf("continue;", orphanStart);
-        String orphanBranch = normalizedSource.substring(orphanStart, orphanEnd);
+        String mixin = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/MobTraitCapTickMixin.java"));
+        String undyingMixin = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/UndyingTraitMixin.java"));
 
-        assertTrue(orphanBranch.contains("orphanedTraits.add(traitId)"));
-        assertFalse(orphanBranch.contains("toRemove.add(key)"));
+        assertFalse(main.contains("LivingEvent.LivingTickEvent"));
+        assertTrue(mixin.contains("private boolean l2fix$sealStateInitialized"));
+        assertTrue(mixin.contains("@Inject(method = \"tick\", at = @At(\"TAIL\")"));
+        assertTrue(mixin.contains("TraitDisableHelper.hasSealStateMarker"));
+        assertTrue(mixin.contains("TraitDisableHelper.maintainSealState"));
+        assertTrue(mixin.contains("(mob.tickCount + mob.getId()) % 20 != 0"));
+        assertTrue(mixin.indexOf("(mob.tickCount + mob.getId()) % 20 != 0")
+                < mixin.indexOf("TraitDisableHelper.hasSealStateMarker"));
+        assertTrue(undyingMixin.contains("TraitDisableHelper.syncUndyingCountData(pd, count)"));
+    }
 
-        int cleanupStart = normalizedSource.indexOf("if (orphanedTraits != null)", orphanEnd);
-        assertTrue(cleanupStart >= 0);
-        assertTrue(normalizedSource.contains(
-                "        }\n        if (orphanedTraits != null) {"));
-        int expiryCleanupStart = normalizedSource.indexOf("if (toRemove != null)", cleanupStart);
-        assertTrue(expiryCleanupStart > cleanupStart);
-        String orphanCleanup = normalizedSource.substring(cleanupStart, expiryCleanupStart);
-        assertTrue(orphanCleanup.contains("TraitDisableHelper.clearSealData(data, traitId)"));
+    @SuppressWarnings("unchecked")
+    private static Set<String> reconcileSealData(CompoundTag data, Map<String, Integer> levels,
+                                                  long gameTime) throws Exception {
+        Method method = null;
+        for (Method candidate : TraitDisableHelper.class.getDeclaredMethods()) {
+            if (candidate.getName().equals("reconcileSealData")) {
+                method = candidate;
+                break;
+            }
+        }
+        assertNotNull(method);
+        return (Set<String>) method.invoke(null, data, levels, gameTime);
     }
 
     @Test
