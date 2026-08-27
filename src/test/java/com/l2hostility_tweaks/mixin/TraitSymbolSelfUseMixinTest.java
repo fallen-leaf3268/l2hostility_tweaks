@@ -47,6 +47,27 @@ class TraitSymbolSelfUseMixinTest {
 		assertFalse(source.contains("1 << curLevel"));
 	}
 
+	@Test
+	void clientPredictionReturnsBeforeServerAuthorityChecks() throws IOException {
+		String source = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/mixin/TraitSymbolSelfUseMixin.java"));
+
+		int traitSymbolCheck = source.indexOf("stack.getItem() instanceof TraitSymbol traitSymbol");
+		int shiftCheck = source.indexOf("if (!player.isShiftKeyDown()) return;");
+		int clientGuard = source.indexOf("if (level.isClientSide())");
+		int configGate = source.indexOf("if (!L2HConfig.isPlayerSelfTraitEnabled()) return;");
+		int blacklistCheck = source.indexOf("if (ImmunityHelper.isSelfBlacklisted(trait))");
+		int costCheck = source.indexOf("int cost = L2HConfig.getUpgradeCost(");
+
+		assertTrue(traitSymbolCheck >= 0 && traitSymbolCheck < shiftCheck);
+		assertTrue(shiftCheck < clientGuard);
+		assertTrue(clientGuard < configGate);
+		assertTrue(clientGuard < blacklistCheck);
+		assertTrue(clientGuard < costCheck);
+		assertTrue(source.substring(clientGuard, configGate).contains(
+				"cir.setReturnValue(InteractionResultHolder.success(stack))"));
+	}
+
     @Test
     void sealedRawLevelParticipatesInMaximumLevelCheck() {
         assertTrue(TraitSymbolSelfUseMixin.l2fix$isAtMaxLevel(-3, 3));

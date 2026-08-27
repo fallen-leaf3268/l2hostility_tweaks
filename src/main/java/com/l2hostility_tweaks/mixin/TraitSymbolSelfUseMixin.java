@@ -35,6 +35,10 @@ public class TraitSymbolSelfUseMixin {
 		ItemStack stack = player.getItemInHand(hand);
 		if (!(stack.getItem() instanceof TraitSymbol traitSymbol)) return;
 		if (!player.isShiftKeyDown()) return;
+		if (level.isClientSide()) {
+			cir.setReturnValue(InteractionResultHolder.success(stack));
+			return;
+		}
 		if (!L2HConfig.isPlayerSelfTraitEnabled()) return;
 		if (!MobTraitCap.HOLDER.isProper(player)) return;
 
@@ -135,11 +139,6 @@ public class TraitSymbolSelfUseMixin {
 				sp.sendSystemMessage(L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_NOT_ENOUGH_ITEMS, trait.getDesc(), currentLevel, currentLevel + 1, cost, stack.getCount()).withStyle(ChatFormatting.RED), true);
 			}
 			cir.setReturnValue(InteractionResultHolder.fail(stack));
-			return;
-		}
-
-		if (level.isClientSide()) {
-			cir.setReturnValue(InteractionResultHolder.success(stack));
 			return;
 		}
 
