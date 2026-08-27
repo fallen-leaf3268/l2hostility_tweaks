@@ -9,6 +9,7 @@ import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -90,6 +91,42 @@ class ImmunityHelperCacheTest {
                 "WeakReference"}) {
             assertFalse(helper.contains(removed), removed);
         }
+    }
+
+    @Test
+    void combatCurioQueriesShareOneEntitySnapshotAndInvalidateOnEquipmentChange() throws IOException {
+        String helper = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/util/ImmunityHelper.java"));
+        String ringListener = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/content/RingDamageListener.java"));
+        String adapting = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/AdaptingTraitMixin.java"));
+        String dementor = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/DementorTraitMixin.java"));
+        String traitImmunity = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/MobTraitImmunityMixin.java"));
+        String main = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/L2HostilityFix.java"));
+
+        assertTrue(helper.contains("getCombatCurios(LivingEntity entity)"));
+        assertTrue(ringListener.contains("ImmunityHelper.getCombatCurios(attacker)"));
+        assertFalse(ringListener.contains("CuriosApi.getCuriosInventory"));
+        assertTrue(adapting.contains("ImmunityHelper.hasCombatCurioWithTag"));
+        assertTrue(dementor.contains("ImmunityHelper.hasCombatCurioWithTag"));
+        assertTrue(traitImmunity.contains("ImmunityHelper.hasCombatCurioWithTag"));
+        assertTrue(main.contains("CurioChangeEvent"));
+        assertTrue(main.contains("ImmunityHelper.invalidateCombatCurios(event.getEntity())"));
+    }
+
+    @Test
+    void combatSnapshotKeepsBypassFlagsAndRingOrder() {
+        var snapshot = new ImmunityHelper.CombatCurioSnapshot(
+                true, false, true, List.of(0.65f, 1.25f));
+
+        assertTrue(snapshot.bypassDispell());
+        assertFalse(snapshot.bypassDementor());
+        assertTrue(snapshot.bypassAdaptive());
+        assertEquals(List.of(0.65f, 1.25f), snapshot.ringMultipliers());
     }
 
     @SuppressWarnings("unchecked")

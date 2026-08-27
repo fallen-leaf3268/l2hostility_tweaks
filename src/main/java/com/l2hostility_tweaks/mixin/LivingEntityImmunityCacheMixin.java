@@ -17,6 +17,11 @@ public class LivingEntityImmunityCacheMixin implements EntityImmunityCache {
 	private volatile long l2fix$gravityImmunityStamp = Long.MIN_VALUE;
 	@Unique
 	private boolean l2fix$gravityImmunity;
+	@Unique
+	private volatile long l2fix$combatCurioStamp = Long.MIN_VALUE;
+	@Unique
+	private ImmunityHelper.CombatCurioSnapshot l2fix$combatCurios =
+			ImmunityHelper.CombatCurioSnapshot.EMPTY;
 
 	@Override
 	public boolean l2fix$isImmuneToForce(long stamp) {
@@ -36,6 +41,20 @@ public class LivingEntityImmunityCacheMixin implements EntityImmunityCache {
 		return l2fix$gravityImmunity;
 	}
 
+	@Override
+	public ImmunityHelper.CombatCurioSnapshot l2fix$getCombatCurios(long stamp) {
+		if (l2fix$combatCurioStamp != stamp) {
+			l2fix$combatCurios = l2fix$scanCombatCurios();
+			l2fix$combatCurioStamp = stamp;
+		}
+		return l2fix$combatCurios;
+	}
+
+	@Override
+	public void l2fix$invalidateCombatCurios() {
+		l2fix$combatCurioStamp = Long.MIN_VALUE;
+	}
+
 	@Unique
 	boolean l2fix$scanForceImmunity() {
 		return ImmunityHelper.computeImmuneToForce((LivingEntity) (Object) this);
@@ -44,5 +63,10 @@ public class LivingEntityImmunityCacheMixin implements EntityImmunityCache {
 	@Unique
 	boolean l2fix$scanGravityImmunity() {
 		return ImmunityHelper.computeImmuneToGravity((LivingEntity) (Object) this);
+	}
+
+	@Unique
+	ImmunityHelper.CombatCurioSnapshot l2fix$scanCombatCurios() {
+		return ImmunityHelper.computeCombatCurios((LivingEntity) (Object) this);
 	}
 }

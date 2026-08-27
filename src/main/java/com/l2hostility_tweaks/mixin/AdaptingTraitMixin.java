@@ -27,7 +27,7 @@ public class AdaptingTraitMixin {
 		var event = cache.getLivingDamageEvent();
 		if (event != null) {
 			var attacker = event.getSource().getEntity();
-			if (attacker instanceof LivingEntity living && ImmunityHelper.hasCurioWithTag(living, L2HFBypassTags.BYPASSES_ADAPTIVE_ITEM)) {
+			if (attacker instanceof LivingEntity living && ImmunityHelper.hasCombatCurioWithTag(living, L2HFBypassTags.BYPASSES_ADAPTIVE_ITEM)) {
 				ci.cancel();
 				return;
 			}

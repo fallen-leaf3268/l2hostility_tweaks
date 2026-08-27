@@ -24,7 +24,7 @@ public class DementorTraitMixin {
 		var event = cache.getLivingDamageEvent();
 		if (event == null) return;
 		var attacker = event.getSource().getEntity();
-		if (attacker instanceof LivingEntity living && ImmunityHelper.hasCurioWithTag(living, L2HFBypassTags.BYPASSES_DEMENTOR_ITEM)) {
+		if (attacker instanceof LivingEntity living && ImmunityHelper.hasCombatCurioWithTag(living, L2HFBypassTags.BYPASSES_DEMENTOR_ITEM)) {
 			ci.cancel();
 			return;
 		}

@@ -1,5 +1,7 @@
 package com.l2hostility_tweaks.util;
 
+import com.l2hostility_tweaks.L2HFBypassTags;
+import com.l2hostility_tweaks.content.RingItem;
 import com.mojang.logging.LogUtils;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
@@ -11,6 +13,8 @@ import net.minecraft.core.registries.Registries;
 import org.slf4j.Logger;
 import top.theillusivec4.curios.api.CuriosApi;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -39,6 +43,53 @@ public class ImmunityHelper {
 
     public static boolean hasCurioWithTag(LivingEntity entity, TagKey<Item> tag) {
         return hasItemWithTag(entity, tag);
+    }
+
+    public static boolean hasCombatCurioWithTag(LivingEntity entity, TagKey<Item> tag) {
+        return getCombatCurios(entity).bypasses(tag);
+    }
+
+    public static CombatCurioSnapshot getCombatCurios(LivingEntity entity) {
+        long stamp = cacheStamp(immunityCacheGeneration.get(), entity.tickCount);
+        return ((EntityImmunityCache) entity).l2fix$getCombatCurios(stamp);
+    }
+
+    public static void invalidateCombatCurios(LivingEntity entity) {
+        ((EntityImmunityCache) entity).l2fix$invalidateCombatCurios();
+    }
+
+    public static CombatCurioSnapshot computeCombatCurios(LivingEntity entity) {
+        boolean bypassDispell = false;
+        boolean bypassDementor = false;
+        boolean bypassAdaptive = false;
+        List<Float> ringMultipliers = null;
+        var inventory = CuriosApi.getCuriosInventory(entity).resolve();
+        if (inventory.isPresent()) {
+            for (var stacksHandler : inventory.get().getCurios().values()) {
+                var stacks = stacksHandler.getStacks();
+                for (int i = 0; i < stacks.getSlots(); i++) {
+                    var stack = stacks.getStackInSlot(i);
+                    if (!bypassDispell && stack.is(L2HFBypassTags.BYPASSES_DISPELL_ITEM)) {
+                        bypassDispell = true;
+                    }
+                    if (!bypassDementor && stack.is(L2HFBypassTags.BYPASSES_DEMENTOR_ITEM)) {
+                        bypassDementor = true;
+                    }
+                    if (!bypassAdaptive && stack.is(L2HFBypassTags.BYPASSES_ADAPTIVE_ITEM)) {
+                        bypassAdaptive = true;
+                    }
+                    if (stack.getItem() instanceof RingItem ring) {
+                        if (ringMultipliers == null) ringMultipliers = new ArrayList<>();
+                        ringMultipliers.add(ring.getDamageMultiplier());
+                    }
+                }
+            }
+        }
+        if (!bypassDispell && !bypassDementor && !bypassAdaptive && ringMultipliers == null) {
+            return CombatCurioSnapshot.EMPTY;
+        }
+        return new CombatCurioSnapshot(bypassDispell, bypassDementor, bypassAdaptive,
+                ringMultipliers == null ? List.of() : List.copyOf(ringMultipliers));
     }
 
     private static boolean hasItemWithTag(LivingEntity entity, TagKey<Item> tag) {
@@ -157,6 +208,20 @@ public class ImmunityHelper {
 
     static long cacheStamp(int generation, int tick) {
         return ((long) generation << 32) | (tick & 0xffffffffL);
+    }
+
+    public record CombatCurioSnapshot(boolean bypassDispell, boolean bypassDementor,
+            boolean bypassAdaptive, List<Float> ringMultipliers) {
+
+        public static final CombatCurioSnapshot EMPTY =
+                new CombatCurioSnapshot(false, false, false, List.of());
+
+        public boolean bypasses(TagKey<Item> tag) {
+            if (L2HFBypassTags.BYPASSES_DISPELL_ITEM.equals(tag)) return bypassDispell;
+            if (L2HFBypassTags.BYPASSES_DEMENTOR_ITEM.equals(tag)) return bypassDementor;
+            if (L2HFBypassTags.BYPASSES_ADAPTIVE_ITEM.equals(tag)) return bypassAdaptive;
+            return false;
+        }
     }
 
     private static final class ItemTags {

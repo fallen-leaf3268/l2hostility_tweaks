@@ -50,6 +50,7 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import top.theillusivec4.curios.api.SlotTypeMessage;
+import top.theillusivec4.curios.api.event.CurioChangeEvent;
 import net.minecraft.nbt.CompoundTag;
 
 import java.util.Collections;
@@ -171,6 +172,11 @@ public class L2HostilityFix {
     @SubscribeEvent
     public void onTagsUpdated(TagsUpdatedEvent event) {
         ImmunityHelper.invalidateTagCaches();
+    }
+
+    @SubscribeEvent
+    public void onCurioChange(CurioChangeEvent event) {
+        ImmunityHelper.invalidateCombatCurios(event.getEntity());
     }
 
     @SubscribeEvent
