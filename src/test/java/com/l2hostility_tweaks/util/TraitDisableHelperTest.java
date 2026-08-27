@@ -210,6 +210,52 @@ class TraitDisableHelperTest {
     }
 
     @Test
+    void detectsAnExhaustedUndyingLimitBeforeTheNextTrigger() throws Exception {
+        Method limitMethod = null;
+        for (Method method : TraitDisableHelper.class.getDeclaredMethods()) {
+            if (method.getName().equals("isUndyingLimitExhausted")) {
+                limitMethod = method;
+                break;
+            }
+        }
+        assertNotNull(limitMethod);
+
+        assertEquals(true, limitMethod.invoke(null, 0, 0, 60));
+        assertEquals(false, limitMethod.invoke(null, 3, 2, 60));
+        assertEquals(true, limitMethod.invoke(null, 3, 3, 60));
+        assertEquals(false, limitMethod.invoke(null, -1, 999, 60));
+        assertEquals(false, limitMethod.invoke(null, 0, 0, 0));
+    }
+
+    @Test
+    void undyingMixinChecksExhaustionBeforeCallingUpstreamResurrection() throws Exception {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/UndyingTraitMixin.java"));
+        int headStart = source.indexOf("l2fix$limitResurrections");
+        int tailStart = source.indexOf("l2fix$incrementCount");
+        String headHandler = source.substring(headStart, tailStart);
+
+        int headGuard = headHandler.indexOf("if (entity.level().isClientSide()) return;");
+        int exhaustionCheck = headHandler.indexOf("TraitDisableHelper.isUndyingLimitExhausted");
+        int sealCall = headHandler.indexOf("l2fix$sealUndying(entity, duration)");
+        int cancelAfterSeal = headHandler.indexOf("ci.cancel();", sealCall);
+        assertTrue(headGuard >= 0);
+        assertTrue(headGuard < exhaustionCheck);
+        assertTrue(exhaustionCheck < sealCall);
+        assertTrue(sealCall < cancelAfterSeal);
+        assertTrue(headHandler.contains("TraitDisableHelper.isUndyingLimitExhausted"));
+        assertTrue(headHandler.contains("l2fix$sealUndying(entity, duration)"));
+
+        int sealHelperStart = source.indexOf("private static void l2fix$sealUndying");
+        String tailHandler = source.substring(tailStart, sealHelperStart);
+        int tailGuard = tailHandler.indexOf("if (entity.level().isClientSide()) return;");
+        int canceledCheck = tailHandler.indexOf("if (!event.isCanceled()) return;");
+        assertTrue(tailGuard >= 0);
+        assertTrue(tailGuard < canceledCheck);
+        assertTrue(source.contains("private static void l2fix$sealUndying"));
+    }
+
+    @Test
     void snapshotsAndRestoresOnlyManagedRuntimeState() {
         String firstExpiry = TraitDisableHelper.sealExpiryKey("l2hostility:undying");
         String secondExpiry = TraitDisableHelper.sealExpiryKey("l2hostility:split");

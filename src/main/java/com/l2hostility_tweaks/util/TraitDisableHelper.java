@@ -122,6 +122,11 @@ public class TraitDisableHelper {
 				maxResurrections);
 	}
 
+	public static boolean isUndyingLimitExhausted(int maxResurrections, int currentCount,
+			int sealDuration) {
+		return maxResurrections >= 0 && sealDuration != 0 && currentCount >= maxResurrections;
+	}
+
 	public static Registry<MobTrait> getTraitRegistry() {
 		Registry<MobTrait> reg = traitRegistry;
 		if (reg == null) {
