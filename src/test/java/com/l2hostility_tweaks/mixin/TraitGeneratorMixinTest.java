@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -23,6 +25,15 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TraitGeneratorMixinTest {
+
+    @Test
+    void unusedConfigAccessorIsNotRegisteredOrShipped() throws IOException {
+        String mixinConfig = Files.readString(Path.of(
+                "src/main/resources/l2hostility_tweaks.mixins.json"));
+        assertFalse(mixinConfig.contains("\"ConfigAccessor\""));
+        assertFalse(Files.exists(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/ConfigAccessor.java")));
+    }
 
     @Test
     void appliesNbtPresetOnlyWhenItRaisesTheCurrentRank() {

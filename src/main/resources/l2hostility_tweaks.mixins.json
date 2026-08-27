@@ -16,7 +16,6 @@
         "AntibuildPlaceBypassMixin",
                 "GravityTraitMixin",
         "EntityConfigConfigMixin",
-        "ConfigAccessor",
         "EntityConfigMixin",
         "ConfigMergerMixin",
         "TraitGeneratorMixin",
