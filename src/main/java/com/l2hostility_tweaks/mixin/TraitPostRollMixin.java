@@ -10,7 +10,9 @@ import dev.xkmc.l2hostility.content.traits.legendary.LegendaryTrait;
 import net.minecraft.world.entity.LivingEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -26,6 +28,25 @@ import java.util.Set;
 public class TraitPostRollMixin {
 
     private static final Logger L2FIX$LOG = LoggerFactory.getLogger("L2HostilityFix/TraitGen");
+
+    @Shadow
+    @Final
+    private LivingEntity entity;
+
+    @Shadow
+    @Final
+    private int mobLevel;
+
+    @Shadow
+    @Final
+    private MobDifficultyCollector ins;
+
+    @Shadow
+    @Final
+    private HashMap<MobTrait, Integer> traits;
+
+    @Shadow
+    private int level;
 
     @Unique
     private boolean l2fix$legendaryCounted;
@@ -61,8 +82,7 @@ public class TraitPostRollMixin {
     @Inject(method = "generate", at = @At("HEAD"))
     private void l2fix$interceptGenerate(CallbackInfo ci) {
         if (L2HConfig.isDisableNonPresetTraits()) {
-            TraitGenerator self = (TraitGenerator) (Object) this;
-            TraitGenerationHelper.setLevel(self, 0);
+            level = 0;
         }
     }
 
@@ -73,8 +93,7 @@ public class TraitPostRollMixin {
         int original = ins.getMaxTraitLevel();
         if (!L2HConfig.COMMON.levelCapEnabled.get()) return original;
 
-        TraitGenerator self = (TraitGenerator) (Object) this;
-        int diff = TraitGenerationHelper.getMobLevel(self);
+        int diff = mobLevel;
         int ourCap = L2HConfig.getThreshold(L2HConfig.getLevelThresholds(), diff);
 
         if (diff >= L2HConfig.COMMON.levelCapUnlimited.get()) {
@@ -92,14 +111,10 @@ public class TraitPostRollMixin {
     private void l2fix$redirectSetRank(TraitGenerator self, MobTrait trait, int newRank) {
         if (newRank <= 0) return;
 
-        HashMap<MobTrait, Integer> traits = TraitGenerationHelper.getTraits(self);
-        if (traits == null) return;
-
-        MobDifficultyCollector ins = TraitGenerationHelper.getIns(self);
         int cost = ins != null ? trait.getCost(ins.trait_cost) : 1;
         int capped = newRank;
 
-        l2fix$ensureInit(self);
+        l2fix$ensureInit();
 
         L2FIX$LOG.debug("[SetRank] trait={}, newRank={}, mobLevel={}, globalLevelCap={}, protectedIds={}",
                 trait.getID(), newRank, l2fix$mobLevel, l2fix$globalLevelCap, l2fix$protectedIds);
@@ -146,13 +161,13 @@ public class TraitPostRollMixin {
         // === Refund budget for reduction ===
         if (capped < newRank) {
             int refund = (newRank - capped) * cost;
-            TraitGenerationHelper.setLevel(self, TraitGenerationHelper.getLevel(self) + refund);
+            level += refund;
         }
 
         // === Apply ===
         L2FIX$LOG.debug("[SetRank] FINAL trait={}, newRank={}, capped={}, refund={}, levelAfter={}",
                 trait.getID(), newRank, capped, (capped < newRank ? (newRank - capped) * cost : 0),
-                TraitGenerationHelper.getLevel(self));
+                level);
 
         if (capped > 0) {
             traits.put(trait, capped);
@@ -161,12 +176,11 @@ public class TraitPostRollMixin {
         }
     }
 
-    private void l2fix$ensureInit(TraitGenerator self) {
+    private void l2fix$ensureInit() {
         if (l2fix$legendaryCounted) return;
 
-        l2fix$mobLevel = TraitGenerationHelper.getMobLevel(self);
+        l2fix$mobLevel = mobLevel;
 
-        LivingEntity entity = TraitGenerationHelper.getEntity(self);
         l2fix$protectedIds = entity != null
                 ? TraitGenerationHelper.getDataPackPresetIds(entity)
                 : java.util.Collections.emptySet();
@@ -179,7 +193,6 @@ public class TraitPostRollMixin {
         L2FIX$LOG.debug("[EnsureInit] mobLevel={}, globalLevelCap={}, protectedIds={}, extraLegendaryIds={}",
                 l2fix$mobLevel, l2fix$globalLevelCap, l2fix$protectedIds, l2fix$extraLegendaryIds);
 
-        HashMap<MobTrait, Integer> traits = TraitGenerationHelper.getTraits(self);
         if (traits != null && L2HConfig.COMMON.legendaryEnabled.get()) {
             for (Map.Entry<MobTrait, Integer> e : traits.entrySet()) {
                 String id = e.getKey().getID();
@@ -195,8 +208,6 @@ public class TraitPostRollMixin {
 
     @Inject(method = "generate", at = @At("TAIL"))
     private void l2fix$afterGenerate(CallbackInfo ci) {
-        TraitGenerator self = (TraitGenerator) (Object) this;
-        LivingEntity entity = TraitGenerationHelper.getEntity(self);
         if (entity == null || !entity.isAlive()) return;
 
         MobTraitCap cap = MobTraitCap.HOLDER.get(entity);
