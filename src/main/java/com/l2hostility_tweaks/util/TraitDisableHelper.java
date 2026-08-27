@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.util;
 
+import com.l2hostility_tweaks.network.NetworkHandler;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import net.minecraft.core.Registry;
@@ -8,15 +9,18 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
 public class TraitDisableHelper {
 
 	public static final String SEAL_EXPIRY_PREFIX = "l2htweaks_seal_expiry_";
+	public static final int MAX_SEAL_STATE_ENTRIES = 1024;
 	public static final String UNDYING_TRAIT_ID = "l2hostility:undying";
 	public static final String UNDYING_COUNT_KEY = "l2fix$undying_count";
 	private static final String SEALED_LEVEL_PREFIX = "l2htweaks_sealed_level_";
@@ -26,6 +30,27 @@ public class TraitDisableHelper {
 
 	public static String sealExpiryKey(String traitId) {
 		return SEAL_EXPIRY_PREFIX + traitId;
+	}
+
+	public static Map<String, Long> snapshotSealRemainingTicks(CompoundTag data, long gameTime) {
+		Map<String, Long> snapshot = new LinkedHashMap<>();
+		for (String key : data.getAllKeys()) {
+			if (!key.startsWith(SEAL_EXPIRY_PREFIX) || !data.contains(key, Tag.TAG_LONG)) continue;
+			if (snapshot.size() >= MAX_SEAL_STATE_ENTRIES) break;
+			String traitId = key.substring(SEAL_EXPIRY_PREFIX.length());
+			long expiry = data.getLong(key);
+			long remaining = expiry <= 0 ? -1L : Math.max(0L, expiry - gameTime);
+			snapshot.put(traitId, remaining);
+		}
+		return Map.copyOf(snapshot);
+	}
+
+	public static long sealRemainingSeconds(long initialTicks, long elapsedTicks) {
+		if (initialTicks < 0) return -1L;
+		long elapsed = Math.max(0L, elapsedTicks);
+		if (elapsed >= initialTicks) return 0L;
+		long remaining = initialTicks - elapsed;
+		return remaining / 20L + (remaining % 20L == 0 ? 0L : 1L);
 	}
 
 	public static CompoundTag snapshotRuntimeState(CompoundTag data) {
@@ -178,6 +203,9 @@ public class TraitDisableHelper {
 			entity.setHealth(Math.max(1, entity.getMaxHealth() * ratio));
 		}
 		cap.syncToClient(entity);
+		if (entity instanceof ServerPlayer player) {
+			NetworkHandler.sendSealStateToPlayer(player);
+		}
 	}
 
 }

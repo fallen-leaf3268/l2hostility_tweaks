@@ -6,12 +6,14 @@ import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.world.entity.LivingEntity;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,6 +27,90 @@ class TraitDisableHelperTest {
 
     private static final String TRAIT_ID = "l2hostility:split";
     private static final String SEALED_LEVEL_KEY = "l2htweaks_sealed_level_" + TRAIT_ID;
+
+    @Test
+    void snapshotsRemainingSealTicksForClientSynchronization() throws Exception {
+        Method snapshotMethod = null;
+        for (Method method : TraitDisableHelper.class.getDeclaredMethods()) {
+            if (method.getName().equals("snapshotSealRemainingTicks")) {
+                snapshotMethod = method;
+                break;
+            }
+        }
+        assertNotNull(snapshotMethod);
+
+        CompoundTag data = new CompoundTag();
+        data.putLong(TraitDisableHelper.sealExpiryKey("l2hostility:split"), 500L);
+        data.putLong(TraitDisableHelper.sealExpiryKey("l2hostility:undying"), -1L);
+        data.putInt(TraitDisableHelper.sealExpiryKey("l2hostility:invalid"), 700);
+        data.putLong("unrelated", 999L);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Long> snapshot = (Map<String, Long>) snapshotMethod.invoke(null, data, 380L);
+
+        assertEquals(Map.of(
+                "l2hostility:split", 120L,
+                "l2hostility:undying", -1L), snapshot);
+    }
+
+    @Test
+    void convertsSynchronizedSealTicksToAStableCountdown() throws Exception {
+        Method countdownMethod = null;
+        for (Method method : TraitDisableHelper.class.getDeclaredMethods()) {
+            if (method.getName().equals("sealRemainingSeconds")) {
+                countdownMethod = method;
+                break;
+            }
+        }
+        assertNotNull(countdownMethod);
+
+        assertEquals(3L, countdownMethod.invoke(null, 41L, 0L));
+        assertEquals(1L, countdownMethod.invoke(null, 41L, 21L));
+        assertEquals(0L, countdownMethod.invoke(null, 41L, 80L));
+        assertEquals(-1L, countdownMethod.invoke(null, -1L, 80L));
+    }
+
+    @Test
+    void boundsSealSnapshotsToTheSharedNetworkLimit() {
+        CompoundTag data = new CompoundTag();
+        for (int i = 0; i <= 1024; i++) {
+            data.putLong(TraitDisableHelper.sealExpiryKey("example:trait_" + i), 500L + i);
+        }
+
+        Map<String, Long> snapshot = TraitDisableHelper.snapshotSealRemainingTicks(data, 100L);
+
+        assertEquals(1024, snapshot.size());
+    }
+
+    @Test
+    void playerSealCountdownUsesSideSafeNetworkSnapshots() throws Exception {
+        String network = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/network/NetworkHandler.java"));
+        String screen = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/client/PlayerTraitScreen.java"));
+        String proxy = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/proxy/IProxy.java"));
+        String clientProxy = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/proxy/ClientProxy.java"));
+        String helper = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/util/TraitDisableHelper.java"));
+        String splitSuppressor = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/RemoveTraitEnchantmentMixin.java"));
+
+        assertTrue(network.contains("record SealStateRequestPacket()"));
+        assertTrue(network.contains("record SealStateSyncPacket(Map<String, Long> remainingTicks)"));
+        assertTrue(network.contains("NetworkDirection.PLAY_TO_SERVER"));
+        assertTrue(network.contains("NetworkDirection.PLAY_TO_CLIENT"));
+        assertTrue(network.contains("TraitDisableHelper.MAX_SEAL_STATE_ENTRIES"));
+        assertTrue(screen.contains("NetworkHandler.requestSealStateFromServer()"));
+        assertFalse(screen.contains("getSingleplayerServer()"));
+        assertFalse(screen.contains("getPersistentData()"));
+        assertTrue(proxy.contains("receiveSealState(Map<String, Long> remainingTicks)"));
+        assertTrue(clientProxy.contains("PlayerTraitScreen.receiveSealState(remainingTicks)"));
+        assertTrue(helper.contains("NetworkHandler.sendSealStateToPlayer(player)"));
+        assertTrue(splitSuppressor.indexOf("getPersistentData().putLong") <
+                splitSuppressor.indexOf("TraitDisableHelper.setDisabled"));
+    }
 
     @Test
     void rebuildsSealedLevelFromNegativeRawLevel() {

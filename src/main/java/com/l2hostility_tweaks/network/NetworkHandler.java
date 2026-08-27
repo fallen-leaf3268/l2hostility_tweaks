@@ -1,9 +1,11 @@
 package com.l2hostility_tweaks.network;
 
+import com.l2hostility_tweaks.L2HostilityFix;
 import com.l2hostility_tweaks.content.DimensionBreakerItem;
 import com.l2hostility_tweaks.content.TraitUnloaderWand;
 import com.l2hostility_tweaks.util.ImmunityHelper;
 import com.l2hostility_tweaks.util.TraitCostHelper;
+import com.l2hostility_tweaks.util.TraitDisableHelper;
 import com.l2hostility_tweaks.init.L2HTweaksLang;
 import dev.xkmc.l2hostility.compat.curios.CurioCompat;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
@@ -17,15 +19,20 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 
 public class NetworkHandler {
 
-	private static final String PROTOCOL_VERSION = "2";
+	private static final String PROTOCOL_VERSION = "3";
 	public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
 			new ResourceLocation("l2hostility_tweaks", "toggle_glow"),
 			() -> PROTOCOL_VERSION,
@@ -52,6 +59,16 @@ public class NetworkHandler {
 				ToggleProtectPacket::encode,
 				ToggleProtectPacket::decode,
 				ToggleProtectPacket::handle);
+		CHANNEL.registerMessage(4, SealStateRequestPacket.class,
+				SealStateRequestPacket::encode,
+				SealStateRequestPacket::decode,
+				SealStateRequestPacket::handle,
+				Optional.of(NetworkDirection.PLAY_TO_SERVER));
+		CHANNEL.registerMessage(5, SealStateSyncPacket.class,
+				SealStateSyncPacket::encode,
+				SealStateSyncPacket::decode,
+				SealStateSyncPacket::handle,
+				Optional.of(NetworkDirection.PLAY_TO_CLIENT));
 	}
 
 	public static void sendToggleToServer(int containerId, int slotIndex) {
@@ -68,6 +85,75 @@ public class NetworkHandler {
 
 	public static void sendUnloadToServer(String traitId, boolean unloadAll) {
 		CHANNEL.sendToServer(new UnloadTraitPacket(traitId, unloadAll));
+	}
+
+	public static void requestSealStateFromServer() {
+		CHANNEL.sendToServer(new SealStateRequestPacket());
+	}
+
+	public static void sendSealStateToPlayer(ServerPlayer player) {
+		Map<String, Long> remainingTicks = TraitDisableHelper.snapshotSealRemainingTicks(
+				player.getPersistentData(), player.level().getGameTime());
+		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
+				new SealStateSyncPacket(remainingTicks));
+	}
+
+	public record SealStateRequestPacket() {
+
+		public static void encode(SealStateRequestPacket msg, FriendlyByteBuf buf) {
+		}
+
+		public static SealStateRequestPacket decode(FriendlyByteBuf buf) {
+			return new SealStateRequestPacket();
+		}
+
+		public static void handle(SealStateRequestPacket msg,
+				Supplier<NetworkEvent.Context> ctxSupplier) {
+			NetworkEvent.Context ctx = ctxSupplier.get();
+			ctx.enqueueWork(() -> {
+				ServerPlayer player = ctx.getSender();
+				if (player != null) sendSealStateToPlayer(player);
+			});
+			ctx.setPacketHandled(true);
+		}
+	}
+
+	public record SealStateSyncPacket(Map<String, Long> remainingTicks) {
+
+		public SealStateSyncPacket {
+			remainingTicks = Map.copyOf(remainingTicks);
+		}
+
+		public static void encode(SealStateSyncPacket msg, FriendlyByteBuf buf) {
+			if (msg.remainingTicks.size() > TraitDisableHelper.MAX_SEAL_STATE_ENTRIES) {
+				throw new IllegalArgumentException(
+						"Too many seal state entries: " + msg.remainingTicks.size());
+			}
+			buf.writeVarInt(msg.remainingTicks.size());
+			for (Map.Entry<String, Long> entry : msg.remainingTicks.entrySet()) {
+				buf.writeUtf(entry.getKey());
+				buf.writeLong(entry.getValue());
+			}
+		}
+
+		public static SealStateSyncPacket decode(FriendlyByteBuf buf) {
+			int size = buf.readVarInt();
+			if (size < 0 || size > TraitDisableHelper.MAX_SEAL_STATE_ENTRIES) {
+				throw new IllegalArgumentException("Invalid seal state entry count: " + size);
+			}
+			Map<String, Long> remainingTicks = new LinkedHashMap<>();
+			for (int i = 0; i < size; i++) {
+				remainingTicks.put(buf.readUtf(), buf.readLong());
+			}
+			return new SealStateSyncPacket(remainingTicks);
+		}
+
+		public static void handle(SealStateSyncPacket msg,
+				Supplier<NetworkEvent.Context> ctxSupplier) {
+			NetworkEvent.Context ctx = ctxSupplier.get();
+			ctx.enqueueWork(() -> L2HostilityFix.PROXY.receiveSealState(msg.remainingTicks));
+			ctx.setPacketHandled(true);
+		}
 	}
 
 	public record ToggleGlowPacket(int containerId, int slotIndex) {

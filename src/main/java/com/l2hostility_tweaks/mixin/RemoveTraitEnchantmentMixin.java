@@ -25,10 +25,9 @@ public class RemoveTraitEnchantmentMixin {
 		if (trait == null) return;
 		String traitId = trait.getID();
 
-		TraitDisableHelper.setDisabled(target, traitId, true);
 		target.getPersistentData().putLong(
 				TraitDisableHelper.sealExpiryKey(traitId), l2fix$sealExpiry(value));
-		cap.syncToClient(target);
+		TraitDisableHelper.setDisabled(target, traitId, true);
 
 		if (target instanceof Slime slime) {
 			slime.addTag("SuppressSplit");

@@ -31,6 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class PlayerTraitScreen extends BaseTextScreen {
 
@@ -44,6 +45,8 @@ public class PlayerTraitScreen extends BaseTextScreen {
 			new ResourceLocation("l2tabs", "textures/gui/empty.png");
 	private static final Path OVERHEAD_FILE =
 			FMLPaths.CONFIGDIR.get().resolve("l2hostility_tweaks_overhead.json");
+	private static Map<String, Long> sealRemainingTicks = Map.of();
+	private static long sealStateReceivedAt;
 
 	static {
 		if (Files.exists(OVERHEAD_FILE)) {
@@ -75,6 +78,19 @@ public class PlayerTraitScreen extends BaseTextScreen {
 		Minecraft.getInstance().setScreen(new PlayerTraitScreen());
 	}
 
+	public static void receiveSealState(Map<String, Long> remainingTicks) {
+		sealRemainingTicks = Map.copyOf(remainingTicks);
+		var level = Minecraft.getInstance().level;
+		sealStateReceivedAt = level == null ? 0L : level.getGameTime();
+	}
+
+	private static long getSealRemainingSeconds(String traitId, long clientGameTime) {
+		Long initialTicks = sealRemainingTicks.get(traitId);
+		if (initialTicks == null) return -1L;
+		long elapsed = Math.max(0L, clientGameTime - sealStateReceivedAt);
+		return TraitDisableHelper.sealRemainingSeconds(initialTicks, elapsed);
+	}
+
 	private static void saveOverheadConfig() {
 		try {
 			JsonObject obj = new JsonObject();
@@ -86,6 +102,9 @@ public class PlayerTraitScreen extends BaseTextScreen {
 	@Override
 	protected void init() {
 		super.init();
+		sealRemainingTicks = Map.of();
+		sealStateReceivedAt = minecraft.level == null ? 0L : minecraft.level.getGameTime();
+		NetworkHandler.requestSealStateFromServer();
 		new TabManager(this).init(this::addRenderableWidget, ClientEventHandler.TAB_PLAYER_TRAITS);
 
 		currentPage = 0;
@@ -248,18 +267,8 @@ public class PlayerTraitScreen extends BaseTextScreen {
 					Integer lvl = cap.traits.get(e.owner());
 					int curLevel = lvl != null ? lvl : 0;
 						if (curLevel < 0) {
-							String expiryKey = TraitDisableHelper.sealExpiryKey(e.owner().getID());
-							long remaining = -1;
-							try {
-								var server = Minecraft.getInstance().getSingleplayerServer();
-								if (server != null) {
-									var sp = server.getPlayerList().getPlayer(player.getUUID());
-									if (sp != null && sp.getPersistentData().contains(expiryKey)) {
-										long expiry = sp.getPersistentData().getLong(expiryKey);
-										remaining = Math.max(0, expiry - player.level().getGameTime()) / 20;
-									}
-								}
-							} catch (Exception ignored) {}
+							long remaining = getSealRemainingSeconds(
+									e.owner().getID(), player.level().getGameTime());
 							if (remaining >= 0) {
 								lines.add(Component.translatable("gui.l2hostility_tweaks.seal_remaining",
 										Component.literal(String.valueOf(remaining)).withStyle(ChatFormatting.AQUA))
