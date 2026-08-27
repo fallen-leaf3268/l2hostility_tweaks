@@ -1,6 +1,7 @@
 package com.l2hostility_tweaks.mixin;
 
 import dev.xkmc.l2hostility.content.logic.TraitGenerator;
+import com.l2hostility_tweaks.generation.TraitGenerationHelper;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -76,6 +77,28 @@ class TraitGeneratorMixinTest {
         assertEquals(0, methodCalls(TraitGeneratorMixin.class, null, null).stream()
                 .filter(initialize::equals)
                 .count());
+    }
+
+    @Test
+    void exclusionRollUsesTheEntityRandomSourceWithoutAllocatingJavaRandom() throws IOException {
+        String applyDescriptor = "(Ljava/util/HashMap;Lnet/minecraft/util/RandomSource;)V";
+        List<String> exclusionCalls = methodCalls(
+                TraitGenerationHelper.class, "applyExclusions", applyDescriptor);
+        assertEquals(1, exclusionCalls.stream()
+                .filter("net/minecraft/util/RandomSource#nextInt(I)I"::equals)
+                .count());
+        assertEquals(0, exclusionCalls.stream()
+                .filter("java/util/Random#<init>()V"::equals)
+                .count());
+
+        List<String> finalFilterCalls = methodCalls(
+                TraitGenerationHelper.class, "applyFinalFilters",
+                "(Ldev/xkmc/l2hostility/content/logic/TraitGenerator;)V");
+        String entityRandom = "net/minecraft/world/entity/LivingEntity#getRandom()Lnet/minecraft/util/RandomSource;";
+        String applyExclusions = "com/l2hostility_tweaks/generation/TraitGenerationHelper#applyExclusions" +
+                applyDescriptor;
+        assertTrue(finalFilterCalls.indexOf(entityRandom) >= 0);
+        assertTrue(finalFilterCalls.indexOf(entityRandom) < finalFilterCalls.indexOf(applyExclusions));
     }
 
     private static List<String> methodCalls(Class<?> type, String methodName, String descriptor) throws IOException {

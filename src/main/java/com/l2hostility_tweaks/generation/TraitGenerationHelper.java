@@ -8,6 +8,7 @@ import dev.xkmc.l2hostility.content.logic.MobDifficultyCollector;
 import dev.xkmc.l2hostility.content.logic.TraitGenerator;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import dev.xkmc.l2hostility.content.traits.legendary.LegendaryTrait;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 
 import org.slf4j.Logger;
@@ -106,9 +107,8 @@ public class TraitGenerationHelper {
         if (INS_FIELD == null) LOG.error("[TraitGenerationHelper] Failed to find field 'ins' in TraitGenerator! Trait caps/limits may not work.");
     }
 
-    public static void applyExclusions(HashMap<MobTrait, Integer> traits, int diff) {
+    public static void applyExclusions(HashMap<MobTrait, Integer> traits, RandomSource random) {
         List<ExclusionGroup> groups = L2HConfig.getExclusionGroups();
-        Random rand = new Random();
 
         for (ExclusionGroup group : groups) {
             List<String> present = group.traitIds().stream()
@@ -119,7 +119,7 @@ public class TraitGenerationHelper {
 
             String keep;
             if ("roll".equals(group.rule())) {
-                keep = present.get(rand.nextInt(present.size()));
+                keep = present.get(random.nextInt(present.size()));
             } else if ("first".equals(group.rule())) {
                 String first = group.traitIds().get(0);
                 keep = present.contains(first) ? first : present.get(0);
@@ -163,7 +163,7 @@ public class TraitGenerationHelper {
         }
 
         if (L2HConfig.COMMON.exclusionEnabled.get()) {
-            applyExclusions(traits, difficulty);
+            applyExclusions(traits, entity.getRandom());
         }
     }
 
