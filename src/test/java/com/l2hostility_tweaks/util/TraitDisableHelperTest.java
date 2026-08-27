@@ -205,4 +205,20 @@ class TraitDisableHelperTest {
         assertFalse(screen.contains("clearDisplayEntity"));
         assertTrue(screen.contains("setHideRealityDetail"));
     }
+
+    @Test
+    void deathRecoveryUsesDebugForNormalDiagnosticsAndWarnForFailures() throws Exception {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/L2HostilityFix.java"));
+        int deathFlowStart = source.indexOf("public void onLivingDeath");
+        int deathFlowEnd = source.indexOf("public void onBreakSpeed", deathFlowStart);
+        String deathFlow = source.substring(deathFlowStart, deathFlowEnd);
+
+        assertFalse(deathFlow.contains("LOGGER.info("));
+        assertTrue(deathFlow.contains("LOGGER.debug(\"DEATH:"));
+        assertTrue(deathFlow.contains("LOGGER.debug(\"CLONE:"));
+        assertTrue(deathFlow.contains("LOGGER.debug(\"SYNC:"));
+        assertTrue(deathFlow.contains("LOGGER.warn(\"CLONE: no death snapshot"));
+        assertTrue(deathFlow.contains("LOGGER.warn(\"CLONE: HOLDER.isProper failed"));
+    }
 }

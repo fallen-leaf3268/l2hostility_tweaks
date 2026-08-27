@@ -155,7 +155,7 @@ public class L2HostilityFix {
         } else {
             deathTraitRuntimeState.put(uuid, runtimeState);
         }
-        LOGGER.info("DEATH: snapshotted {} traits + {} runtime state entries for player={} uuid={}",
+        LOGGER.debug("DEATH: snapshotted {} traits + {} runtime state entries for player={} uuid={}",
                 snapshot.size(), runtimeState.size(), player.getName().getString(), uuid);
     }
 
@@ -209,7 +209,7 @@ public class L2HostilityFix {
                 MobTraitCap cap = MobTraitCap.HOLDER.get(player);
                 cap.syncToClient(player);
                 cap.syncToPlayer(player, player);
-                LOGGER.info("SYNC: delayed sync for player={}", player.getName().getString());
+                LOGGER.debug("SYNC: delayed sync for player={}", player.getName().getString());
             }
             it.remove();
         }
@@ -228,7 +228,7 @@ public class L2HostilityFix {
         java.util.LinkedHashMap<dev.xkmc.l2hostility.content.traits.base.MobTrait, Integer> snapshot = deathSnapshots.remove(uuid);
         CompoundTag runtimeState = deathTraitRuntimeState.remove(uuid);
         int[] meta = deathMeta.remove(uuid);
-        LOGGER.info("CLONE: death clone keepInventory={} snapshot={} runtimeState={} meta={} newTraits={}",
+        LOGGER.debug("CLONE: death clone keepInventory={} snapshot={} runtimeState={} meta={} newTraits={}",
                 keepInv,
                 snapshot != null ? snapshot.size() : -1,
                 runtimeState != null ? runtimeState.size() : -1,
@@ -236,7 +236,7 @@ public class L2HostilityFix {
                 MobTraitCap.HOLDER.isProper(newPlayer) ? MobTraitCap.HOLDER.get(newPlayer).traits.size() : -1);
 
         if (!keepInv) {
-            LOGGER.info("CLONE: keepInventory=false — clearing traits from new player");
+            LOGGER.debug("CLONE: keepInventory=false — clearing traits from new player");
             if (MobTraitCap.HOLDER.isProper(newPlayer)) {
                 MobTraitCap newCap = MobTraitCap.HOLDER.get(newPlayer);
                 CompoundTag data = newPlayer.getPersistentData();
@@ -262,7 +262,7 @@ public class L2HostilityFix {
         }
 
         MobTraitCap newCap = MobTraitCap.HOLDER.get(newPlayer);
-        LOGGER.info("CLONE: copying {} traits from snapshot", snapshot.size());
+        LOGGER.debug("CLONE: copying {} traits from snapshot", snapshot.size());
         newCap.traits.clear();
         for (var entry : snapshot.entrySet()) {
             newCap.traits.put(entry.getKey(), entry.getValue());
@@ -270,11 +270,11 @@ public class L2HostilityFix {
         if (meta != null) {
             newCap.lv = meta[0];
             newCap.fullDrop = meta[1] != 0;
-            LOGGER.info("CLONE: restored lv={} fullDrop={}", meta[0], meta[1] != 0);
+            LOGGER.debug("CLONE: restored lv={} fullDrop={}", meta[0], meta[1] != 0);
         }
         if (runtimeState != null) {
             TraitDisableHelper.restoreRuntimeState(newPlayer.getPersistentData(), runtimeState);
-            LOGGER.info("CLONE: restored {} runtime state entries", runtimeState.size());
+            LOGGER.debug("CLONE: restored {} runtime state entries", runtimeState.size());
         }
 
         for (var entry : newCap.traits.entrySet()) {
@@ -292,7 +292,7 @@ public class L2HostilityFix {
 
         newPlayer.setHealth(newPlayer.getMaxHealth());
         pendingTraitSync.add(uuid);
-        LOGGER.info("CLONE: traits preserved — newTraits={} lv={} fullDrop={} (sync delayed)", newCap.traits, newCap.lv, newCap.fullDrop);
+        LOGGER.debug("CLONE: traits preserved — newTraits={} lv={} fullDrop={} (sync delayed)", newCap.traits, newCap.lv, newCap.fullDrop);
     }
 
 	@SubscribeEvent
