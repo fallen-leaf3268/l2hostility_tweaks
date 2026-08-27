@@ -74,6 +74,8 @@ public class AbrahadabraReflectMixin {
 		if (uuid != null && mob.level() instanceof ServerLevel sl) {
 			Entity e = sl.getEntity(uuid);
 			if (e instanceof LivingEntity le) return le;
+			LivingEntity player = sl.getServer().getPlayerList().getPlayer(uuid);
+			if (player != null) return player;
 		}
 		return null;
 	}
