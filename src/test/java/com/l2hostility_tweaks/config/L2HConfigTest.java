@@ -10,12 +10,14 @@ import net.minecraft.nbt.StringTag;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -217,6 +219,52 @@ class L2HConfigTest {
     }
 
     @Test
+    void remoteDisplaySnapshotSuppliesSealTraitDurations() throws Exception {
+        CompoundTag snapshot = new CompoundTag();
+        snapshot.putInt("sealDurationMode", 2);
+        snapshot.putInt("sealDurationLinear", 7);
+        snapshot.putIntArray("sealDurationArray", new int[]{5, 12});
+
+        try {
+            L2HConfig.installDisplaySnapshot(snapshot);
+
+            assertEquals(5, displaySealDurationSeconds(1));
+            assertEquals(12, displaySealDurationSeconds(2));
+            assertEquals(19, displaySealDurationSeconds(3));
+
+            snapshot.putInt("sealDurationMode", 1);
+            L2HConfig.installDisplaySnapshot(snapshot);
+            assertEquals(21, displaySealDurationSeconds(3));
+
+            snapshot.putInt("sealDurationMode", 2);
+            snapshot.putIntArray("sealDurationArray", new int[0]);
+            L2HConfig.installDisplaySnapshot(snapshot);
+            assertEquals(21, displaySealDurationSeconds(3));
+        } finally {
+            L2HConfig.clearDisplaySnapshot();
+        }
+    }
+
+    @Test
+    void serverDisplaySnapshotContainsSealTraitTimingConfiguration() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/config/L2HConfig.java"));
+
+        assertTrue(source.contains("tag.putInt(\"sealDurationMode\""));
+        assertTrue(source.contains("tag.putInt(\"sealDurationLinear\""));
+        assertTrue(source.contains("putIntList(tag, \"sealDurationArray\""));
+    }
+
+    @Test
+    void sealTraitUsesServerTimingForGameplayAndDisplayTimingForTooltip() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/content/traits/SealTrait.java"));
+
+        assertTrue(source.contains("L2HConfig.getDisplaySealDurationSeconds(i)"));
+        assertTrue(source.contains("L2HConfig.getSealDurationSeconds(level)"));
+    }
+
+    @Test
     void remoteDisplaySnapshotUsesServerFallbacksWhenArraysAreEmpty() {
         CompoundTag snapshot = new CompoundTag();
         snapshot.putIntArray("ragnarokCountArray", new int[0]);
@@ -254,6 +302,16 @@ class L2HConfigTest {
     void rejectsOversizedDisplaySnapshotCollections() {
         CompoundTag snapshot = new CompoundTag();
         snapshot.putIntArray("ragnarokCountArray",
+                new int[L2HConfig.MAX_DISPLAY_CONFIG_ENTRIES + 1]);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> L2HConfig.installDisplaySnapshot(snapshot));
+    }
+
+    @Test
+    void rejectsOversizedSealDurationDisplayArray() {
+        CompoundTag snapshot = new CompoundTag();
+        snapshot.putIntArray("sealDurationArray",
                 new int[L2HConfig.MAX_DISPLAY_CONFIG_ENTRIES + 1]);
 
         assertThrows(IllegalArgumentException.class,
@@ -310,5 +368,13 @@ class L2HConfigTest {
         ListTag list = new ListTag();
         for (String value : values) list.add(StringTag.valueOf(value));
         return list;
+    }
+
+    private static int displaySealDurationSeconds(int level) throws Exception {
+        Method method = Arrays.stream(L2HConfig.class.getDeclaredMethods())
+                .filter(candidate -> candidate.getName().equals("getDisplaySealDurationSeconds"))
+                .findFirst().orElse(null);
+        assertNotNull(method);
+        return (int) method.invoke(null, level);
     }
 }

@@ -438,6 +438,11 @@ public class L2HConfig {
         return parsedSealDurationArray;
     }
 
+    public static int getSealDurationSeconds(int level) {
+        return resolveSealDurationSeconds(
+                getSealDurationMode(), getSealDurationLinear(), getSealDurationArray(), level);
+    }
+
     // ==================== Ragnarok ====================
 
     public static int getRagnarokCount(int level) {
@@ -614,6 +619,9 @@ public class L2HConfig {
                 readBoolean(tag, "oldDementor"),
                 readInteger(tag, "undyingMaxResurrections"),
                 readInteger(tag, "undyingSealDuration"),
+                readInteger(tag, "sealDurationMode"),
+                readInteger(tag, "sealDurationLinear"),
+                readIntList(tag, "sealDurationArray"),
                 readIntList(tag, "dispellTimeArray"),
                 readInteger(tag, "dispellBaseTime"),
                 readIntList(tag, "dispellCountArray"),
@@ -665,6 +673,9 @@ public class L2HConfig {
         tag.putBoolean("oldDementor", COMMON.oldDementor.get());
         tag.putInt("undyingMaxResurrections", COMMON.undyingMaxResurrections.get());
         tag.putInt("undyingSealDuration", COMMON.undyingSealDuration.get());
+        tag.putInt("sealDurationMode", COMMON.sealDurationMode.get());
+        tag.putInt("sealDurationLinear", COMMON.sealDurationLinear.get());
+        putIntList(tag, "sealDurationArray", COMMON.sealDurationArray.get());
         putIntList(tag, "dispellTimeArray", COMMON.dispellTimeArray.get());
         tag.putInt("dispellBaseTime",
                 dev.xkmc.l2hostility.init.data.LHConfig.COMMON.dispellTime.get());
@@ -788,6 +799,17 @@ public class L2HConfig {
         DisplaySnapshot snapshot = displaySnapshot;
         return snapshot != null && snapshot.undyingSealDuration() != null
                 ? snapshot.undyingSealDuration() : getUndyingSealDuration();
+    }
+
+    public static int getDisplaySealDurationSeconds(int level) {
+        DisplaySnapshot snapshot = displaySnapshot;
+        int mode = snapshot != null && snapshot.sealDurationMode() != null
+                ? snapshot.sealDurationMode() : getSealDurationMode();
+        int linear = snapshot != null && snapshot.sealDurationLinear() != null
+                ? snapshot.sealDurationLinear() : getSealDurationLinear();
+        List<Integer> values = snapshot != null && snapshot.sealDurationArray() != null
+                ? snapshot.sealDurationArray() : getSealDurationArray();
+        return resolveSealDurationSeconds(mode, linear, values, level);
     }
 
     public static int getDisplayDispellTime(int level) {
@@ -989,6 +1011,15 @@ public class L2HConfig {
         return values.get(Math.max(0, Math.min(level, values.size()) - 1));
     }
 
+    private static int resolveSealDurationSeconds(
+            int mode, int linear, List<Integer> values, int level) {
+        if (mode == 2 && !values.isEmpty()) {
+            if (level <= values.size()) return values.get(level - 1);
+            return values.get(values.size() - 1) + (level - values.size()) * linear;
+        }
+        return level * linear;
+    }
+
     private static List<int[]> copyThresholds(List<int[]> values) {
         return values.stream().map(int[]::clone).toList();
     }
@@ -1031,7 +1062,7 @@ public class L2HConfig {
 
     public static void validateDisplaySnapshot(CompoundTag tag) {
         for (String key : List.of(
-                "dispellTimeArray", "dispellCountArray",
+                "sealDurationArray", "dispellTimeArray", "dispellCountArray",
                 "ragnarokCountArray", "ragnarokTimeArray",
                 "killerAuraDamageArray", "killerAuraIntervalArray",
                 "drainDamageArray", "drainDurationArray",
@@ -1120,6 +1151,9 @@ public class L2HConfig {
             Boolean oldDementor,
             Integer undyingMaxResurrections,
             Integer undyingSealDuration,
+            Integer sealDurationMode,
+            Integer sealDurationLinear,
+            List<Integer> sealDurationArray,
             List<Integer> dispellTimeArray,
             Integer dispellBaseTime,
             List<Integer> dispellCountArray,

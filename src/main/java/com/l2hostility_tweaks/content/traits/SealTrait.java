@@ -49,27 +49,12 @@ public class SealTrait extends LegendaryTrait {
 	@Override
 	public void addDetail(List<Component> list) {
 		list.add(Component.translatable(getDescriptionId() + ".desc",
-						mapLevel(i -> Component.literal(getSealDurationSeconds(i) + "")
+						mapLevel(i -> Component.literal(L2HConfig.getDisplaySealDurationSeconds(i) + "")
 								.withStyle(ChatFormatting.AQUA)))
 				.withStyle(ChatFormatting.GRAY));
 	}
 
-	private int getSealDurationSeconds(int level) {
-		int mode = L2HConfig.getSealDurationMode();
-		int linear = L2HConfig.getSealDurationLinear();
-		if (mode == 2) {
-			List<Integer> array = L2HConfig.getSealDurationArray();
-			if (array.isEmpty()) return level * linear;
-			if (level <= array.size()) {
-				return array.get(level - 1);
-			}
-			int lastValue = array.get(array.size() - 1);
-			return lastValue + (level - array.size()) * linear;
-		}
-		return level * linear;
-	}
-
 	private int getSealDurationTicks(int level) {
-		return getSealDurationSeconds(level) * 20;
+		return L2HConfig.getSealDurationSeconds(level) * 20;
 	}
 }
