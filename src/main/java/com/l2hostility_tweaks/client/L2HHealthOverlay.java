@@ -361,8 +361,6 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		int entityId = entity.getId();
 		this.cachedEntityId = entityId;
 		this.cachedTraitHash = traitHash;
-		com.l2hostility_tweaks.util.TraitDisableHelper.setDisplayEntity(entity);
-		try {
 		this.cachedRealityLv = 0;
 		this.cachedRealityIcon = null;
 		this.cachedLegendIcons = new ArrayList<>();
@@ -394,9 +392,6 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		}
 		this.cachedTraitLines = TraitTextLayout.layout(entries, maxW,
 				Component.literal("  ").getVisualOrderText(), mc.font::width, mc.font::split);
-		} finally {
-			com.l2hostility_tweaks.util.TraitDisableHelper.clearDisplayEntity();
-		}
 	}
 
 	private void recomputeGeometry(int barW) {

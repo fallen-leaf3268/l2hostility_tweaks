@@ -124,13 +124,11 @@ public class PlayerTraitScreen extends BaseTextScreen {
 		if (player != null && MobTraitCap.HOLDER.isProper(player)) {
 			MobTraitCap cap = MobTraitCap.HOLDER.get(player);
 			if (cap.isInitialized() && !cap.traits.isEmpty()) {
-				TraitDisableHelper.setDisplayEntity(player);
 				TraitDisableHelper.setHideRealityDetail(true);
 				try {
 					allLines = buildTraitLines(cap);
 				} finally {
 					TraitDisableHelper.setHideRealityDetail(false);
-					TraitDisableHelper.clearDisplayEntity();
 				}
 				return;
 			}

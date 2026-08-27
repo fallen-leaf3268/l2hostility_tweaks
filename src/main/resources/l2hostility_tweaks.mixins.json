@@ -69,7 +69,6 @@
         "BossHealthOverlayAccessor",
         "ClientGlowingHandlerMixin",
         "ContainerScreenMixin",
-        "ClientEventsMixin",
         "DimensionBreakerItemStackMixin",
         "TooltipPipelineMixin"
     ],

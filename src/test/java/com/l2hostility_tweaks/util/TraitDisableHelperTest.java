@@ -3,8 +3,12 @@ package com.l2hostility_tweaks.util;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.world.entity.LivingEntity;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Modifier;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -13,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -171,5 +176,33 @@ class TraitDisableHelperTest {
         assertTrue(traits.isEmpty());
         assertEquals(List.of("first", "second"), resets);
         assertEquals(List.of("first", "second"), runtimeClears);
+    }
+
+    @Test
+    void keepsDisplayEntityApiButRemovesInternalHotPath() throws Exception {
+        var setApi = TraitDisableHelper.class.getDeclaredMethod("setDisplayEntity", LivingEntity.class);
+        var clearApi = TraitDisableHelper.class.getDeclaredMethod("clearDisplayEntity");
+        var getApi = TraitDisableHelper.class.getDeclaredMethod("getDisplayEntity");
+        assertTrue(Modifier.isPublic(setApi.getModifiers()) && Modifier.isStatic(setApi.getModifiers()));
+        assertTrue(Modifier.isPublic(clearApi.getModifiers()) && Modifier.isStatic(clearApi.getModifiers()));
+        assertTrue(Modifier.isPublic(getApi.getModifiers()) && Modifier.isStatic(getApi.getModifiers()));
+        assertNotNull(TraitDisableHelper.class.getDeclaredField("DISPLAY_ENTITY"));
+
+        Path clientMixin = Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/ClientEventsMixin.java");
+        assertFalse(Files.exists(clientMixin));
+
+        String mixinConfig = Files.readString(Path.of(
+                "src/main/resources/l2hostility_tweaks.mixins.json"));
+        String overlay = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/client/L2HHealthOverlay.java"));
+        String screen = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/client/PlayerTraitScreen.java"));
+        assertFalse(mixinConfig.contains("ClientEventsMixin"));
+        assertFalse(overlay.contains("setDisplayEntity"));
+        assertFalse(overlay.contains("clearDisplayEntity"));
+        assertFalse(screen.contains("setDisplayEntity"));
+        assertFalse(screen.contains("clearDisplayEntity"));
+        assertTrue(screen.contains("setHideRealityDetail"));
     }
 }
