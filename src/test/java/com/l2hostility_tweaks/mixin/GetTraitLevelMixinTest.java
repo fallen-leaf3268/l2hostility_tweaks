@@ -83,4 +83,19 @@ class GetTraitLevelMixinTest {
         assertFalse(source.contains("l2fix$capturePostHurt"));
         assertTrue(source.contains("L2HConfig.getDrainDamage(level)"));
     }
+
+    @Test
+    void arenaRedirectUsesCurrentAttackWithoutSharedBypassState() throws Exception {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/ArenaTraitMixin.java"));
+        String compact = source.replaceAll("\\s+", " ");
+        assertFalse(source.contains("l2fix$bypass"));
+        assertFalse(source.contains("l2fix$captureDamageBypass"));
+        assertTrue(compact.contains("l2fix$skipReduction(AttackCache cache, DamageModifier modifier, "
+                + "int level, LivingEntity mob, AttackCache originalCache)"));
+        assertTrue(source.contains("cache.getAttacker() instanceof Player attacker"));
+        assertTrue(source.contains("MobTraitCap.HOLDER.isProper(attacker)"));
+        assertTrue(source.contains("getTraitLevel((ArenaTrait) (Object) this) >= level"));
+        assertTrue(source.contains("cache.addDealtModifier(modifier)"));
+    }
 }
