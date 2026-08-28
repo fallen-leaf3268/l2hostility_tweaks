@@ -109,7 +109,7 @@
   "enchantment.l2hostility_tweaks.gluttony_pocket": "Gluttony Pocket",
   "enchantment.l2hostility_tweaks.gluttony_pocket.desc": "Increases sealed item capacity by 1 per level",
 "item.l2hostility_tweaks.miracle_twisted_pocket": "Miracle Twisted Pocket",
-  "tooltip.l2hostility_tweaks.miracle_twisted_pocket": "Reduces seal time of sealed items by %s s every %s s",
+  "tooltip.l2hostility_tweaks.miracle_twisted_pocket": "Every %s s, the seal time of sealed items is reduced by %s s",
   "enchantment.l2hostility_tweaks.split_suppressor.desc": "Permanently seals the Split trait on hit",
 
   "tooltip.l2hostility_tweaks.essence_use": "Right-click your minion to increase difficulty level by %s (Creative: works on any mob, no consumption)"

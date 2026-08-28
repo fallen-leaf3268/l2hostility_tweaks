@@ -1,11 +1,15 @@
 package com.l2hostility_tweaks.client.tooltip;
 
+import com.google.gson.JsonParser;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentCategory;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,6 +20,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TooltipPipelineDescriptionsTest {
+
+    @Test
+    void miraclePocketEnglishTooltipUsesIntervalBeforeReduction() throws IOException {
+        var lang = JsonParser.parseString(Files.readString(Path.of(
+                "src/main/resources/assets/l2hostility_tweaks/lang/en_us.json"))).getAsJsonObject();
+        String tooltip = lang.get("tooltip.l2hostility_tweaks.miracle_twisted_pocket").getAsString();
+
+        assertEquals("Every %s s, the seal time of sealed items is reduced by %s s", tooltip);
+    }
 
     private static final String REPRINT = "enchantment.l2hostility_tweaks.reprint_counter";
     private static final String REPRINT_DESC = REPRINT + ".desc";
