@@ -28,6 +28,38 @@ class GetTraitLevelMixinTest {
     }
 
     @Test
+    void traitDescriptionUsesOneFormatterForNormalAndSealedLevels() throws Exception {
+        String romanSource = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/TraitRomanMixin.java"));
+        String detailSource = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/MobTraitDescMixin.java"));
+
+        long getFullDescInjectors = List.of(romanSource, detailSource).stream()
+                .flatMap(source -> source.lines())
+                .filter(line -> line.contains("method = \"getFullDesc\""))
+                .count();
+
+        assertEquals(1, getFullDescInjectors);
+        assertTrue(romanSource.contains("Math.abs(value)"));
+        assertTrue(romanSource.contains("ChatFormatting.GRAY, ChatFormatting.STRIKETHROUGH"));
+        assertFalse(detailSource.contains("enchantment.level."));
+    }
+
+    @Test
+    void traitLevelTextUsesAbsoluteValueAndFallsBackAboveRomanRange() throws Exception {
+        var method = Arrays.stream(TraitRomanMixin.class.getDeclaredMethods())
+                .filter(candidate -> candidate.getName().equals("l2fix$levelText"))
+                .findFirst().orElse(null);
+        assertNotNull(method);
+        method.setAccessible(true);
+
+        assertNull(method.invoke(null, 1, true));
+        assertEquals("V", method.invoke(null, -5, true));
+        assertEquals("50", method.invoke(null, -50, false));
+        assertEquals("4000", method.invoke(null, -4000, true));
+    }
+
+    @Test
     void iteratesActiveTraitsWithoutCopyingTheTraitMap() throws Exception {
         var method = Arrays.stream(TraitSealFilterMixin.class.getDeclaredMethods())
                 .filter(candidate -> candidate.getName().equals("l2fix$forEachActive"))
