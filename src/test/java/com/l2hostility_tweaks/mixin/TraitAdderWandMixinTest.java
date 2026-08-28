@@ -27,4 +27,15 @@ class TraitAdderWandMixinTest {
         assertFalse(TraitAdderWandMixin.l2fix$shouldPreserveSealedState(true, 3, 3));
         assertFalse(TraitAdderWandMixin.l2fix$shouldPreserveSealedState(false, 2, 3));
     }
+
+    @Test
+    void sealedTraitRecoveryDelegatesLifecycleAndSyncToTheOriginalMethod() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/TraitAdderWandMixin.java"));
+
+        assertTrue(source.contains("cap.traits.put(trait, abs)"));
+        assertFalse(source.contains("trait.initialize("));
+        assertFalse(source.contains("trait.postInit("));
+        assertFalse(source.contains("cap.syncToClient("));
+    }
 }

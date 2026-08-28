@@ -32,9 +32,6 @@ public class TraitAdderWandMixin {
 
 		TraitDisableHelper.clearSealData(target.getPersistentData(), trait.getID());
 		cap.traits.put(trait, abs);
-		trait.initialize(target, abs);
-		trait.postInit(target, abs);
-		cap.syncToClient(target);
 	}
 
 	@Unique
