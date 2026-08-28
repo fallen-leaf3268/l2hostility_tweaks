@@ -2,10 +2,12 @@ package com.l2hostility_tweaks.generation;
 
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.config.L2HConfig.ExclusionGroup;
-import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
+import dev.xkmc.l2hostility.init.L2Hostility;
 import dev.xkmc.l2hostility.content.config.EntityConfig;
+import dev.xkmc.l2hostility.content.logic.MobDifficultyCollector;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import dev.xkmc.l2hostility.content.traits.legendary.LegendaryTrait;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 
@@ -13,6 +15,21 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class TraitGenerationHelper {
+
+    private static final ResourceLocation NBT_CONDITION_ID =
+            new ResourceLocation("l2hostility_tweaks", "nbt");
+
+    public record ActivePresets(List<EntityConfig.TraitBase> nbtPresets,
+                                Set<String> protectedIds) {
+        public ActivePresets {
+            nbtPresets = List.copyOf(nbtPresets);
+            protectedIds = Set.copyOf(protectedIds);
+        }
+    }
+
+    public interface PresetState {
+        Set<String> l2fix$getOrdinaryPresetIds();
+    }
 
     public static void applyExclusions(HashMap<MobTrait, Integer> traits, RandomSource random) {
         List<ExclusionGroup> groups = L2HConfig.getExclusionGroups();
@@ -43,9 +60,9 @@ public class TraitGenerationHelper {
     }
 
     public static void applyFinalFilters(LivingEntity entity, HashMap<MobTrait, Integer> traits,
-                                         int difficulty) {
+                                         int difficulty, Set<String> protectedIds) {
         if (entity == null || !entity.isAlive() || traits == null || traits.isEmpty()) return;
-        Set<String> protectedIds = getDataPackPresetIds(entity);
+        if (protectedIds == null) protectedIds = Collections.emptySet();
 
         if (L2HConfig.COMMON.legendaryEnabled.get()) {
             Set<String> extraLegendaryIds = L2HConfig.getExtraLegendaryIds();
@@ -86,20 +103,37 @@ public class TraitGenerationHelper {
         traits.entrySet().removeIf(e -> e.getKey().getID().equals(id));
     }
 
-    public static Set<String> getDataPackPresetIds(LivingEntity entity) {
-        Set<String> presets = new LinkedHashSet<>();
+    public static ActivePresets selectActivePresets(LivingEntity entity, int difficulty,
+                                                     MobDifficultyCollector collector,
+                                                     Set<String> ordinaryPresetIds) {
+        List<EntityConfig.TraitBase> nbtPresets = new ArrayList<>();
+        Set<String> protectedIds = ordinaryPresetIds == null
+                ? new LinkedHashSet<>()
+                : new LinkedHashSet<>(ordinaryPresetIds);
+        if (entity == null) return new ActivePresets(nbtPresets, protectedIds);
+
         try {
-            MobTraitCap cap = MobTraitCap.HOLDER.get(entity);
-            if (cap == null) return presets;
-            EntityConfig.Config cfg = cap.getConfigCache(entity);
-            if (cfg == null) return presets;
-            for (EntityConfig.TraitBase entry : cfg.traits()) {
-                MobTrait t = entry.trait();
-                if (t != null) {
-                    presets.add(t.getID());
-                }
-            }
+            EntityConfig merged = (EntityConfig) L2Hostility.ENTITY.getMerged();
+            EntityConfig.Config nbtConfig = merged.get(
+                    entity.getType(), NBT_CONDITION_ID, LivingEntity.class, entity);
+            l2fix$addActivePresets(nbtConfig, entity, difficulty, collector,
+                    protectedIds, nbtPresets);
         } catch (Exception ignored) {}
-        return presets;
+
+        return new ActivePresets(nbtPresets, protectedIds);
+    }
+
+    private static void l2fix$addActivePresets(EntityConfig.Config config, LivingEntity entity,
+                                                int difficulty, MobDifficultyCollector collector,
+                                                Set<String> protectedIds,
+                                                List<EntityConfig.TraitBase> selected) {
+        if (config == null || config.traits() == null) return;
+        for (EntityConfig.TraitBase preset : config.traits()) {
+            if (!(preset.condition() == null ||
+                    preset.condition().match(entity, difficulty, collector))) continue;
+            selected.add(preset);
+            MobTrait trait = preset.trait();
+            if (trait != null) protectedIds.add(trait.getID());
+        }
     }
 }

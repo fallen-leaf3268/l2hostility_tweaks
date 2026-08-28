@@ -2,10 +2,9 @@ package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.generation.TraitGenerationHelper;
 import dev.xkmc.l2hostility.content.config.EntityConfig;
+import dev.xkmc.l2hostility.content.logic.MobDifficultyCollector;
 import dev.xkmc.l2hostility.content.logic.TraitGenerator;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
-import dev.xkmc.l2hostility.init.L2Hostility;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,8 +33,11 @@ public class TraitGeneratorMixin {
     @Final
     private HashMap<MobTrait, Integer> traits;
 
+    @Shadow
+    @Final
+    private MobDifficultyCollector ins;
+
     private static final Logger LOG = LoggerFactory.getLogger("L2HostilityFix/NbtPresetGen");
-    private static final ResourceLocation NBT_CONDITION_ID = new ResourceLocation("l2hostility_tweaks", "nbt");
 
     @SuppressWarnings("unchecked")
     @Inject(method = "generate", at = @At(
@@ -43,21 +45,20 @@ public class TraitGeneratorMixin {
             target = "Ljava/util/HashMap;entrySet()Ljava/util/Set;",
             shift = At.Shift.BEFORE), require = 1)
     private void l2fix$prepareFinalTraits(CallbackInfo ci) {
-        l2fix$applyNbtPresets(entity, traits);
-        TraitGenerationHelper.applyFinalFilters(entity, traits, mobLevel);
+        java.util.Set<String> ordinaryPresetIds =
+                ((TraitGenerationHelper.PresetState) (Object) this).l2fix$getOrdinaryPresetIds();
+        TraitGenerationHelper.ActivePresets activePresets =
+                TraitGenerationHelper.selectActivePresets(
+                        entity, mobLevel, ins, ordinaryPresetIds);
+        l2fix$applyNbtPresets(traits, activePresets.nbtPresets());
+        TraitGenerationHelper.applyFinalFilters(
+                entity, traits, mobLevel, activePresets.protectedIds());
     }
 
     @Unique
-    private static void l2fix$applyNbtPresets(LivingEntity entity,
-                                               HashMap<MobTrait, Integer> traits) {
+    private static void l2fix$applyNbtPresets(HashMap<MobTrait, Integer> traits,
+                                               java.util.List<EntityConfig.TraitBase> presets) {
         try {
-            if (entity == null) return;
-
-            EntityConfig merged = (EntityConfig) L2Hostility.ENTITY.getMerged();
-            EntityConfig.Config nbtConfig = merged.get(entity.getType(), NBT_CONDITION_ID, LivingEntity.class, entity);
-            if (nbtConfig == null) return;
-
-            var presets = nbtConfig.traits();
             if (presets == null || presets.isEmpty()) return;
 
             if (traits == null) return;
@@ -79,7 +80,7 @@ public class TraitGeneratorMixin {
                 appliedCount++;
             }
             if (appliedCount > 0) {
-                LOG.debug("[NbtPresetGen] Applied {} NBT preset traits to {}", appliedCount, entity.getName().getString());
+                LOG.debug("[NbtPresetGen] Applied {} active NBT preset traits", appliedCount);
             }
         } catch (Exception e) {
             LOG.error("[NbtPresetGen] Failed to apply NBT presets", e);

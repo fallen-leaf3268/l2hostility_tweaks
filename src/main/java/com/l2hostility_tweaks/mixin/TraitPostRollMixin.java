@@ -3,6 +3,7 @@ package com.l2hostility_tweaks.mixin;
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.generation.TraitGenerationHelper;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
+import dev.xkmc.l2hostility.content.config.EntityConfig;
 import dev.xkmc.l2hostility.content.logic.MobDifficultyCollector;
 import dev.xkmc.l2hostility.content.logic.TraitGenerator;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
@@ -25,7 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 @Mixin(value = TraitGenerator.class, remap = false)
-public class TraitPostRollMixin {
+public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
 
     private static final Logger L2FIX$LOG = LoggerFactory.getLogger("L2HostilityFix/TraitGen");
 
@@ -58,6 +59,9 @@ public class TraitPostRollMixin {
     private Set<String> l2fix$protectedIds;
 
     @Unique
+    private final Set<String> l2fix$ordinaryPresetIds = new java.util.LinkedHashSet<>();
+
+    @Unique
     private int l2fix$mobLevel;
 
     @Unique
@@ -84,6 +88,22 @@ public class TraitPostRollMixin {
         if (L2HConfig.isDisableNonPresetTraits()) {
             level = 0;
         }
+    }
+
+    @Inject(method = "genBase", at = @At(
+            value = "INVOKE",
+            target = "Ldev/xkmc/l2hostility/content/logic/TraitGenerator;setRank(Ldev/xkmc/l2hostility/content/traits/base/MobTrait;I)V",
+            shift = At.Shift.AFTER), require = 1)
+    private void l2fix$recordAppliedPreset(EntityConfig.TraitBase preset, CallbackInfo ci) {
+        MobTrait trait = preset.trait();
+        if (trait != null && traits.containsKey(trait)) {
+            l2fix$ordinaryPresetIds.add(trait.getID());
+        }
+    }
+
+    @Override
+    public Set<String> l2fix$getOrdinaryPresetIds() {
+        return Set.copyOf(l2fix$ordinaryPresetIds);
     }
 
     @Redirect(method = "generate",
@@ -181,9 +201,7 @@ public class TraitPostRollMixin {
 
         l2fix$mobLevel = mobLevel;
 
-        l2fix$protectedIds = entity != null
-                ? TraitGenerationHelper.getDataPackPresetIds(entity)
-                : java.util.Collections.emptySet();
+        l2fix$protectedIds = Set.copyOf(l2fix$ordinaryPresetIds);
 
         l2fix$globalLevelCap = L2HConfig.getThreshold(
                 L2HConfig.getLevelThresholds(), l2fix$mobLevel);

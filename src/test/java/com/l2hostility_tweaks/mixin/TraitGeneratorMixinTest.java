@@ -66,12 +66,40 @@ class TraitGeneratorMixinTest {
         assertEquals(1, inject.require());
 
         assertEquals(List.of(
-                "com/l2hostility_tweaks/mixin/TraitGeneratorMixin#l2fix$applyNbtPresets(Lnet/minecraft/world/entity/LivingEntity;Ljava/util/HashMap;)V",
-                "com/l2hostility_tweaks/generation/TraitGenerationHelper#applyFinalFilters(Lnet/minecraft/world/entity/LivingEntity;Ljava/util/HashMap;I)V"),
+                "com/l2hostility_tweaks/generation/TraitGenerationHelper$PresetState#l2fix$getOrdinaryPresetIds()Ljava/util/Set;",
+                "com/l2hostility_tweaks/generation/TraitGenerationHelper#selectActivePresets(Lnet/minecraft/world/entity/LivingEntity;ILdev/xkmc/l2hostility/content/logic/MobDifficultyCollector;Ljava/util/Set;)Lcom/l2hostility_tweaks/generation/TraitGenerationHelper$ActivePresets;",
+                "com/l2hostility_tweaks/generation/TraitGenerationHelper$ActivePresets#nbtPresets()Ljava/util/List;",
+                "com/l2hostility_tweaks/mixin/TraitGeneratorMixin#l2fix$applyNbtPresets(Ljava/util/HashMap;Ljava/util/List;)V",
+                "com/l2hostility_tweaks/generation/TraitGenerationHelper$ActivePresets#protectedIds()Ljava/util/Set;",
+                "com/l2hostility_tweaks/generation/TraitGenerationHelper#applyFinalFilters(Lnet/minecraft/world/entity/LivingEntity;Ljava/util/HashMap;ILjava/util/Set;)V"),
                 methodCalls(TraitGeneratorMixin.class, "l2fix$prepareFinalTraits", "(Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfo;)V"));
         assertEquals(0, methodCalls(TraitGeneratorMixin.class, null, null).stream()
                 .filter(initialize::equals)
                 .count());
+    }
+
+    @Test
+    void appliedOrdinaryAndConditionMatchedNbtPresetsShareProtection() throws IOException {
+        String helper = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/generation/TraitGenerationHelper.java"));
+        String generator = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/TraitGeneratorMixin.java"));
+        String postRoll = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/TraitPostRollMixin.java"));
+
+        assertTrue(helper.contains("public record ActivePresets("));
+        assertTrue(helper.contains("public interface PresetState"));
+        assertTrue(helper.contains("preset.condition() == null"));
+        assertTrue(helper.contains("preset.condition().match(entity, difficulty, collector)"));
+        assertTrue(helper.contains("L2Hostility.ENTITY.getMerged()"));
+        assertTrue(generator.contains("entity, mobLevel, ins, ordinaryPresetIds"));
+        assertTrue(generator.contains("activePresets.nbtPresets()"));
+        assertTrue(generator.contains("activePresets.protectedIds()"));
+        assertTrue(postRoll.contains("implements TraitGenerationHelper.PresetState"));
+        assertTrue(postRoll.contains("target = \"Ldev/xkmc/l2hostility/content/logic/TraitGenerator;setRank"));
+        assertTrue(postRoll.contains("shift = At.Shift.AFTER), require = 1"));
+        assertTrue(postRoll.contains("trait != null && traits.containsKey(trait)"));
+        assertTrue(postRoll.contains("l2fix$ordinaryPresetIds.add(trait.getID())"));
     }
 
     @Test
@@ -88,7 +116,7 @@ class TraitGeneratorMixinTest {
 
         List<String> finalFilterCalls = methodCalls(
                 TraitGenerationHelper.class, "applyFinalFilters",
-                "(Lnet/minecraft/world/entity/LivingEntity;Ljava/util/HashMap;I)V");
+                "(Lnet/minecraft/world/entity/LivingEntity;Ljava/util/HashMap;ILjava/util/Set;)V");
         String entityRandom = "net/minecraft/world/entity/LivingEntity#getRandom()Lnet/minecraft/util/RandomSource;";
         String applyExclusions = "com/l2hostility_tweaks/generation/TraitGenerationHelper#applyExclusions" +
                 applyDescriptor;
