@@ -8,6 +8,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySelector;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.player.Player;
@@ -83,7 +84,8 @@ public abstract class ShulkerTraitMixin {
 		double bestScore = Double.MAX_VALUE;
 
 		for (Entity entity : player.level().getEntities(player, box,
-				e -> e instanceof LivingEntity && e.isAlive())) {
+				e -> e instanceof LivingEntity && e.isAlive()
+						&& EntitySelector.NO_CREATIVE_OR_SPECTATOR.test(e))) {
 			boolean ownedByPlayer = entity instanceof OwnableEntity ownable
 					&& player.getUUID().equals(ownable.getOwnerUUID());
 			if (l2fix$isFriendlyCandidate(

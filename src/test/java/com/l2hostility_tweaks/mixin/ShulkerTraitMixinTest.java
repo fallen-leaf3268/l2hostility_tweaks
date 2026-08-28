@@ -19,6 +19,19 @@ class ShulkerTraitMixinTest {
 	}
 
 	@Test
+	void candidateScanRejectsCreativeAndSpectatorTargetsBeforeGeometryWork() throws Exception {
+		String source = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/mixin/ShulkerTraitMixin.java"));
+		int scan = source.indexOf("player.level().getEntities(player, box,");
+		int vanillaFilter = source.indexOf("EntitySelector.NO_CREATIVE_OR_SPECTATOR.test(e)", scan);
+		int geometry = source.indexOf("Vec3 toEntity", scan);
+
+		assertTrue(scan >= 0);
+		assertTrue(vanillaFilter > scan);
+		assertTrue(geometry > vanillaFilter);
+	}
+
+	@Test
 	void abrahadabraOwnerResolutionFallsBackToOnlinePlayerAcrossDimensions() throws Exception {
 		String source = Files.readString(Path.of(
 				"src/main/java/com/l2hostility_tweaks/mixin/AbrahadabraReflectMixin.java"));
