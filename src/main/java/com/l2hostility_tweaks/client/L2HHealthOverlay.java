@@ -9,6 +9,7 @@ import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import dev.xkmc.l2hostility.content.traits.legendary.LegendaryTrait;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.MutableComponent;
@@ -72,14 +73,26 @@ public class L2HHealthOverlay implements IGuiOverlay {
 	private float cachedGrad = -1;
 	private int[] gradColors;
 
-	private int cachedEntityId = -1;
-	private int cachedTraitHash;
+	private TraitCacheKey cachedTraitKey;
 	private int cachedRealityLv;
 	private ItemStack cachedRealityIcon;
 	private List<ItemStack> cachedLegendIcons;
 	private List<List<TraitTextLayout.Segment<MobTrait, FormattedCharSequence>>> cachedTraitLines;
 
 	private final Map<String, ItemStack> iconReuse = new HashMap<>();
+
+	record TraitCacheKey(int entityId, int traitHash, int layoutWidth,
+			boolean romanNumerals, Object legendaryIdsIdentity, Object languageIdentity) {
+		boolean matches(int entityId, int traitHash, int layoutWidth,
+				boolean romanNumerals, Object legendaryIdsIdentity, Object languageIdentity) {
+			return this.entityId == entityId
+					&& this.traitHash == traitHash
+					&& this.layoutWidth == layoutWidth
+					&& this.romanNumerals == romanNumerals
+					&& this.legendaryIdsIdentity == legendaryIdsIdentity
+					&& this.languageIdentity == languageIdentity;
+		}
+	}
 
 	@Override
 	public void render(ForgeGui gui, GuiGraphics g, float partialTick, int width, int height) {
@@ -169,8 +182,14 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		}
 
 		int traitHash = traitFingerprint(cap);
-		if (entity.getId() != cachedEntityId || traitHash != cachedTraitHash) {
-			scanTraits(cap, entity, traitHash);
+		boolean romanNumerals = ClientL2HConfig.CLIENT.romanNumerals.get();
+		Set<String> extraLegendaryIds = L2HConfig.getDisplayExtraLegendaryIds();
+		Language language = Language.getInstance();
+		if (cachedTraitKey == null || !cachedTraitKey.matches(entity.getId(), traitHash, barW,
+				romanNumerals, extraLegendaryIds, language)) {
+			scanTraits(cap, barW, extraLegendaryIds);
+			cachedTraitKey = new TraitCacheKey(entity.getId(), traitHash, barW,
+					romanNumerals, extraLegendaryIds, language);
 		}
 
 		Minecraft mc = Minecraft.getInstance();
@@ -357,15 +376,11 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		return h;
 	}
 
-	private void scanTraits(MobTraitCap cap, LivingEntity entity, int traitHash) {
-		int entityId = entity.getId();
-		this.cachedEntityId = entityId;
-		this.cachedTraitHash = traitHash;
+	private void scanTraits(MobTraitCap cap, int barW, Set<String> extraIds) {
 		this.cachedRealityLv = 0;
 		this.cachedRealityIcon = null;
 		this.cachedLegendIcons = new ArrayList<>();
 
-		Set<String> extraIds = L2HConfig.getDisplayExtraLegendaryIds();
 		for (var entry : cap.traits.entrySet()) {
 			String id = entry.getKey().getID();
 			if ("curseofpandora:reality".equals(id)) {
@@ -379,7 +394,6 @@ public class L2HHealthOverlay implements IGuiOverlay {
 			}
 		}
 
-		int barW = ClientL2HConfig.CLIENT.hudBarWidth.get();
 		int maxW = barW - 6;
 		Minecraft mc = Minecraft.getInstance();
 		List<TraitTextLayout.Entry<MobTrait, FormattedText>> entries = new ArrayList<>();
