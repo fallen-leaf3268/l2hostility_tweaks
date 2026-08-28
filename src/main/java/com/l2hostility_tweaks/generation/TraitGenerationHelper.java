@@ -10,12 +10,18 @@ import dev.xkmc.l2hostility.content.traits.legendary.LegendaryTrait;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 public class TraitGenerationHelper {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger("l2htweaks:trait_generation");
+    private static final long WARNING_INTERVAL_NANOS = 60_000_000_000L;
+    private static final AtomicLong NEXT_WARNING_NANOS = new AtomicLong();
     private static final ResourceLocation NBT_CONDITION_ID =
             new ResourceLocation("l2hostility_tweaks", "nbt");
 
@@ -106,7 +112,9 @@ public class TraitGenerationHelper {
                     entity.getType(), NBT_CONDITION_ID, LivingEntity.class, entity);
             l2fix$addActivePresets(
                     nbtConfig, entity, difficulty, collector, nbtPresets);
-        } catch (Exception ignored) {}
+        } catch (Exception exception) {
+            l2fix$warnPresetFailure(null, exception);
+        }
 
         return List.copyOf(nbtPresets);
     }
@@ -116,9 +124,23 @@ public class TraitGenerationHelper {
                                                 List<EntityConfig.TraitBase> selected) {
         if (config == null || config.traits() == null) return;
         for (EntityConfig.TraitBase preset : config.traits()) {
-            if (!(preset.condition() == null ||
-                    preset.condition().match(entity, difficulty, collector))) continue;
-            selected.add(preset);
+            try {
+                if (!(preset.condition() == null ||
+                        preset.condition().match(entity, difficulty, collector))) continue;
+                selected.add(preset);
+            } catch (Exception exception) {
+                l2fix$warnPresetFailure(preset, exception);
+            }
         }
+    }
+
+    private static void l2fix$warnPresetFailure(EntityConfig.TraitBase preset, Exception exception) {
+        long now = System.nanoTime();
+        long next = NEXT_WARNING_NANOS.get();
+        if (now < next || !NEXT_WARNING_NANOS.compareAndSet(next, now + WARNING_INTERVAL_NANOS)) return;
+        String traitId = preset != null && preset.trait() != null
+                ? preset.trait().getID() : "<config lookup>";
+        LOGGER.warn("Skipped failed NBT trait preset {}. Further warnings are suppressed for 60 seconds.",
+                traitId, exception);
     }
 }

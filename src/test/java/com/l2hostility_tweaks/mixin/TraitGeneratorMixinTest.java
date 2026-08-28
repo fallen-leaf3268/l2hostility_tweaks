@@ -1,6 +1,7 @@
 package com.l2hostility_tweaks.mixin;
 
 import dev.xkmc.l2hostility.content.logic.TraitGenerator;
+import dev.xkmc.l2hostility.content.config.EntityConfig;
 import com.l2hostility_tweaks.generation.TraitGenerationHelper;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -21,11 +22,30 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TraitGeneratorMixinTest {
+
+    @Test
+    void failedNbtPresetConditionDoesNotBlockLaterPresets() throws Exception {
+        EntityConfig.TraitBase failing = new EntityConfig.TraitBase(null, 0, 0,
+                new EntityConfig.TraitCondition(0, 1.0F, null));
+        EntityConfig.TraitBase later = new EntityConfig.TraitBase(null, 0, 0, null);
+        EntityConfig.Config config = new EntityConfig.Config().trait(List.of(failing, later));
+        List<EntityConfig.TraitBase> selected = new ArrayList<>();
+
+        Method method = TraitGenerationHelper.class.getDeclaredMethod("l2fix$addActivePresets",
+                EntityConfig.Config.class, net.minecraft.world.entity.LivingEntity.class,
+                int.class, dev.xkmc.l2hostility.content.logic.MobDifficultyCollector.class,
+                List.class);
+        method.setAccessible(true);
+
+        assertDoesNotThrow(() -> method.invoke(null, config, null, 0, null, selected));
+        assertEquals(List.of(later), selected);
+    }
 
     @Test
     void unusedConfigAccessorIsNotRegisteredOrShipped() throws IOException {
