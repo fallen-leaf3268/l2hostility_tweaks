@@ -118,6 +118,12 @@ public class TraitDisableHelper {
 	public static Set<String> reconcileSealData(CompoundTag data, Map<String, Integer> rawLevels,
 			long gameTime) {
 		Set<String> traitIds = new LinkedHashSet<>();
+		for (Map.Entry<String, Integer> entry : rawLevels.entrySet()) {
+			Integer rawLevel = entry.getValue();
+			if (rawLevel != null && rawLevel < 0) {
+				traitIds.add(entry.getKey());
+			}
+		}
 		for (String key : data.getAllKeys()) {
 			if (key.startsWith(SEAL_EXPIRY_PREFIX)) {
 				traitIds.add(key.substring(SEAL_EXPIRY_PREFIX.length()));

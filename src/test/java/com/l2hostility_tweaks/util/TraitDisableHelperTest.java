@@ -352,6 +352,18 @@ class TraitDisableHelperTest {
     }
 
     @Test
+    void negativeTraitWithoutSealDataBecomesATrackedPermanentSeal() throws Exception {
+        CompoundTag data = new CompoundTag();
+
+        Set<String> expired = reconcileSealData(data, Map.of(TRAIT_ID, -3), 200L);
+
+        assertTrue(expired.isEmpty());
+        assertEquals(3, data.getInt(SEALED_LEVEL_KEY));
+        assertEquals(-1L, data.getLong(TraitDisableHelper.sealExpiryKey(TRAIT_ID)));
+        assertTrue(data.getBoolean("l2htweaks_has_seal_state"));
+    }
+
+    @Test
     void staleSealDataIsClearedWhenTheCurrentTraitLevelIsPositive() throws Exception {
         CompoundTag data = new CompoundTag();
         data.putInt(SEALED_LEVEL_KEY, 3);
