@@ -15,11 +15,27 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TooltipPipelineDescriptionsTest {
+
+    @Test
+    void tooltipNumberFormattingDoesNotDependOnSystemLocale() throws IOException {
+        Pattern defaultLocaleFormat = Pattern.compile("String\\.format\\((?!Locale\\.ROOT,)");
+        for (String file : List.of(
+                "src/main/java/com/l2hostility_tweaks/client/tooltip/TooltipPipeline.java",
+                "src/main/java/com/l2hostility_tweaks/content/MiracleTwistedPocket.java",
+                "src/main/java/com/l2hostility_tweaks/mixin/AdaptingTraitMixin.java",
+                "src/main/java/com/l2hostility_tweaks/mixin/KillerAuraTraitMixin.java",
+                "src/main/java/com/l2hostility_tweaks/mixin/ReprintTraitMixin.java")) {
+            String source = Files.readString(Path.of(file));
+            assertFalse(defaultLocaleFormat.matcher(source).find(), file);
+        }
+    }
 
     @Test
     void miraclePocketEnglishTooltipUsesIntervalBeforeReduction() throws IOException {

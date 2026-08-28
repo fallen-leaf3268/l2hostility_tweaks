@@ -16,6 +16,7 @@ import top.theillusivec4.curios.api.type.capability.ICurioItem;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Locale;
 
 public class MiracleTwistedPocket extends Item implements ICurioItem {
 
@@ -68,7 +69,7 @@ public class MiracleTwistedPocket extends Item implements ICurioItem {
 		float interval = Math.max(1, 40 - gluttonyLevel * 10) / 20f;
 		float reduction = (40 + abyssLevel * 20) / 20f;
 		tooltip.add(Component.translatable("tooltip.l2hostility_tweaks.miracle_twisted_pocket",
-				String.format("%.1f", interval).replaceAll("\\.0$", ""),
-				String.format("%.1f", reduction).replaceAll("\\.0$", "")).withStyle(ChatFormatting.DARK_GREEN));
+				String.format(Locale.ROOT, "%.1f", interval).replaceAll("\\.0$", ""),
+				String.format(Locale.ROOT, "%.1f", reduction).replaceAll("\\.0$", "")).withStyle(ChatFormatting.DARK_GREEN));
 	}
 }

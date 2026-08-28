@@ -18,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
+import java.util.Locale;
 
 @Mixin(value = AdaptingTrait.class, remap = false)
 public class AdaptingTraitMixin {
@@ -78,8 +79,8 @@ public class AdaptingTraitMixin {
 		double reductionPerStack = L2HConfig.getDisplayAdaptiveReductionPerStack();
 		double maxReduction = L2HConfig.getDisplayAdaptiveMaxReduction();
 		list.add(Component.translatable("trait.l2hostility_tweaks.adaptive.linear_info",
-				String.format("%.0f%%", reductionPerStack * 100),
-				String.format("%.0f%%", maxReduction * 100))
+				String.format(Locale.ROOT, "%.0f%%", reductionPerStack * 100),
+				String.format(Locale.ROOT, "%.0f%%", maxReduction * 100))
 				.withStyle(ChatFormatting.GOLD));
 	}
 }

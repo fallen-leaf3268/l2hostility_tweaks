@@ -23,6 +23,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.function.IntFunction;
 
 @Mixin(value = KillerAuraTrait.class, remap = false)
@@ -83,7 +84,7 @@ public class KillerAuraTraitMixin {
 						.withStyle(ChatFormatting.AQUA), max),
 				Component.literal("" + L2HConfig.getDisplayKillerAuraRange()).withStyle(ChatFormatting.AQUA),
 				l2fix$mapLevel(i -> Component.literal(
-						String.format("%.1f", L2HConfig.getDisplayKillerAuraInterval(i) / 20.0))
+						String.format(Locale.ROOT, "%.1f", L2HConfig.getDisplayKillerAuraInterval(i) / 20.0))
 						.withStyle(ChatFormatting.AQUA), max))
 				.withStyle(ChatFormatting.GRAY));
 	}
