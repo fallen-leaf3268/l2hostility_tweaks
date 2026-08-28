@@ -18,7 +18,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.io.InputStreamReader;
 import java.util.*;
 
 @Mixin(value = ConfigMerger.class, remap = false)
@@ -97,7 +96,7 @@ public class ConfigMergerMixin {
             if (stripped.endsWith(".json")) stripped = stripped.substring(0, stripped.length() - 5);
             ResourceLocation configId = new ResourceLocation(id.getNamespace(), stripped);
 
-            try (var reader = new InputStreamReader(entry.getValue().open())) {
+            try (var reader = entry.getValue().openAsReader()) {
                 JsonObject root = GSON.fromJson(reader, JsonObject.class);
                 JsonArray listArray = root.getAsJsonArray("list");
                 if (listArray == null) continue;

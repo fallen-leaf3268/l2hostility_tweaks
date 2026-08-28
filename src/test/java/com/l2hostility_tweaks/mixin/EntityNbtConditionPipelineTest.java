@@ -84,6 +84,15 @@ class EntityNbtConditionPipelineTest {
 				< merger.indexOf("l2fix$buildNbtStore(server)"));
 	}
 
+	@Test
+	void readsEntityConfigResourcesWithMinecraftUtf8Reader() throws IOException {
+		String merger = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/mixin/ConfigMergerMixin.java"));
+
+		assertTrue(merger.contains("entry.getValue().openAsReader()"));
+		assertFalse(merger.contains("new InputStreamReader("));
+	}
+
 	private static ArrayList<Pair<SpecialConfigCondition<?>, EntityConfig.Config>> pairs(
 			EntityConfig.Config... configs) {
 		ArrayList<Pair<SpecialConfigCondition<?>, EntityConfig.Config>> result = new ArrayList<>();
