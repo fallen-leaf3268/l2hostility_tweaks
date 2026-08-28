@@ -32,6 +32,42 @@ class ShulkerTraitMixinTest {
 	}
 
 	@Test
+	void playerOwnedBulletRequiresAValidLivingNonFriendlyTarget() {
+		assertTrue(HostilityBulletMixin.l2fix$isValidPlayerOwnedTarget(
+				true, false, true, false, false, false));
+		assertFalse(HostilityBulletMixin.l2fix$isValidPlayerOwnedTarget(
+				false, false, true, false, false, false));
+		assertFalse(HostilityBulletMixin.l2fix$isValidPlayerOwnedTarget(
+				true, true, true, false, false, false));
+		assertFalse(HostilityBulletMixin.l2fix$isValidPlayerOwnedTarget(
+				true, false, false, false, false, false));
+		assertFalse(HostilityBulletMixin.l2fix$isValidPlayerOwnedTarget(
+				true, false, true, true, false, false));
+		assertFalse(HostilityBulletMixin.l2fix$isValidPlayerOwnedTarget(
+				true, false, true, false, true, false));
+		assertFalse(HostilityBulletMixin.l2fix$isValidPlayerOwnedTarget(
+				true, false, true, false, false, true));
+	}
+
+	@Test
+	void playerOwnedBulletRuleIsWiredBeforeTheNonPlayerFallback() throws Exception {
+		String source = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/mixin/HostilityBulletMixin.java"));
+		int nullOwner = source.indexOf("if (owner == null) return;");
+		int playerOwner = source.indexOf("if (owner instanceof Player)", nullOwner);
+		int playerRule = source.indexOf(
+				"cir.setReturnValue(l2fix$isValidPlayerOwnedTarget(", playerOwner);
+		int playerReturn = source.indexOf("return;", playerRule);
+		int nonPlayerFallback = source.indexOf("if (cir.getReturnValue())", playerReturn);
+
+		assertTrue(nullOwner >= 0);
+		assertTrue(playerOwner > nullOwner);
+		assertTrue(playerRule > playerOwner);
+		assertTrue(playerReturn > playerRule);
+		assertTrue(nonPlayerFallback > playerReturn);
+	}
+
+	@Test
 	void abrahadabraOwnerResolutionFallsBackToOnlinePlayerAcrossDimensions() throws Exception {
 		String source = Files.readString(Path.of(
 				"src/main/java/com/l2hostility_tweaks/mixin/AbrahadabraReflectMixin.java"));
