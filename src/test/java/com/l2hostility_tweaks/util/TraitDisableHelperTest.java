@@ -472,6 +472,30 @@ class TraitDisableHelperTest {
     }
 
     @Test
+    void deathSnapshotRunsAfterResurrectionAndClearsStaleStateBeforeEarlyReturns() throws Exception {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/L2HostilityFix.java"));
+        int deathMethod = source.indexOf("public void onLivingDeath");
+        int annotation = source.lastIndexOf("@SubscribeEvent", deathMethod);
+        int cloneMethod = source.indexOf("public void onPlayerClone", deathMethod);
+        String deathFlow = source.substring(annotation, cloneMethod);
+
+        assertTrue(deathFlow.startsWith("@SubscribeEvent(priority = EventPriority.LOWEST)"));
+        int uuid = deathFlow.indexOf("java.util.UUID uuid = player.getUUID();");
+        int clearSnapshot = deathFlow.indexOf("deathSnapshots.remove(uuid);", uuid);
+        int clearRuntimeState = deathFlow.indexOf("deathTraitRuntimeState.remove(uuid);", uuid);
+        int clearMeta = deathFlow.indexOf("deathMeta.remove(uuid);", uuid);
+        int capabilityCheck = deathFlow.indexOf("if (!MobTraitCap.HOLDER.isProper(player)) return;");
+        int emptyTraitCheck = deathFlow.indexOf("if (cap.traits.isEmpty()) return;");
+
+        assertTrue(uuid >= 0);
+        assertTrue(clearSnapshot > uuid && clearSnapshot < capabilityCheck);
+        assertTrue(clearRuntimeState > uuid && clearRuntimeState < capabilityCheck);
+        assertTrue(clearMeta > uuid && clearMeta < capabilityCheck);
+        assertTrue(capabilityCheck < emptyTraitCheck);
+    }
+
+    @Test
     void deathRecoveryUsesDebugForNormalDiagnosticsAndWarnForFailures() throws Exception {
         String source = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/L2HostilityFix.java"));

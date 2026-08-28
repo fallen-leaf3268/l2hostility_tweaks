@@ -104,9 +104,13 @@ public class L2HostilityFix {
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onLivingDeath(LivingDeathEvent event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        java.util.UUID uuid = player.getUUID();
+        deathSnapshots.remove(uuid);
+        deathTraitRuntimeState.remove(uuid);
+        deathMeta.remove(uuid);
         if (!MobTraitCap.HOLDER.isProper(player)) return;
         MobTraitCap cap = MobTraitCap.HOLDER.get(player);
         if (cap.traits.isEmpty()) return;
@@ -114,7 +118,6 @@ public class L2HostilityFix {
         for (var entry : cap.traits.entrySet()) {
             snapshot.put(entry.getKey(), entry.getValue());
         }
-        java.util.UUID uuid = player.getUUID();
         deathSnapshots.put(uuid, snapshot);
         deathMeta.put(uuid, new int[]{cap.lv, cap.fullDrop ? 1 : 0});
 
