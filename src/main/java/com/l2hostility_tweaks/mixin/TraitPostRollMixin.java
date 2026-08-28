@@ -59,7 +59,7 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
     private Set<String> l2fix$protectedIds;
 
     @Unique
-    private final Set<String> l2fix$ordinaryPresetIds = new java.util.LinkedHashSet<>();
+    private final Set<String> l2fix$appliedPresetIds = new java.util.LinkedHashSet<>();
 
     @Unique
     private int l2fix$mobLevel;
@@ -97,13 +97,13 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
     private void l2fix$recordAppliedPreset(EntityConfig.TraitBase preset, CallbackInfo ci) {
         MobTrait trait = preset.trait();
         if (trait != null && traits.containsKey(trait)) {
-            l2fix$ordinaryPresetIds.add(trait.getID());
+            l2fix$appliedPresetIds.add(trait.getID());
         }
     }
 
     @Override
-    public Set<String> l2fix$getOrdinaryPresetIds() {
-        return Set.copyOf(l2fix$ordinaryPresetIds);
+    public Set<String> l2fix$getAppliedPresetIds() {
+        return Set.copyOf(l2fix$appliedPresetIds);
     }
 
     @Redirect(method = "generate",
@@ -201,7 +201,7 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
 
         l2fix$mobLevel = mobLevel;
 
-        l2fix$protectedIds = Set.copyOf(l2fix$ordinaryPresetIds);
+        l2fix$protectedIds = Set.copyOf(l2fix$appliedPresetIds);
 
         l2fix$globalLevelCap = L2HConfig.getThreshold(
                 L2HConfig.getLevelThresholds(), l2fix$mobLevel);

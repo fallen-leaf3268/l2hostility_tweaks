@@ -9,6 +9,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -36,11 +37,35 @@ class TraitGeneratorMixinTest {
     }
 
     @Test
-    void appliesNbtPresetOnlyWhenItRaisesTheCurrentRank() {
-        assertTrue(TraitGeneratorMixin.l2fix$shouldApplyPreset(0, 2));
-        assertTrue(TraitGeneratorMixin.l2fix$shouldApplyPreset(1, 3));
-        assertFalse(TraitGeneratorMixin.l2fix$shouldApplyPreset(3, 1));
-        assertFalse(TraitGeneratorMixin.l2fix$shouldApplyPreset(2, 2));
+    void nbtPresetsUseOriginalGenBaseBeforeTraitPoolConstruction() throws Exception {
+        Method hook = Arrays.stream(TraitGeneratorMixin.class.getDeclaredMethods())
+                .filter(method -> method.getName().equals("l2fix$applyNbtPresetsBeforePool"))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(hook);
+
+        Redirect redirect = hook.getAnnotation(Redirect.class);
+        assertNotNull(redirect);
+        assertEquals(List.of("<init>"), List.of(redirect.method()));
+        assertEquals(1, redirect.require());
+        At at = redirect.at();
+        assertEquals("FIELD", at.value());
+        assertEquals("Ldev/xkmc/l2hostility/init/registrate/LHTraits;TRAITS:Ldev/xkmc/l2library/base/L2Registrate$RegistryInstance;",
+                at.target());
+        assertEquals(Opcodes.GETSTATIC, at.opcode());
+        assertEquals(At.Shift.NONE, at.shift());
+
+        List<String> calls = methodCalls(TraitGeneratorMixin.class,
+                "l2fix$applyNbtPresetsBeforePool",
+                "()Ldev/xkmc/l2library/base/L2Registrate$RegistryInstance;");
+        String select = "com/l2hostility_tweaks/generation/TraitGenerationHelper#" +
+                "selectActiveNbtPresets(Lnet/minecraft/world/entity/LivingEntity;I" +
+                "Ldev/xkmc/l2hostility/content/logic/MobDifficultyCollector;)Ljava/util/List;";
+        String genBase = "com/l2hostility_tweaks/mixin/TraitGeneratorMixin#" +
+                "genBase(Ldev/xkmc/l2hostility/content/config/EntityConfig$TraitBase;)V";
+        assertEquals(1, calls.stream().filter(select::equals).count());
+        assertEquals(1, calls.stream().filter(genBase::equals).count());
+        assertTrue(calls.indexOf(select) < calls.indexOf(genBase));
     }
 
     @Test
@@ -66,11 +91,7 @@ class TraitGeneratorMixinTest {
         assertEquals(1, inject.require());
 
         assertEquals(List.of(
-                "com/l2hostility_tweaks/generation/TraitGenerationHelper$PresetState#l2fix$getOrdinaryPresetIds()Ljava/util/Set;",
-                "com/l2hostility_tweaks/generation/TraitGenerationHelper#selectActivePresets(Lnet/minecraft/world/entity/LivingEntity;ILdev/xkmc/l2hostility/content/logic/MobDifficultyCollector;Ljava/util/Set;)Lcom/l2hostility_tweaks/generation/TraitGenerationHelper$ActivePresets;",
-                "com/l2hostility_tweaks/generation/TraitGenerationHelper$ActivePresets#nbtPresets()Ljava/util/List;",
-                "com/l2hostility_tweaks/mixin/TraitGeneratorMixin#l2fix$applyNbtPresets(Ljava/util/HashMap;Ljava/util/List;)V",
-                "com/l2hostility_tweaks/generation/TraitGenerationHelper$ActivePresets#protectedIds()Ljava/util/Set;",
+                "com/l2hostility_tweaks/generation/TraitGenerationHelper$PresetState#l2fix$getAppliedPresetIds()Ljava/util/Set;",
                 "com/l2hostility_tweaks/generation/TraitGenerationHelper#applyFinalFilters(Lnet/minecraft/world/entity/LivingEntity;Ljava/util/HashMap;ILjava/util/Set;)V"),
                 methodCalls(TraitGeneratorMixin.class, "l2fix$prepareFinalTraits", "(Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfo;)V"));
         assertEquals(0, methodCalls(TraitGeneratorMixin.class, null, null).stream()
@@ -87,19 +108,19 @@ class TraitGeneratorMixinTest {
         String postRoll = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/mixin/TraitPostRollMixin.java"));
 
-        assertTrue(helper.contains("public record ActivePresets("));
         assertTrue(helper.contains("public interface PresetState"));
+        assertTrue(helper.contains("selectActiveNbtPresets"));
         assertTrue(helper.contains("preset.condition() == null"));
         assertTrue(helper.contains("preset.condition().match(entity, difficulty, collector)"));
         assertTrue(helper.contains("L2Hostility.ENTITY.getMerged()"));
-        assertTrue(generator.contains("entity, mobLevel, ins, ordinaryPresetIds"));
-        assertTrue(generator.contains("activePresets.nbtPresets()"));
-        assertTrue(generator.contains("activePresets.protectedIds()"));
+        assertFalse(helper.contains("public record ActivePresets("));
+        assertFalse(generator.contains("traits.put(mt, minLevel)"));
+        assertFalse(generator.contains("l2fix$shouldApplyPreset"));
         assertTrue(postRoll.contains("implements TraitGenerationHelper.PresetState"));
         assertTrue(postRoll.contains("target = \"Ldev/xkmc/l2hostility/content/logic/TraitGenerator;setRank"));
         assertTrue(postRoll.contains("shift = At.Shift.AFTER), require = 1"));
         assertTrue(postRoll.contains("trait != null && traits.containsKey(trait)"));
-        assertTrue(postRoll.contains("l2fix$ordinaryPresetIds.add(trait.getID())"));
+        assertTrue(postRoll.contains("l2fix$appliedPresetIds.add(trait.getID())"));
     }
 
     @Test

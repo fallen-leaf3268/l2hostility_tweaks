@@ -19,16 +19,8 @@ public class TraitGenerationHelper {
     private static final ResourceLocation NBT_CONDITION_ID =
             new ResourceLocation("l2hostility_tweaks", "nbt");
 
-    public record ActivePresets(List<EntityConfig.TraitBase> nbtPresets,
-                                Set<String> protectedIds) {
-        public ActivePresets {
-            nbtPresets = List.copyOf(nbtPresets);
-            protectedIds = Set.copyOf(protectedIds);
-        }
-    }
-
     public interface PresetState {
-        Set<String> l2fix$getOrdinaryPresetIds();
+        Set<String> l2fix$getAppliedPresetIds();
     }
 
     public static void applyExclusions(HashMap<MobTrait, Integer> traits, RandomSource random) {
@@ -103,37 +95,30 @@ public class TraitGenerationHelper {
         traits.entrySet().removeIf(e -> e.getKey().getID().equals(id));
     }
 
-    public static ActivePresets selectActivePresets(LivingEntity entity, int difficulty,
-                                                     MobDifficultyCollector collector,
-                                                     Set<String> ordinaryPresetIds) {
+    public static List<EntityConfig.TraitBase> selectActiveNbtPresets(
+            LivingEntity entity, int difficulty, MobDifficultyCollector collector) {
         List<EntityConfig.TraitBase> nbtPresets = new ArrayList<>();
-        Set<String> protectedIds = ordinaryPresetIds == null
-                ? new LinkedHashSet<>()
-                : new LinkedHashSet<>(ordinaryPresetIds);
-        if (entity == null) return new ActivePresets(nbtPresets, protectedIds);
+        if (entity == null) return List.of();
 
         try {
             EntityConfig merged = (EntityConfig) L2Hostility.ENTITY.getMerged();
             EntityConfig.Config nbtConfig = merged.get(
                     entity.getType(), NBT_CONDITION_ID, LivingEntity.class, entity);
-            l2fix$addActivePresets(nbtConfig, entity, difficulty, collector,
-                    protectedIds, nbtPresets);
+            l2fix$addActivePresets(
+                    nbtConfig, entity, difficulty, collector, nbtPresets);
         } catch (Exception ignored) {}
 
-        return new ActivePresets(nbtPresets, protectedIds);
+        return List.copyOf(nbtPresets);
     }
 
     private static void l2fix$addActivePresets(EntityConfig.Config config, LivingEntity entity,
                                                 int difficulty, MobDifficultyCollector collector,
-                                                Set<String> protectedIds,
                                                 List<EntityConfig.TraitBase> selected) {
         if (config == null || config.traits() == null) return;
         for (EntityConfig.TraitBase preset : config.traits()) {
             if (!(preset.condition() == null ||
                     preset.condition().match(entity, difficulty, collector))) continue;
             selected.add(preset);
-            MobTrait trait = preset.trait();
-            if (trait != null) protectedIds.add(trait.getID());
         }
     }
 }
