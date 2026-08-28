@@ -6,9 +6,22 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TraitUnloaderWandSafetyTest {
+
+	@Test
+	void modeLookupDoesNotCreateItemNbt() throws IOException {
+		String source = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/content/TraitUnloaderWand.java"));
+		int getMode = source.indexOf("private int getMode");
+		int setMode = source.indexOf("private void setMode");
+		String getModeBody = source.substring(getMode, setMode);
+
+		assertTrue(getModeBody.contains("stack.getTag()"));
+		assertFalse(getModeBody.contains("stack.getOrCreateTag()"));
+	}
 
 	@Test
 	void refundValidationPrecedesTraitMutation() throws IOException {

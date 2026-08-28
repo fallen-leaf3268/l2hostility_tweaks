@@ -2,6 +2,9 @@ package com.l2hostility_tweaks.util;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -12,6 +15,18 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TraitWandHelperTest {
+
+	@Test
+	void traitLookupDoesNotCreateItemNbt() throws IOException {
+		String source = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/util/TraitWandHelper.java"));
+		int getTrait = source.indexOf("public static MobTrait getTrait");
+		int parseTraitId = source.indexOf("static ResourceLocation parseTraitId");
+		String getTraitBody = source.substring(getTrait, parseTraitId);
+
+		assertTrue(getTraitBody.contains("stack.getTag()"));
+		assertFalse(getTraitBody.contains("stack.getOrCreateTag()"));
+	}
 
 	@Test
 	void splitsRefundIntoLegalStacks() {

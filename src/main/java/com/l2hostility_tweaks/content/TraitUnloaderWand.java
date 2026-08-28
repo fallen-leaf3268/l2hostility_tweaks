@@ -247,8 +247,8 @@ public class TraitUnloaderWand extends Item {
 	}
 
 	private int getMode(ItemStack stack) {
-		CompoundTag tag = stack.getOrCreateTag();
-		if (tag.contains(TAG_MODE)) {
+		CompoundTag tag = stack.getTag();
+		if (tag != null && tag.contains(TAG_MODE)) {
 			return tag.getInt(TAG_MODE);
 		}
 		return MODE_SINGLE;
