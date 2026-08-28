@@ -1,14 +1,34 @@
 package com.l2hostility_tweaks.compat.kubejs;
 
+import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 class KubeJsRegistryResolverTest {
+
+    @Test
+    void legendaryAttributeRejectsNullOperationWithoutThrowing() {
+        var builder = new LegendaryAttributeTraitBuilder(
+                new ResourceLocation("l2hostility_tweaks", "null_operation_test"));
+
+        assertDoesNotThrow(() -> builder.attribute(
+                "test", "Invalid Attribute ID", 1.0, null));
+    }
+
+    @Test
+    void legendaryAttributeRejectsUnknownOperation() {
+        var builder = new LegendaryAttributeTraitBuilder(
+                new ResourceLocation("l2hostility_tweaks", "unknown_operation_test"));
+
+        assertDoesNotThrow(() -> builder.attribute(
+                "test", "Invalid Attribute ID", 1.0, "mult_totla"));
+    }
 
     @Test
     void rejectsMalformedIdWithoutCallingRegistry() {
@@ -50,4 +70,5 @@ class KubeJsRegistryResolverTest {
         assertNull(result);
         assertFalse(called.get());
     }
+
 }
