@@ -21,7 +21,7 @@ public class GetTraitLevelMixin {
 		if (!l2fix$isActiveLevel(rawLevel)) cir.setReturnValue(false);
 	}
 
-	static boolean l2fix$isActiveLevel(int rawLevel) {
+	private static boolean l2fix$isActiveLevel(int rawLevel) {
 		return rawLevel > 0;
 	}
 }

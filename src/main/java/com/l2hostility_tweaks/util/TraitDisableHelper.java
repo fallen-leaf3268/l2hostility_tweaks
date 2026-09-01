@@ -6,18 +6,22 @@ import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.Slime;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class TraitDisableHelper {
 
@@ -26,10 +30,56 @@ public class TraitDisableHelper {
 	public static final String UNDYING_TRAIT_ID = "l2hostility:undying";
 	public static final String UNDYING_COUNT_KEY = "l2fix$undying_count";
 	public static final String SEAL_STATE_MARKER = "l2htweaks_has_seal_state";
+	private static final String SPLIT_TRAIT_ID = "l2hostility:split";
+	private static final String SUPPRESS_SPLIT_TAG = "SuppressSplit";
 	private static final String SEALED_LEVEL_PREFIX = "l2htweaks_sealed_level_";
 	private static final ThreadLocal<LivingEntity> DISPLAY_ENTITY = new ThreadLocal<>();
 	private static final ThreadLocal<Boolean> HIDE_REALITY_DETAIL = ThreadLocal.withInitial(() -> false);
 	private static volatile Registry<MobTrait> traitRegistry;
+
+	public static boolean mergeEnchantments(ListTag saved, Collection<? extends Tag> current) {
+		ListTag merged = new ListTag();
+		Map<String, Integer> indices = new LinkedHashMap<>();
+		for (Tag enchantment : saved) {
+			mergeEnchantment(merged, indices, enchantment);
+		}
+		for (Tag enchantment : current) {
+			mergeEnchantment(merged, indices, enchantment);
+		}
+		saved.clear();
+		saved.addAll(merged);
+		return !current.isEmpty();
+	}
+
+	public static <T> T findActiveSplitTrait(Map<T, Integer> traits, Function<T, String> idGetter) {
+		return traits.entrySet().stream()
+				.filter(entry -> "l2hostility:split".equals(idGetter.apply(entry.getKey())))
+				.filter(entry -> entry.getValue() != null && entry.getValue() > 0)
+				.map(Map.Entry::getKey)
+				.findFirst()
+				.orElse(null);
+	}
+
+	public static long permanentSealExpiry(Integer ignoredValue) {
+		return -1L;
+	}
+
+	private static void mergeEnchantment(ListTag merged, Map<String, Integer> indices,
+			Tag enchantment) {
+		if (!(enchantment instanceof CompoundTag compound)) return;
+		String id = compound.getString("id");
+		if (id.isEmpty()) {
+			merged.add(compound.copy());
+			return;
+		}
+		Integer index = indices.get(id);
+		if (index == null) {
+			indices.put(id, merged.size());
+			merged.add(compound.copy());
+		} else if (compound.getInt("lvl") > merged.getCompound(index).getInt("lvl")) {
+			merged.set(index, compound.copy());
+		}
+	}
 
 	public static String sealExpiryKey(String traitId) {
 		return SEAL_EXPIRY_PREFIX + traitId;
@@ -274,6 +324,16 @@ public class TraitDisableHelper {
 		return entity.getPersistentData().contains(sealedLevelKey(traitId));
 	}
 
+	public static void clearSplitSuppressionOnReactivation(LivingEntity entity, String traitId) {
+		if (shouldClearSplitSuppression(entity instanceof Slime, traitId)) {
+			entity.removeTag(SUPPRESS_SPLIT_TAG);
+		}
+	}
+
+	static boolean shouldClearSplitSuppression(boolean slime, String traitId) {
+		return slime && SPLIT_TRAIT_ID.equals(traitId);
+	}
+
 
 	public static void setDisabled(LivingEntity entity, String traitId, boolean disabled) {
 		setDisabled(entity, traitId, disabled, true);
@@ -303,11 +363,12 @@ public class TraitDisableHelper {
 					e.setValue(restore);
 					e.getKey().initialize(entity, restore);
 					e.getKey().postInit(entity, restore);
+					clearSplitSuppressionOnReactivation(entity, traitId);
 					break;
 				}
 			}
 		}
-		if (heal) {
+		if (heal && oldHealth > 0 && entity.isAlive()) {
 			float ratio = oldMax > 0 ? oldHealth / oldMax : 1.0f;
 			entity.setHealth(Math.max(1, entity.getMaxHealth() * ratio));
 		}

@@ -23,6 +23,7 @@ public class ClientL2HConfig {
 
     public static class Client {
 
+        public final ForgeConfigSpec.BooleanValue showHud;
         public final ForgeConfigSpec.IntValue hudXOffset;
         public final ForgeConfigSpec.IntValue hudYOffset;
         public final ForgeConfigSpec.IntValue hudRange;
@@ -35,6 +36,9 @@ public class ClientL2HConfig {
 
         Client(ForgeConfigSpec.Builder builder) {
             builder.push("hud");
+
+            showHud = builder.comment("显示自定义血条 HUD")
+                    .define("enabled", false);
 
             hudXOffset = builder.comment("HUD 水平偏移")
                     .defineInRange("hudXOffset", 0, -1000, 1000);

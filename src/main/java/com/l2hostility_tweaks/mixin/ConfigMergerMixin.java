@@ -30,7 +30,7 @@ public class ConfigMergerMixin {
     }
 
     @Unique
-    static boolean l2fix$containsEntityConfig(List<? extends BaseConfig> list) {
+    private static boolean l2fix$containsEntityConfig(List<? extends BaseConfig> list) {
         return list.stream().anyMatch(EntityConfig.class::isInstance);
     }
 

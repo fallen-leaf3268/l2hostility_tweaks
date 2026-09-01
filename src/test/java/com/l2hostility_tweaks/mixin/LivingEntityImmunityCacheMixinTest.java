@@ -120,6 +120,45 @@ class LivingEntityImmunityCacheMixinTest {
 	}
 
 	@Test
+	void dimensionBreakerUsesNetheriteBaseMiningSpeedWithoutExtraMultiplier() throws IOException {
+		String breaker = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/content/DimensionBreakerItem.java"));
+
+		assertTrue(breaker.contains("return Tiers.NETHERITE.getSpeed();"));
+		assertFalse(breaker.contains("Tiers.NETHERITE.getSpeed() * 1.5F"));
+	}
+
+	@Test
+	void dimensionBreakerTooltipsDescribeNetheriteBaseSpeedAndTier() throws IOException {
+		String chinese = Files.readString(Path.of(
+				"src/main/resources/assets/l2hostility_tweaks/lang/zh_cn.json"));
+		String english = Files.readString(Path.of(
+				"src/main/resources/assets/l2hostility_tweaks/lang/en_us.json"));
+
+		assertTrue(chinese.contains("基础采掘速度与采掘等级均至少视为下界合金工具"));
+		assertTrue(english.contains("base mining speed and harvest tier are at least Netherite"));
+		assertFalse(chinese.contains("玩家采掘速度+50%"));
+		assertFalse(english.contains("bare-hand mining speed +50%"));
+	}
+
+	@Test
+	void tranquilBeltSuppressesOnlyActiveHurtCameraTilt() throws IOException {
+		String mixin = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/mixin/GameRendererHurtMixin.java"));
+		String config = Files.readString(Path.of(
+				"src/main/resources/l2hostility_tweaks.mixins.json"));
+
+		assertTrue(mixin.contains("@Mixin(GameRenderer.class)"));
+		assertTrue(mixin.contains("method = \"bobHurt\""));
+		assertTrue(mixin.contains("LivingEntity;hurtDuration:I"));
+		assertTrue(mixin.contains("ImmunityHelper.isImmuneToForce(cameraEntity)"));
+		assertTrue(mixin.contains("Minecraft.getInstance().getCameraEntity()"));
+		assertFalse(mixin.contains("@Shadow"));
+		assertFalse(mixin.contains("LivingEntity;deathTime:I"));
+		assertTrue(config.contains("\"GameRendererHurtMixin\""));
+	}
+
+	@Test
 	void dimensionBreakerScansOncePerStampAndRefreshesImmediatelyAfterInvalidation() {
 		var cache = new CountingCache();
 		cache.dimensionBreakerValue = EntityImmunityCache.DimensionBreakerState.EQUIPPED;

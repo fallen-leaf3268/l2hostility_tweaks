@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.mixin;
 
+import com.l2hostility_tweaks.util.TraitDisableHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -37,7 +38,7 @@ public class DispealEquipmentTickMixin {
 
 			ListTag saved = tag.getList(OLD, Tag.TAG_COMPOUND);
 			ListTag current = root.getList(ENCH, Tag.TAG_COMPOUND);
-			saved.addAll(current);
+			TraitDisableHelper.mergeEnchantments(saved, current);
 			root.put(ENCH, saved);
 			root.remove(ROOT);
 		}

@@ -117,7 +117,7 @@ public class DimensionBreakerItem extends Item {
 
 	public static float getSpeed(Player player, BlockState state) {
 		if (isEquippedBy(player) && isCorrectBlockType(state)) {
-			return Tiers.NETHERITE.getSpeed() * 1.5F;
+			return Tiers.NETHERITE.getSpeed();
 		}
 		return -1;
 	}

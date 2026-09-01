@@ -69,7 +69,7 @@ public class TraitSymbolMixin {
 		cir.setReturnValue(InteractionResult.SUCCESS);
 	}
 
-	static float l2fix$scaledHealth(float oldHealth, float oldMaxHealth, float newMaxHealth) {
+	private static float l2fix$scaledHealth(float oldHealth, float oldMaxHealth, float newMaxHealth) {
 		float ratio = oldMaxHealth > 0 ? oldHealth / oldMaxHealth : 1.0f;
 		return Math.max(1.0f, newMaxHealth * Math.min(1.0f, ratio));
 	}
@@ -89,6 +89,12 @@ public class TraitSymbolMixin {
 					tooltip.add(2, LangData.TOOLTIP_LEGENDARY.get().withStyle(ChatFormatting.GOLD));
 				}
 				}
+		}
+
+		if (!L2HConfig.isDisplayPlayerSelfTraitEnabled()) {
+			tooltip.add(Component.translatable("tooltip.l2hostility_tweaks.player_override.globally_disabled")
+					.withStyle(ChatFormatting.RED));
+			return;
 		}
 
 		if (L2HConfig.isDisplayExclusionEnabled() && !ImmunityHelper.isSelfBlacklisted(trait)) {
@@ -140,7 +146,7 @@ public class TraitSymbolMixin {
 		}
 	}
 
-	static Component l2fix$getTraitName(Registry<MobTrait> registry, String traitId) {
+	private static Component l2fix$getTraitName(Registry<MobTrait> registry, String traitId) {
 		ResourceLocation id = ResourceLocation.tryParse(traitId);
 		if (registry != null && id != null) {
 			MobTrait t = registry.get(id);

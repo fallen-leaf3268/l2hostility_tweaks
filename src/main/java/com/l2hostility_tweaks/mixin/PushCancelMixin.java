@@ -25,7 +25,7 @@ public class PushCancelMixin {
 	}
 
 	@Unique
-	static boolean l2fix$shouldCancelPush(boolean forceImmune, boolean gravityImmune) {
+	private static boolean l2fix$shouldCancelPush(boolean forceImmune, boolean gravityImmune) {
 		return forceImmune;
 	}
 }

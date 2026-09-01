@@ -1,7 +1,10 @@
 package com.l2hostility_tweaks.client.tooltip;
 
 import com.google.gson.JsonParser;
+import dev.xkmc.l2hostility.content.item.traits.SealedItem;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentCategory;
@@ -19,6 +22,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TooltipPipelineDescriptionsTest {
@@ -117,6 +121,15 @@ class TooltipPipelineDescriptionsTest {
     }
 
     @Test
+    void armorReprintReductionTooltipUsesRuntimeEightyPercentCap() {
+        Component tooltip = TooltipPipeline.reprintDescription(true, false, 5, 0.3);
+        TranslatableContents contents = assertInstanceOf(TranslatableContents.class, tooltip.getContents());
+        Component reduction = assertInstanceOf(Component.class, contents.getArgs()[0]);
+
+        assertEquals("80%", reduction.getString());
+    }
+
+    @Test
     void staticItemTooltipReplacesCanonicalLineOnly() {
         Component repeatedName = Component.literal("Sealed item");
         List<Component> tooltip = new ArrayList<>(List.of(
@@ -131,6 +144,19 @@ class TooltipPipelineDescriptionsTest {
         assertEquals(4, tooltip.size());
         assertTrue(TooltipComponents.containsTranslation(tooltip, GLOW_DISABLED));
         assertEquals(2, tooltip.stream().filter(repeatedName::equals).count());
+    }
+
+    @Test
+    void restorationPocketReportsContentsOnlyWhenAValidStoredItemExists() throws IOException {
+        CompoundTag emptyPocket = new CompoundTag();
+        emptyPocket.putString("Enchantments", "present");
+
+        assertFalse(TooltipPipeline.hasStoredPocketContents(emptyPocket));
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/client/tooltip/TooltipPipeline.java"));
+        String compact = source.replaceAll("\\s+", " ");
+        assertTrue(compact.contains("slot.contains(SealedItem.DATA, Tag.TAG_COMPOUND) " +
+                "&& !ItemStack.of(slot.getCompound(SealedItem.DATA)).isEmpty()"));
     }
 
     private static final class TestEnchantment extends Enchantment {

@@ -29,7 +29,7 @@ public class AntibuildPlaceBypassMixin {
 	}
 
 	@Unique
-	static boolean l2fix$shouldBypass(boolean hasAntibuild, boolean hasBypass) {
+	private static boolean l2fix$shouldBypass(boolean hasAntibuild, boolean hasBypass) {
 		return hasAntibuild && hasBypass;
 	}
 }

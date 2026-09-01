@@ -9,9 +9,9 @@ class PushCancelMixinTest {
 
     @Test
     void cancelsPushOnlyForForceImmunity() {
-        assertTrue(PushCancelMixin.l2fix$shouldCancelPush(true, false));
-        assertTrue(PushCancelMixin.l2fix$shouldCancelPush(true, true));
-        assertFalse(PushCancelMixin.l2fix$shouldCancelPush(false, true));
-        assertFalse(PushCancelMixin.l2fix$shouldCancelPush(false, false));
+        assertTrue(MixinTestInvoker.<Boolean>call(PushCancelMixin.class, "l2fix$shouldCancelPush", true, false));
+        assertTrue(MixinTestInvoker.<Boolean>call(PushCancelMixin.class, "l2fix$shouldCancelPush", true, true));
+        assertFalse(MixinTestInvoker.<Boolean>call(PushCancelMixin.class, "l2fix$shouldCancelPush", false, true));
+        assertFalse(MixinTestInvoker.<Boolean>call(PushCancelMixin.class, "l2fix$shouldCancelPush", false, false));
     }
 }

@@ -32,10 +32,11 @@ public class TraitAdderWandMixin {
 
 		TraitDisableHelper.clearSealData(target.getPersistentData(), trait.getID());
 		cap.traits.put(trait, abs);
+		TraitDisableHelper.clearSplitSuppressionOnReactivation(target, trait.getID());
 	}
 
 	@Unique
-	static boolean l2fix$shouldPreserveSealedState(boolean shiftDown, int level, int maxLevel) {
+	private static boolean l2fix$shouldPreserveSealedState(boolean shiftDown, int level, int maxLevel) {
 		return !shiftDown && level >= maxLevel;
 	}
 }

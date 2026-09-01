@@ -15,7 +15,7 @@ import java.util.function.BiConsumer;
 @Mixin(value = MobTraitCap.class, remap = false)
 public class TraitSealFilterMixin {
 
-	static <T> void l2fix$forEachActive(LinkedHashMap<T, Integer> map, BiConsumer<T, Integer> consumer) {
+	private static <T> void l2fix$forEachActive(LinkedHashMap<T, Integer> map, BiConsumer<T, Integer> consumer) {
 		for (var entry : map.entrySet()) {
 			Integer level = entry.getValue();
 			if (level != null && level > 0) {

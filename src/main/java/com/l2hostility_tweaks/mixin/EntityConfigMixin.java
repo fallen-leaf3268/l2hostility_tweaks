@@ -34,23 +34,8 @@ public class EntityConfigMixin {
 
     private static final ResourceLocation NBT_CONDITION_ID = new ResourceLocation("l2hostility_tweaks", "nbt");
 
-    enum Decision {
-        ORDINARY,
-        CONDITIONAL,
-        DISABLED
-    }
-
     @Unique
-    static Decision l2fix$decision(EntityConfigNbtData.State state) {
-        return switch (state) {
-            case NONE -> Decision.ORDINARY;
-            case VALID -> Decision.CONDITIONAL;
-            case INVALID -> Decision.DISABLED;
-        };
-    }
-
-    @Unique
-    static void l2fix$removeDisabledFromConditions(
+    private static void l2fix$removeDisabledFromConditions(
             Map<ResourceLocation, ArrayList<Pair<SpecialConfigCondition<?>, EntityConfig.Config>>> buckets,
             EntityConfig.Config disabled) {
         Iterator<Map.Entry<ResourceLocation,
@@ -69,7 +54,7 @@ public class EntityConfigMixin {
         Map<EntityType<?>, EntityConfig.Config> defaultConfigs = new LinkedHashMap<>();
         for (EntityConfig.Config config : list) {
             EntityConfigNbtData data = (EntityConfigNbtData) (Object) config;
-            if (l2fix$decision(data.l2fix$getNbtConditionState()) == Decision.ORDINARY) {
+            if (data.l2fix$getNbtConditionState() == EntityConfigNbtData.State.NONE) {
                 for (EntityType<?> type : config.entities) {
                     defaultConfigs.put(type, config);
                 }
@@ -79,10 +64,10 @@ public class EntityConfigMixin {
         // Register NBT configs and remove from simple cache
         for (EntityConfig.Config config : list) {
             EntityConfigNbtData data = (EntityConfigNbtData) (Object) config;
-            Decision decision = l2fix$decision(data.l2fix$getNbtConditionState());
-            if (decision == Decision.ORDINARY) continue;
+            EntityConfigNbtData.State state = data.l2fix$getNbtConditionState();
+            if (state == EntityConfigNbtData.State.NONE) continue;
 
-            if (decision == Decision.CONDITIONAL) {
+            if (state == EntityConfigNbtData.State.VALID) {
                 NbtCondition nbtCondition = new NbtCondition(data.l2fix$getNbtCondition());
                 conditions.computeIfAbsent(NBT_CONDITION_ID, k -> new ArrayList<>())
                         .add(Pair.of(nbtCondition, config));

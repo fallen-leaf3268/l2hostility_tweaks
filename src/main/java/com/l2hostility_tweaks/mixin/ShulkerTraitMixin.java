@@ -86,6 +86,7 @@ public abstract class ShulkerTraitMixin {
 		for (Entity entity : player.level().getEntities(player, box,
 				e -> e instanceof LivingEntity && e.isAlive()
 						&& EntitySelector.NO_CREATIVE_OR_SPECTATOR.test(e))) {
+			if (entity instanceof Player candidate && !player.canHarmPlayer(candidate)) continue;
 			boolean ownedByPlayer = entity instanceof OwnableEntity ownable
 					&& player.getUUID().equals(ownable.getOwnerUUID());
 			if (l2fix$isFriendlyCandidate(
@@ -110,7 +111,7 @@ public abstract class ShulkerTraitMixin {
 	}
 
 	@Unique
-	static boolean l2fix$isFriendlyCandidate(boolean candidateAlliedToPlayer,
+	private static boolean l2fix$isFriendlyCandidate(boolean candidateAlliedToPlayer,
 			boolean playerAlliedToCandidate, boolean ownedByPlayer) {
 		return candidateAlliedToPlayer || playerAlliedToCandidate || ownedByPlayer;
 	}

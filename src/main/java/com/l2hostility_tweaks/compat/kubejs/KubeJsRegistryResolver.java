@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.function.Function;
+import java.util.StringJoiner;
 
 public final class KubeJsRegistryResolver {
 
@@ -24,5 +25,27 @@ public final class KubeJsRegistryResolver {
             LOGGER.error("Unknown {}: {}", registryType, id);
         }
         return value;
+    }
+
+    static boolean validateNonNegative(String field, int value) {
+        if (value >= 0) return true;
+        LOGGER.error("Invalid {}: {}. Expected a non-negative value", field, value);
+        return false;
+    }
+
+    static boolean validatePositive(String field, int value) {
+        if (value >= 1) return true;
+        LOGGER.error("Invalid {}: {}. Expected a positive value", field, value);
+        return false;
+    }
+
+    static void requireValidTraitConfiguration(ResourceLocation traitId, String... errors) {
+        StringJoiner details = new StringJoiner(", ");
+        for (String error : errors) {
+            if (error != null) details.add(error);
+        }
+        if (details.length() > 0) {
+            throw new IllegalStateException("Invalid KubeJS trait " + traitId + ": " + details);
+        }
     }
 }

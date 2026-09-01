@@ -74,7 +74,7 @@ public class CounterStrikeTraitMixin {
 	}
 
 	@Unique
-	static java.util.UUID l2fix$clearInvalidTarget(java.util.UUID strikeId, boolean targetValid) {
+	private static java.util.UUID l2fix$clearInvalidTarget(java.util.UUID strikeId, boolean targetValid) {
 		return targetValid ? strikeId : null;
 	}
 }

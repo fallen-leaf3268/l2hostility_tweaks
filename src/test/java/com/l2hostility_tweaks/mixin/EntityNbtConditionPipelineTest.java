@@ -1,6 +1,5 @@
 package com.l2hostility_tweaks.mixin;
 
-import com.l2hostility_tweaks.util.EntityConfigNbtData;
 import com.mojang.datafixers.util.Pair;
 import dev.xkmc.l2hostility.content.config.EntityConfig;
 import dev.xkmc.l2hostility.content.config.SpecialConfigCondition;
@@ -18,21 +17,23 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EntityNbtConditionPipelineTest {
 
 	@Test
-	void invalidConditionsAreDisabledInsteadOfOrdinary() {
-		assertEquals(EntityConfigMixin.Decision.ORDINARY,
-				EntityConfigMixin.l2fix$decision(EntityConfigNbtData.State.NONE));
-		assertEquals(EntityConfigMixin.Decision.CONDITIONAL,
-				EntityConfigMixin.l2fix$decision(EntityConfigNbtData.State.VALID));
-		assertEquals(EntityConfigMixin.Decision.DISABLED,
-				EntityConfigMixin.l2fix$decision(EntityConfigNbtData.State.INVALID));
-		assertNotEquals(EntityConfigMixin.Decision.ORDINARY,
-				EntityConfigMixin.l2fix$decision(EntityConfigNbtData.State.INVALID));
+	void invalidConditionsAreDisabledWithoutMixinInnerTypes() throws IOException {
+		String source = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/mixin/EntityConfigMixin.java"));
+		String compact = source.replaceAll("\\s+", " ");
+
+		assertFalse(source.contains("enum Decision"));
+		assertFalse(source.contains("l2fix$decision"));
+		assertTrue(compact.contains("data.l2fix$getNbtConditionState() == " +
+				"EntityConfigNbtData.State.NONE"));
+		assertTrue(compact.contains("EntityConfigNbtData.State state = " +
+				"data.l2fix$getNbtConditionState();"));
+		assertTrue(compact.contains("state == EntityConfigNbtData.State.VALID"));
 	}
 
 	@Test
@@ -46,7 +47,8 @@ class EntityNbtConditionPipelineTest {
 		buckets.put(mixedId, pairs(disabled, retained, disabled));
 		buckets.put(disabledOnlyId, pairs(disabled));
 
-		EntityConfigMixin.l2fix$removeDisabledFromConditions(buckets, disabled);
+		MixinTestInvoker.call(EntityConfigMixin.class,
+				"l2fix$removeDisabledFromConditions", buckets, disabled);
 
 		assertEquals(1, buckets.size());
 		assertEquals(1, buckets.get(mixedId).size());
@@ -56,10 +58,12 @@ class EntityNbtConditionPipelineTest {
 
 	@Test
 	void scansResourcesOnlyForEntityConfigMerges() {
-		assertFalse(ConfigMergerMixin.l2fix$containsEntityConfig(List.of(new BaseConfig())));
-		assertTrue(ConfigMergerMixin.l2fix$containsEntityConfig(List.of(new EntityConfig())));
-		assertTrue(ConfigMergerMixin.l2fix$containsEntityConfig(
-				List.of(new BaseConfig(), new EntityConfig())));
+		assertFalse(MixinTestInvoker.<Boolean>call(ConfigMergerMixin.class,
+				"l2fix$containsEntityConfig", List.of(new BaseConfig())));
+		assertTrue(MixinTestInvoker.<Boolean>call(ConfigMergerMixin.class,
+				"l2fix$containsEntityConfig", List.of(new EntityConfig())));
+		assertTrue(MixinTestInvoker.<Boolean>call(ConfigMergerMixin.class,
+				"l2fix$containsEntityConfig", List.of(new BaseConfig(), new EntityConfig())));
 	}
 
 	@Test
@@ -72,7 +76,8 @@ class EntityNbtConditionPipelineTest {
 		assertTrue(merger.contains("EntityConfigNbtData"));
 		assertTrue(merger.contains("l2fix$setNbtCondition"));
 		assertTrue(classifier.contains("EntityConfigNbtData"));
-		assertTrue(classifier.contains("case INVALID -> Decision.DISABLED"));
+		assertTrue(classifier.contains("state == EntityConfigNbtData.State.VALID"));
+		assertTrue(classifier.contains("l2fix$removeDisabledFromConditions(conditions, config)"));
 		assertFalse(merger.contains("java.lang.reflect.Field"));
 		assertFalse(classifier.contains("java.lang.reflect.Field"));
 		assertFalse(merger.contains("Map<String, Object>"));

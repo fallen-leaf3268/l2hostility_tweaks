@@ -42,8 +42,8 @@ public class RagnarokTraitMixin {
 		return true;
 	}
 
-	@Inject(method = "sealItems", at = @At("HEAD"), cancellable = true)
-	private void l2fix$ragnarokSeal(int level, LivingEntity target, CallbackInfo ci) {
+	@Inject(method = "postHurtImpl", at = @At("HEAD"), cancellable = true)
+	private void l2fix$ragnarokSeal(int level, LivingEntity attacker, LivingEntity target, CallbackInfo ci) {
 		int count = L2HConfig.getRagnarokCount(level);
 		int time = L2HConfig.getRagnarokTime(level);
 		List<EntitySlotAccess> list = new ArrayList<>(CurioCompat.getItemAccess(target)

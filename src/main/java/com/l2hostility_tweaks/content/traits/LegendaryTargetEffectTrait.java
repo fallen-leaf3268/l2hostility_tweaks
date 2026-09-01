@@ -36,6 +36,16 @@ public class LegendaryTargetEffectTrait extends LegendaryTrait {
 		EffectUtil.addEffect(target, func.apply(level), EffectUtil.AddReason.NONE, attacker);
 	}
 
+	public static Component formatAmplifier(int amplifier) {
+		return amplifier <= 5 ? Component.translatable("potion.potency." + amplifier) :
+				Component.literal(Long.toString((long) amplifier + 1));
+	}
+
+	public static int scaleAmplifier(int level, int amplifierPerLevel) {
+		long scaled = ((long) level - 1) * amplifierPerLevel;
+		return scaled >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) scaled;
+	}
+
 	@Override
 	public void addDetail(List<Component> list) {
 		super.addDetail(list);
@@ -46,7 +56,7 @@ public class LegendaryTargetEffectTrait extends LegendaryTrait {
 			MobEffect mobeffect = ins.getEffect();
 			if (ins.getAmplifier() > 0) {
 				ans = Component.translatable("potion.withAmplifier", ans,
-						Component.translatable("potion.potency." + ins.getAmplifier()));
+						formatAmplifier(ins.getAmplifier()));
 			}
 			if (!ins.endsWithin(20)) {
 				ans = Component.translatable("potion.withDuration", ans,

@@ -119,6 +119,65 @@ class ImmunityHelperCacheTest {
     }
 
     @Test
+    void ringBypassUsesTheSameIndirectAttackerResolutionAsAttackCache() throws IOException {
+        String helper = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/util/ImmunityHelper.java"));
+        String attackCache = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/AttackCacheMixin.java"));
+        String adapting = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/AdaptingTraitMixin.java"));
+        String dementor = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/DementorTraitMixin.java"));
+        String traitImmunity = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/MobTraitImmunityMixin.java"));
+
+        assertTrue(helper.contains("resolveLivingAttacker(DamageSource source)"));
+        assertTrue(helper.contains("source.getDirectEntity()"));
+        assertTrue(helper.contains("direct instanceof Projectile"));
+        assertTrue(attackCache.contains("ImmunityHelper.resolveLivingAttacker(source)"));
+        assertTrue(adapting.contains("ImmunityHelper.resolveLivingAttacker(event.getSource())"));
+        assertFalse(adapting.contains("cache.getAttacker()"));
+        assertTrue(dementor.contains("ImmunityHelper.resolveLivingAttacker(event.getSource())"));
+        assertFalse(dementor.contains("cache.getAttacker()"));
+        assertTrue(traitImmunity.contains("ImmunityHelper.resolveLivingAttacker(source)"));
+    }
+
+    @Test
+    void adaptiveMixinTargetsTheDeclaredLivingHurtHook() throws IOException {
+        String adapting = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/AdaptingTraitMixin.java"));
+
+        assertTrue(adapting.contains("@Inject(method = \"onHurtByOthers\""));
+        assertTrue(adapting.contains("LivingHurtEvent event"));
+        assertFalse(adapting.contains("@Inject(method = \"onDamaged\""));
+        assertFalse(adapting.contains("AttackCache cache"));
+    }
+
+    @Test
+    void dementorMixinTargetsTheDeclaredLivingAttackHook() throws IOException {
+        String dementor = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/DementorTraitMixin.java"));
+
+        assertTrue(dementor.contains("@Inject(method = \"onAttackedByOthers\""));
+        assertTrue(dementor.contains("LivingAttackEvent event"));
+        assertTrue(dementor.contains("event.setCanceled(true)"));
+        assertTrue(dementor.contains("@Inject(method = \"onCreateSource\""));
+        assertFalse(dementor.contains("@Inject(method = \"onDamaged\""));
+        assertFalse(dementor.contains("AttackCache cache"));
+    }
+
+    @Test
+    void gravityMixinTargetsTheClassThatDeclaresCanApply() throws IOException {
+        String gravity = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/GravityTraitMixin.java"));
+
+        assertTrue(gravity.contains("@Mixin(value = AuraEffectTrait.class"));
+        assertTrue(gravity.contains("@Inject(method = \"canApply\""));
+        assertTrue(gravity.contains("((Object) this) instanceof GravityTrait"));
+        assertFalse(gravity.contains("@Mixin(value = GravityTrait.class"));
+    }
+
+    @Test
     void combatSnapshotKeepsBypassFlagsAndRingOrder() {
         var snapshot = new ImmunityHelper.CombatCurioSnapshot(
                 true, false, true, List.of(0.65f, 1.25f));
@@ -127,6 +186,17 @@ class ImmunityHelperCacheTest {
         assertFalse(snapshot.bypassDementor());
         assertTrue(snapshot.bypassAdaptive());
         assertEquals(List.of(0.65f, 1.25f), snapshot.ringMultipliers());
+    }
+
+    @Test
+    void sameRingInstanceOnlyAddsOneMultiplier() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/util/ImmunityHelper.java"));
+        String compact = source.replaceAll("\\s+", " ");
+
+        assertTrue(compact.contains("seenRings = Collections.newSetFromMap(new IdentityHashMap<>());"));
+        assertTrue(compact.contains("if (!seenRings.add(ring)) return false;"));
+        assertTrue(compact.contains("ringMultipliers.add(ring.getDamageMultiplier());"));
     }
 
     @SuppressWarnings("unchecked")

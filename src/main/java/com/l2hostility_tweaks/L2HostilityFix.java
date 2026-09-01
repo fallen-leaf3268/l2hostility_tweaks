@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import top.theillusivec4.curios.api.SlotTypeMessage;
@@ -78,10 +79,10 @@ public class L2HostilityFix {
         L2HFItems.register();
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientL2HConfig.CLIENT_SPEC, "l2_configs/l2hostility_tweaks-client.toml");
         L2HFEnchantments.REGISTRY.register(FMLJavaModLoadingContext.get().getModEventBus());
+        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onCommonSetup);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onBuildCreativeTab);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onConfigReload);
         MinecraftForge.EVENT_BUS.register(this);
-        AttackEventHandler.register(4500, new RingDamageListener());
         InterModComms.sendTo("curios", SlotTypeMessage.REGISTER_TYPE,
                 () -> new SlotTypeMessage.Builder("belt")
                         .size(1)
@@ -89,6 +90,10 @@ public class L2HostilityFix {
                         .priority(180)
                         .build());
         EntityFeature.STABLE_BODY.add(new CurioFeaturePredicate(() -> L2HFItems.TRANQUIL_BELT.get()));
+    }
+
+    private void onCommonSetup(FMLCommonSetupEvent event) {
+        event.enqueueWork(() -> AttackEventHandler.register(4500, new RingDamageListener()));
     }
 
 	private void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {
@@ -193,21 +198,23 @@ public class L2HostilityFix {
             lastUpstreamDisplayConfig = current;
         }
         if (pendingTraitSync.isEmpty()) return;
-        Iterator<java.util.UUID> it = pendingTraitSync.iterator();
-        while (it.hasNext()) {
-            java.util.UUID uuid = it.next();
-            ServerPlayer player = event.getServer().getPlayerList().getPlayer(uuid);
-            if (player == null || player.isRemoved()) {
+        synchronized (pendingTraitSync) {
+            Iterator<java.util.UUID> it = pendingTraitSync.iterator();
+            while (it.hasNext()) {
+                java.util.UUID uuid = it.next();
+                ServerPlayer player = event.getServer().getPlayerList().getPlayer(uuid);
+                if (player == null || player.isRemoved()) {
+                    it.remove();
+                    continue;
+                }
+                if (MobTraitCap.HOLDER.isProper(player)) {
+                    MobTraitCap cap = MobTraitCap.HOLDER.get(player);
+                    cap.syncToClient(player);
+                    cap.syncToPlayer(player, player);
+                    LOGGER.debug("SYNC: delayed sync for player={}", player.getName().getString());
+                }
                 it.remove();
-                continue;
             }
-            if (MobTraitCap.HOLDER.isProper(player)) {
-                MobTraitCap cap = MobTraitCap.HOLDER.get(player);
-                cap.syncToClient(player);
-                cap.syncToPlayer(player, player);
-                LOGGER.debug("SYNC: delayed sync for player={}", player.getName().getString());
-            }
-            it.remove();
         }
     }
 

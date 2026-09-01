@@ -17,7 +17,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -73,13 +72,11 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
     @Unique
     private Set<String> l2fix$extraLegendaryIds;
 
-    // === 早期拦截：关闭生物等级 / 关闭全部词条 ===
-    @ModifyVariable(method = "generateTraits", at = @At("HEAD"), argsOnly = true, index = 2)
-    private static int l2fix$overrideMobLevel(int mobLevel) {
-        if (L2HConfig.isDisableAllTraits()) {
-            return 0;
-        }
-        return mobLevel;
+    @Inject(method = "generateTraits", at = @At("HEAD"), cancellable = true, require = 1)
+    private static void l2fix$disableAllTraitGeneration(
+            MobTraitCap cap, LivingEntity entity, int mobLevel,
+            HashMap<MobTrait, Integer> traits, MobDifficultyCollector ins, CallbackInfo ci) {
+        if (L2HConfig.isDisableAllTraits()) ci.cancel();
     }
 
     // === 早期拦截：关闭非预设词条（保留 genBase 预设，跳过随机生成） ===
@@ -90,11 +87,19 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
         }
     }
 
+    @Redirect(method = "genBase", at = @At(value = "INVOKE",
+            target = "Ldev/xkmc/l2hostility/content/logic/TraitGenerator;setRank(Ldev/xkmc/l2hostility/content/traits/base/MobTrait;I)V"),
+            require = 1)
+    private void l2fix$applyPresetRank(TraitGenerator self, MobTrait trait, int newRank) {
+        if (newRank > 0) l2fix$appliedPresetIds.add(trait.getID());
+        l2fix$applyRank(trait, newRank);
+    }
+
     @Inject(method = "genBase", at = @At(
             value = "INVOKE",
             target = "Ldev/xkmc/l2hostility/content/logic/TraitGenerator;setRank(Ldev/xkmc/l2hostility/content/traits/base/MobTrait;I)V",
             shift = At.Shift.AFTER), require = 1)
-    private void l2fix$recordAppliedPreset(EntityConfig.TraitBase preset, CallbackInfo ci) {
+    private void l2fix$confirmAppliedPreset(EntityConfig.TraitBase preset, CallbackInfo ci) {
         MobTrait trait = preset.trait();
         if (trait != null && traits.containsKey(trait)) {
             l2fix$appliedPresetIds.add(trait.getID());
@@ -129,6 +134,11 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
             at = @At(value = "INVOKE",
                     target = "Ldev/xkmc/l2hostility/content/logic/TraitGenerator;setRank(Ldev/xkmc/l2hostility/content/traits/base/MobTrait;I)V"))
     private void l2fix$redirectSetRank(TraitGenerator self, MobTrait trait, int newRank) {
+        l2fix$applyRank(trait, newRank);
+    }
+
+    @Unique
+    private void l2fix$applyRank(MobTrait trait, int newRank) {
         if (newRank <= 0) return;
 
         int cost = ins != null ? trait.getCost(ins.trait_cost) : 1;
@@ -144,20 +154,9 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
             int diff = l2fix$mobLevel;
             if (diff < L2HConfig.COMMON.levelCapUnlimited.get()
                     && !l2fix$protectedIds.contains(trait.getID())) {
-                int maxLv = l2fix$globalLevelCap;
                 int[] custom = l2fix$perTraitCaps.get(trait.getID());
-                if (custom != null) {
-                    int idx = capped - 2;
-                    if (idx >= 0 && idx < custom.length && diff < custom[idx]) {
-                        int allowed = 0;
-                        for (int val : custom) {
-                            if (diff >= val) allowed++;
-                            else break;
-                        }
-                        maxLv = Math.min(maxLv, allowed + 1);
-                    }
-                }
-                if (capped > maxLv) capped = maxLv;
+                capped = L2HConfig.applyPerTraitLevelCap(
+                        capped, l2fix$globalLevelCap, diff, custom);
             }
         }
 
@@ -201,7 +200,7 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
 
         l2fix$mobLevel = mobLevel;
 
-        l2fix$protectedIds = Set.copyOf(l2fix$appliedPresetIds);
+        l2fix$protectedIds = l2fix$appliedPresetIds;
 
         l2fix$globalLevelCap = L2HConfig.getThreshold(
                 L2HConfig.getLevelThresholds(), l2fix$mobLevel);

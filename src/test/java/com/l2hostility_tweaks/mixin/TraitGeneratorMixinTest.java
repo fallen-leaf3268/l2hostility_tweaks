@@ -120,7 +120,7 @@ class TraitGeneratorMixinTest {
     }
 
     @Test
-    void appliedOrdinaryAndConditionMatchedNbtPresetsShareProtection() throws IOException {
+    void appliedOrdinaryAndConditionMatchedNbtPresetsShareProtection() throws Exception {
         String helper = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/generation/TraitGenerationHelper.java"));
         String generator = Files.readString(Path.of(
@@ -137,10 +137,66 @@ class TraitGeneratorMixinTest {
         assertFalse(generator.contains("traits.put(mt, minLevel)"));
         assertFalse(generator.contains("l2fix$shouldApplyPreset"));
         assertTrue(postRoll.contains("implements TraitGenerationHelper.PresetState"));
-        assertTrue(postRoll.contains("target = \"Ldev/xkmc/l2hostility/content/logic/TraitGenerator;setRank"));
         assertTrue(postRoll.contains("shift = At.Shift.AFTER), require = 1"));
         assertTrue(postRoll.contains("trait != null && traits.containsKey(trait)"));
-        assertTrue(postRoll.contains("l2fix$appliedPresetIds.add(trait.getID())"));
+        assertTrue(postRoll.contains("l2fix$protectedIds = l2fix$appliedPresetIds;"));
+
+        Method presetHook = Arrays.stream(TraitPostRollMixin.class.getDeclaredMethods())
+                .filter(method -> method.getName().equals("l2fix$applyPresetRank"))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(presetHook);
+        Redirect redirect = presetHook.getAnnotation(Redirect.class);
+        assertNotNull(redirect);
+        assertEquals(List.of("genBase"), List.of(redirect.method()));
+        assertEquals(1, redirect.require());
+        assertEquals("Ldev/xkmc/l2hostility/content/logic/TraitGenerator;setRank" +
+                "(Ldev/xkmc/l2hostility/content/traits/base/MobTrait;I)V",
+                redirect.at().target());
+
+        List<String> calls = methodCalls(TraitPostRollMixin.class,
+                "l2fix$applyPresetRank",
+                "(Ldev/xkmc/l2hostility/content/logic/TraitGenerator;" +
+                        "Ldev/xkmc/l2hostility/content/traits/base/MobTrait;I)V");
+        String add = "java/util/Set#add(Ljava/lang/Object;)Z";
+        String apply = "com/l2hostility_tweaks/mixin/TraitPostRollMixin#l2fix$applyRank" +
+                "(Ldev/xkmc/l2hostility/content/traits/base/MobTrait;I)V";
+        assertTrue(calls.indexOf(add) >= 0);
+        assertTrue(calls.indexOf(add) < calls.indexOf(apply));
+    }
+
+    @Test
+    void disableAllTraitsCancelsBeforeTraitGeneratorConstruction() throws Exception {
+        Method hook = Arrays.stream(TraitPostRollMixin.class.getDeclaredMethods())
+                .filter(method -> method.getName().equals("l2fix$disableAllTraitGeneration"))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(hook);
+        assertTrue(java.lang.reflect.Modifier.isStatic(hook.getModifiers()));
+
+        Inject inject = hook.getAnnotation(Inject.class);
+        assertNotNull(inject);
+        assertEquals(List.of("generateTraits"), List.of(inject.method()));
+        assertTrue(inject.cancellable());
+        assertEquals(1, inject.require());
+        assertEquals("HEAD", inject.at()[0].value());
+
+        List<String> calls = methodCalls(TraitPostRollMixin.class,
+                "l2fix$disableAllTraitGeneration",
+                "(Ldev/xkmc/l2hostility/content/capability/mob/MobTraitCap;" +
+                        "Lnet/minecraft/world/entity/LivingEntity;ILjava/util/HashMap;" +
+                        "Ldev/xkmc/l2hostility/content/logic/MobDifficultyCollector;" +
+                        "Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfo;)V");
+        String disabled = "com/l2hostility_tweaks/config/L2HConfig#isDisableAllTraits()Z";
+        String cancel = "org/spongepowered/asm/mixin/injection/callback/CallbackInfo#cancel()V";
+        assertTrue(calls.indexOf(disabled) >= 0);
+        assertTrue(calls.indexOf(disabled) < calls.indexOf(cancel));
+
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/TraitPostRollMixin.java"));
+        assertFalse(source.contains("l2fix$overrideMobLevel"));
+        assertFalse(source.contains("l2fix$disableAllPresets"));
+        assertFalse(source.contains("ModifyVariable"));
     }
 
     @Test
@@ -163,6 +219,21 @@ class TraitGeneratorMixinTest {
                 applyDescriptor;
         assertTrue(finalFilterCalls.indexOf(entityRandom) >= 0);
         assertTrue(finalFilterCalls.indexOf(entityRandom) < finalFilterCalls.indexOf(applyExclusions));
+    }
+
+    @Test
+    void equalLevelLegendaryTraitsUseEntityRandomWithoutCrossingLevelOrder() throws IOException {
+        String helper = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/generation/TraitGenerationHelper.java"));
+        String compact = helper.replaceAll("\\s+", " ");
+
+        assertTrue(compact.contains("legendaries.sort((first, second) -> " +
+                "Integer.compare(second.getValue(), first.getValue()));"));
+        assertTrue(compact.contains("l2fix$shuffleEqualLevelLegendaries(legendaries, entity.getRandom());"));
+        assertTrue(compact.contains("while (end < legendaries.size() && " +
+                "legendaries.get(end).getValue().equals(legendaries.get(start).getValue()))"));
+        assertTrue(compact.contains("random.nextInt(index - start + 1)"));
+        assertTrue(compact.contains("Collections.swap(legendaries, index, swapIndex);"));
     }
 
     @Test

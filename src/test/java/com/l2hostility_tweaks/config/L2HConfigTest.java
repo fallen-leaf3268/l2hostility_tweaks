@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -23,6 +24,34 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class L2HConfigTest {
+
+    @Test
+    void higherRolledRankCannotBypassEarlierPerTraitThreshold() {
+        assertEquals(2, L2HConfig.applyPerTraitLevelCap(
+                5, 5, 150, new int[]{100, 200}));
+    }
+
+    @Test
+    void perTraitThresholdsNeverDecreaseAtHigherLevels() {
+        Map<String, int[]> parsed = L2HConfig.parsePerTraitThresholds(List.of(
+                "l2hostility:repelling,200,100,300"));
+
+        assertArrayEquals(new int[]{200, 200, 300},
+                parsed.get("l2hostility:repelling"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void globalThresholdLimitsNeverDecreaseAtHigherDifficulty() throws Exception {
+        Method parser = L2HConfig.class.getDeclaredMethod("parseThresholds", List.class);
+        parser.setAccessible(true);
+        List<int[]> parsed = (List<int[]>) parser.invoke(null, List.of(
+                "200,2", "100,3", "300,5"));
+
+        assertArrayEquals(new int[]{100, 3}, parsed.get(0));
+        assertArrayEquals(new int[]{200, 3}, parsed.get(1));
+        assertArrayEquals(new int[]{300, 5}, parsed.get(2));
+    }
 
     @Test
     void exponentialCostDescriptionMatchesRuntimeSchedule() throws IOException {
@@ -84,11 +113,115 @@ class L2HConfigTest {
     }
 
     @Test
+    void dropsUnknownExclusionRules() {
+        var groups = L2HConfig.parseExclusionGroups(List.of(
+                "frist,l2hostility:gravity,l2hostility:moonwalk",
+                "roll,l2hostility:gravity,l2hostility:moonwalk"));
+
+        assertEquals(1, groups.size());
+        assertEquals("roll", groups.get(0).rule());
+    }
+
+    @Test
+    void canonicalizesExclusionRuleCase() {
+        var groups = L2HConfig.parseExclusionGroups(List.of(
+                " FIRST ,l2hostility:gravity,l2hostility:moonwalk"));
+
+        assertEquals(1, groups.size());
+        assertEquals("first", groups.get(0).rule());
+    }
+
+    @Test
+    void requiresTwoDistinctValidTraitsInExclusionGroup() {
+        var groups = L2HConfig.parseExclusionGroups(List.of(
+                "first,l2hostility:gravity,l2hostility:gravity,Invalid Trait ID"));
+
+        assertTrue(groups.isEmpty());
+    }
+
+    @Test
+    void playerTraitOverridesRejectMalformedAndNegativeValues() {
+        Map<String, L2HConfig.PlayerTraitOverride> parsed = L2HConfig.parsePlayerTraitOverrides(List.of(
+                "l2hostility:reprint,-1,20",
+                "l2hostility:dispell,100,-20",
+                "Invalid Trait ID,100,20",
+                "l2hostility:gravity,100,20,extra",
+                "addon:future_trait,0,0"));
+
+        assertEquals(Map.of(
+                "addon:future_trait", new L2HConfig.PlayerTraitOverride(0, 0)), parsed);
+    }
+
+    @Test
     void killerAuraIntervalsRequirePositiveIntegers() {
         assertTrue(L2HConfig.isPositiveInteger(1));
         assertFalse(L2HConfig.isPositiveInteger(0));
         assertFalse(L2HConfig.isPositiveInteger(-1));
         assertFalse(L2HConfig.isPositiveInteger("1"));
+    }
+
+    @Test
+    void sealDurationArrayUsesPositiveIntegerValidation() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/config/L2HConfig.java"));
+
+        assertTrue(source.contains(
+                ".defineList(\"duration_array\", List.of(), L2HConfig::isPositiveInteger);"));
+    }
+
+    @Test
+    void ragnarokArraysRejectInvalidValuesWhileAllowingZeroCount() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/config/L2HConfig.java"));
+
+        assertTrue(source.contains(
+                ".defineList(\"count_array\", List.of(), L2HConfig::isNonNegativeInteger);"));
+        assertTrue(source.contains(
+                ".defineList(\"time_array\", List.of(), L2HConfig::isPositiveInteger);"));
+        assertTrue(source.contains(
+                "value instanceof Integer integer && integer >= 0"));
+    }
+
+    @Test
+    void killerAuraDamageArrayRequiresPositiveIntegers() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/config/L2HConfig.java"));
+        int start = source.indexOf("killerAuraDamageArray =");
+        int end = source.indexOf("killerAuraIntervalArray =", start);
+
+        assertTrue(start >= 0 && end > start);
+        assertTrue(source.substring(start, end).contains(
+                ".defineList(\"damage_array\", List.of(), L2HConfig::isPositiveInteger);"));
+    }
+
+    @Test
+    void dispellArraysRejectInvalidValuesWhileAllowingZeroCount() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/config/L2HConfig.java"));
+        int start = source.indexOf("builder.push(\"dispell\")");
+        int end = source.indexOf("builder.push(\"drain\")", start);
+
+        assertTrue(start >= 0 && end > start);
+        String block = source.substring(start, end);
+        assertTrue(block.contains(
+                ".defineList(\"time_array\", List.of(), L2HConfig::isPositiveInteger);"));
+        assertTrue(block.contains(
+                ".defineList(\"count_array\", List.of(), L2HConfig::isNonNegativeInteger);"));
+    }
+
+    @Test
+    void drainArraysRejectNegativeValuesWhileAllowingZero() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/config/L2HConfig.java"));
+        int start = source.indexOf("builder.push(\"drain\")");
+        int end = source.indexOf("builder.push(\"undying\")", start);
+
+        assertTrue(start >= 0 && end > start);
+        String block = source.substring(start, end);
+        assertEquals(4, block.split(
+                "L2HConfig::isNonNegativeInteger", -1).length - 1);
+        assertTrue(L2HConfig.isNonNegativeInteger(0));
+        assertFalse(L2HConfig.isNonNegativeInteger(-1));
     }
 
     @Test
@@ -140,11 +273,12 @@ class L2HConfigTest {
     void remoteDisplaySnapshotSuppliesTraitMetadata() {
         CompoundTag snapshot = new CompoundTag();
         snapshot.putBoolean("exclusionEnabled", true);
+        snapshot.putBoolean("playerSelfTraitEnabled", false);
         snapshot.putBoolean("playerSelfTraitBalanceEnabled", true);
         snapshot.putDouble("playerSelfTraitBudgetRatio", 2.5);
         snapshot.putInt("playerSelfTraitCostMode", 3);
         snapshot.put("extraLegendaryIds", stringList("addon:legend"));
-        snapshot.put("exclusionGroups", stringList("pair,addon:first,addon:second"));
+        snapshot.put("exclusionGroups", stringList("first,addon:first,addon:second"));
         snapshot.put("playerTraitOverrides", stringList("addon:first,120,9"));
 
         try {
@@ -154,6 +288,7 @@ class L2HConfigTest {
             assertTrue(L2HConfig.isDisplayExclusionEnabled());
             assertEquals(List.of("addon:first", "addon:second"),
                     L2HConfig.getDisplayExclusionGroups().get(0).traitIds());
+            assertFalse(L2HConfig.isDisplayPlayerSelfTraitEnabled());
             assertTrue(L2HConfig.isDisplayPlayerSelfTraitBalanceEnabled());
             assertEquals(2.5, L2HConfig.getDisplayPlayerSelfTraitBudgetRatio());
             assertEquals(4, L2HConfig.getDisplayUpgradeCost(2, 64));

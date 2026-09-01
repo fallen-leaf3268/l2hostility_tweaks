@@ -12,16 +12,22 @@ class LegendaryAllowMixinTest {
 
     @Test
     void bypassesUpstreamGateOnlyWhenExplicitlyEnabled() {
-        assertEquals(5, LegendaryAllowMixin.l2fix$resolveLegendaryGate(false, 5));
-        assertEquals(-1, LegendaryAllowMixin.l2fix$resolveLegendaryGate(true, 5));
+        assertEquals(5, MixinTestInvoker.<Integer>call(
+                LegendaryAllowMixin.class, "l2fix$resolveLegendaryGate", false, 5));
+        assertEquals(-1, MixinTestInvoker.<Integer>call(
+                LegendaryAllowMixin.class, "l2fix$resolveLegendaryGate", true, 5));
     }
 
     @Test
     void bypassesAntibuildUseGateOnlyWhenEffectAndPermissionAreBothPresent() {
-        assertFalse(AntibuildPlaceBypassMixin.l2fix$shouldBypass(false, false));
-        assertFalse(AntibuildPlaceBypassMixin.l2fix$shouldBypass(false, true));
-        assertFalse(AntibuildPlaceBypassMixin.l2fix$shouldBypass(true, false));
-        assertTrue(AntibuildPlaceBypassMixin.l2fix$shouldBypass(true, true));
+        assertFalse(MixinTestInvoker.<Boolean>call(
+                AntibuildPlaceBypassMixin.class, "l2fix$shouldBypass", false, false));
+        assertFalse(MixinTestInvoker.<Boolean>call(
+                AntibuildPlaceBypassMixin.class, "l2fix$shouldBypass", false, true));
+        assertFalse(MixinTestInvoker.<Boolean>call(
+                AntibuildPlaceBypassMixin.class, "l2fix$shouldBypass", true, false));
+        assertTrue(MixinTestInvoker.<Boolean>call(
+                AntibuildPlaceBypassMixin.class, "l2fix$shouldBypass", true, true));
     }
 
     @Test

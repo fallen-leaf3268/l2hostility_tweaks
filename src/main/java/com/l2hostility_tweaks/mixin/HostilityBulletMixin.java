@@ -20,12 +20,15 @@ public class HostilityBulletMixin {
 		Entity owner = ((HostilityBullet) (Object) this).getOwner();
 		if (owner == null) return;
 		if (owner instanceof Player) {
+			Player ownerPlayer = (Player) owner;
 			boolean ownedByOwner = e instanceof OwnableEntity ownable
 					&& owner.getUUID().equals(ownable.getOwnerUUID());
+			boolean canHarmCandidate = !(e instanceof Player candidate)
+					|| ownerPlayer.canHarmPlayer(candidate);
 			cir.setReturnValue(l2fix$isValidPlayerOwnedTarget(
 					e instanceof LivingEntity && e.isAlive(),
 					e == owner,
-					EntitySelector.NO_CREATIVE_OR_SPECTATOR.test(e),
+					EntitySelector.NO_CREATIVE_OR_SPECTATOR.test(e) && canHarmCandidate,
 					e.isAlliedTo(owner),
 					owner.isAlliedTo(e),
 					ownedByOwner));
@@ -48,7 +51,7 @@ public class HostilityBulletMixin {
 	}
 
 	@Unique
-	static boolean l2fix$isValidPlayerOwnedTarget(boolean livingAndAlive,
+	private static boolean l2fix$isValidPlayerOwnedTarget(boolean livingAndAlive,
 			boolean self, boolean vanillaTargetable, boolean candidateAlliedToOwner,
 			boolean ownerAlliedToCandidate, boolean ownedByOwner) {
 		return livingAndAlive && !self && vanillaTargetable

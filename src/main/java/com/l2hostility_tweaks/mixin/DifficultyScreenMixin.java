@@ -34,9 +34,8 @@ public class DifficultyScreenMixin {
 
 		boolean levelCapOn = L2HConfig.isDisplayLevelCapEnabled();
 		boolean legendaryOn = L2HConfig.isDisplayLegendaryEnabled();
-		if ((levelCapOn || legendaryOn) && RANK_CAP_IDX < list.size()) {
-			list.remove(RANK_CAP_IDX);
-		}
+		Pair<Component, Supplier<List<Component>>> levelCapEntry = null;
+		Pair<Component, Supplier<List<Component>>> legendaryEntry = null;
 
 		if (levelCapOn) {
 			MutableComponent text;
@@ -46,7 +45,7 @@ public class DifficultyScreenMixin {
 				int cap = L2HConfig.getThreshold(L2HConfig.getDisplayLevelThresholds(), diff);
 				text = L2HTweaksLang.translate(L2HTweaksLang.LEVEL_CAP, cap);
 			}
-			list.add(RANK_CAP_IDX, Pair.of(text, () -> java.util.List.of()));
+			levelCapEntry = Pair.of(text, () -> java.util.List.of());
 		}
 
 		if (legendaryOn) {
@@ -62,7 +61,23 @@ public class DifficultyScreenMixin {
 					text = L2HTweaksLang.translate(L2HTweaksLang.LEGENDARY_COUNT, limit);
 				}
 			}
-			list.add(RANK_CAP_IDX + 1, Pair.of(text, () -> java.util.List.of()));
+			legendaryEntry = Pair.of(text, () -> java.util.List.of());
+		}
+
+		l2fix$replaceRankCapEntries(list, levelCapEntry, legendaryEntry);
+	}
+
+	private static <T> void l2fix$replaceRankCapEntries(List<T> list, T levelCapEntry, T legendaryEntry) {
+		if (levelCapEntry == null && legendaryEntry == null) return;
+		if (RANK_CAP_IDX < list.size()) {
+			list.remove(RANK_CAP_IDX);
+		}
+		int insertIndex = Math.min(RANK_CAP_IDX, list.size());
+		if (levelCapEntry != null) {
+			list.add(insertIndex++, levelCapEntry);
+		}
+		if (legendaryEntry != null) {
+			list.add(insertIndex, legendaryEntry);
 		}
 	}
 

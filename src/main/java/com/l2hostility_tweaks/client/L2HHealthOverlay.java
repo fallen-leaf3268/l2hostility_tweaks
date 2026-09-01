@@ -2,6 +2,7 @@ package com.l2hostility_tweaks.client;
 
 import com.l2hostility_tweaks.client.config.ClientL2HConfig;
 import com.l2hostility_tweaks.config.L2HConfig;
+import com.l2hostility_tweaks.mixin.BossHealthOverlayAccessor;
 import com.l2hostility_tweaks.util.RomanNumeral;
 
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
@@ -20,8 +21,11 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.client.gui.overlay.ForgeGui;
 import net.minecraftforge.client.gui.overlay.IGuiOverlay;
@@ -96,7 +100,7 @@ public class L2HHealthOverlay implements IGuiOverlay {
 
 	@Override
 	public void render(ForgeGui gui, GuiGraphics g, float partialTick, int width, int height) {
-		if (!L2HConfig.COMMON.showHud.get()) {
+		if (!ClientL2HConfig.CLIENT.showHud.get()) {
 			hideBossBars = false;
 			hudActive = false;
 			trackedEntityId = -1;
@@ -123,7 +127,7 @@ public class L2HHealthOverlay implements IGuiOverlay {
 			LOGGER.debug("PRECOMPUTE skip: mc.level or mc.player null");
 			return;
 		}
-		if (!L2HConfig.COMMON.showHud.get()) {
+		if (!ClientL2HConfig.CLIENT.showHud.get()) {
 			hudActive = false;
 			hideBossBars = false;
 			trackedEntityId = -1;
@@ -132,6 +136,7 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		}
 		var target = getMouseOverEntity(mc, 0f);
 		boolean hasValidTarget = target.isPresent() && !(target.get() instanceof Player);
+		bossEventsActive = !((BossHealthOverlayAccessor) mc.gui.getBossOverlay()).getEvents().isEmpty();
 		HudState state = l2fix$resolveHudState(hasValidTarget, bossEventsActive,
 				ClientL2HConfig.CLIENT.hideHudWithBossbar.get());
 		hudActive = state.hudActive();
@@ -152,10 +157,13 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		Vec3 eyePos = camera.getEyePosition(partialTicks);
 		Vec3 viewVec = camera.getViewVector(1.0F);
 		Vec3 reachVec = eyePos.add(viewVec.x * range, viewVec.y * range, viewVec.z * range);
-		AABB aabb = camera.getBoundingBox().expandTowards(viewVec.scale(range)).inflate(1.0D);
+		BlockHitResult blockHit = mc.level.clip(new ClipContext(
+				eyePos, reachVec, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, camera));
+		Vec3 visibleEnd = l2fix$visibleRayEnd(reachVec, blockHit);
+		AABB aabb = camera.getBoundingBox().expandTowards(visibleEnd.subtract(eyePos)).inflate(1.0D);
 
-		EntityHitResult hit = ProjectileUtil.getEntityHitResult(camera, eyePos, reachVec, aabb,
-				e -> !e.isSpectator() && e.isPickable(), eyePos.distanceToSqr(reachVec));
+		EntityHitResult hit = ProjectileUtil.getEntityHitResult(camera, eyePos, visibleEnd, aabb,
+				e -> !e.isSpectator() && e.isPickable(), eyePos.distanceToSqr(visibleEnd));
 		if (hit != null && hit.getEntity() instanceof LivingEntity living) {
 			if (!MobTraitCap.HOLDER.isProper(living)) return Optional.empty();
 			MobTraitCap cap = MobTraitCap.HOLDER.get(living);
@@ -163,6 +171,10 @@ public class L2HHealthOverlay implements IGuiOverlay {
 				return Optional.of(living);
 		}
 		return Optional.empty();
+	}
+
+	static Vec3 l2fix$visibleRayEnd(Vec3 reachVec, BlockHitResult blockHit) {
+		return blockHit.getType() == HitResult.Type.MISS ? reachVec : blockHit.getLocation();
 	}
 
 	private void renderHealthBar(GuiGraphics g, LivingEntity entity) {

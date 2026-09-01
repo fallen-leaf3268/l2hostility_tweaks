@@ -78,6 +78,15 @@ class PlayerDetectorGlassesCacheMixinTest {
 		assertTrue(network.contains("PROTOCOL_VERSION = \"4\""));
 	}
 
+	@Test
+	void glowToggleDoesNotDependOnInvisibleRevealConfiguration() throws IOException {
+		String glow = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/mixin/ClientGlowingHandlerMixin.java"));
+
+		assertTrue(glow.contains("DetectorGlowState.isGlowDisabled(player)"));
+		assertFalse(glow.contains("L2HConfig.isDisplayDetectorGlassesRevealEnabled()"));
+	}
+
 	private static final class CountingCache extends PlayerDetectorGlassesCacheMixin {
 
 		private int scanCount;

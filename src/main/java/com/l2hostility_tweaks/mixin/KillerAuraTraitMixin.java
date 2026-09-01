@@ -41,12 +41,13 @@ public class KillerAuraTraitMixin {
 			MobTraitCap cap = MobTraitCap.HOLDER.get(mob);
 			AABB box = mob.getBoundingBox().inflate(range);
 			for (var e : mob.level().getEntitiesOfClass(LivingEntity.class, box)) {
-				boolean nonCreativePlayer = e instanceof Player player && !player.getAbilities().instabuild;
+				boolean attackablePlayer = e instanceof Player candidate && !candidate.getAbilities().instabuild &&
+						(!(mob instanceof Player holder) || holder.canHarmPlayer(candidate));
 				boolean candidateTargetsHolder = e instanceof Mob candidateMob && candidateMob.getTarget() == mob;
 				boolean holderTargetsCandidate = mob instanceof Mob holderMob && holderMob.getTarget() == e;
 				boolean recentlyHitByPlayerHolder = mob instanceof Player && e instanceof Mob candidateMob &&
 						candidateMob.getLastHurtByMob() == mob;
-				if (!l2fix$shouldTarget(e == mob, nonCreativePlayer, candidateTargetsHolder,
+				if (!l2fix$shouldTarget(e == mob, attackablePlayer, candidateTargetsHolder,
 						holderTargetsCandidate, recentlyHitByPlayerHolder)) {
 					continue;
 				}
@@ -68,10 +69,10 @@ public class KillerAuraTraitMixin {
 	}
 
 	@Unique
-	static boolean l2fix$shouldTarget(boolean self, boolean nonCreativePlayer,
+	private static boolean l2fix$shouldTarget(boolean self, boolean attackablePlayer,
 									 boolean candidateTargetsHolder, boolean holderTargetsCandidate,
 									 boolean recentlyHitByPlayerHolder) {
-		return !self && (nonCreativePlayer || candidateTargetsHolder ||
+		return !self && (attackablePlayer || candidateTargetsHolder ||
 				holderTargetsCandidate || recentlyHitByPlayerHolder);
 	}
 

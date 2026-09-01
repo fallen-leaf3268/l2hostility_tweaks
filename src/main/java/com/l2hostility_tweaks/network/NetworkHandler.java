@@ -49,19 +49,23 @@ public class NetworkHandler {
 		CHANNEL.registerMessage(0, ToggleGlowPacket.class,
 				ToggleGlowPacket::encode,
 				ToggleGlowPacket::decode,
-				ToggleGlowPacket::handle);
+				ToggleGlowPacket::handle,
+				Optional.of(NetworkDirection.PLAY_TO_SERVER));
 		CHANNEL.registerMessage(1, UnloaderCyclePacket.class,
 				UnloaderCyclePacket::encode,
 				UnloaderCyclePacket::decode,
-				UnloaderCyclePacket::handle);
+				UnloaderCyclePacket::handle,
+				Optional.of(NetworkDirection.PLAY_TO_SERVER));
 		CHANNEL.registerMessage(2, UnloadTraitPacket.class,
 				UnloadTraitPacket::encode,
 				UnloadTraitPacket::decode,
-				UnloadTraitPacket::handle);
+				UnloadTraitPacket::handle,
+				Optional.of(NetworkDirection.PLAY_TO_SERVER));
 		CHANNEL.registerMessage(3, ToggleProtectPacket.class,
 				ToggleProtectPacket::encode,
 				ToggleProtectPacket::decode,
-				ToggleProtectPacket::handle);
+				ToggleProtectPacket::handle,
+				Optional.of(NetworkDirection.PLAY_TO_SERVER));
 		CHANNEL.registerMessage(4, SealStateRequestPacket.class,
 				SealStateRequestPacket::encode,
 				SealStateRequestPacket::decode,
@@ -286,6 +290,7 @@ public class NetworkHandler {
 			ctx.enqueueWork(() -> {
 				ServerPlayer player = ctx.getSender();
 				if (player == null) return;
+				if (!(player.getMainHandItem().getItem() instanceof TraitUnloaderWand)) return;
 				if (!MobTraitCap.HOLDER.isProper(player)) return;
 				MobTraitCap cap = MobTraitCap.HOLDER.get(player);
 				if (!cap.isInitialized() || cap.traits.isEmpty()) return;

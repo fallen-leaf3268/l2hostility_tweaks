@@ -2,6 +2,7 @@ package com.l2hostility_tweaks.client.tooltip;
 
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.init.L2HFEnchantments;
+import com.l2hostility_tweaks.util.ReprintDamageCalculator;
 import dev.xkmc.l2hostility.content.item.traits.SealedItem;
 import dev.xkmc.l2hostility.init.data.LangData;
 import dev.xkmc.l2hostility.init.registrate.LHItems;
@@ -22,10 +23,12 @@ import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 public final class TooltipPipeline {
 
@@ -117,10 +120,7 @@ public final class TooltipPipeline {
         if (!armor && !enchantedBook) {
             return Component.translatable(REPRINT_DESC_ANY).withStyle(ChatFormatting.GRAY);
         }
-        double reduction = reductionPerLevel * level;
-        if (enchantedBook) {
-            reduction = Math.min(reduction, 0.8);
-        }
+        double reduction = ReprintDamageCalculator.counterReduction(level, reductionPerLevel);
         Component number = Component.literal(String.format(Locale.ROOT, "%.0f%%", reduction * 100))
                 .withStyle(ChatFormatting.AQUA);
         String key = armor ? REPRINT_DESC_ARMOR : REPRINT_DESC;
@@ -156,32 +156,65 @@ public final class TooltipPipeline {
     }
 
     private static void addRestorationPocketContents(ItemStack stack, List<Component> tooltip) {
-        int gluttonyLevel = EnchantmentHelper.getTagEnchantmentLevel(
-                L2HFEnchantments.GLUTTONY_POCKET.get(), stack);
         CompoundTag tag = stack.getTag();
-        if (gluttonyLevel <= 0 || tag == null) {
+        if (tag == null) {
             return;
         }
+        List<Integer> storedSlots = storedPocketSlotIndices(tag);
+        if (storedSlots.isEmpty()) return;
 
         int sealedItemLine = findTranslationLine(tooltip, SEALED_ITEM_TOOLTIP);
         if (sealedItemLine >= 0) {
             int insertAt = Math.min(sealedItemLine + 2, tooltip.size());
-            addExtraPocketSlots(tag, gluttonyLevel, tooltip, insertAt);
+            addExtraPocketSlots(tag, storedSlots, tooltip, insertAt);
             return;
         }
 
         int descriptionLine = findTranslationLine(tooltip, RESTORATION_POCKET_DESCRIPTION);
         int insertAt = descriptionLine >= 0 ? descriptionLine + 1 : tooltip.size();
         tooltip.add(insertAt++, LangData.TOOLTIP_SEAL_DATA.get().withStyle(ChatFormatting.GRAY));
-        insertAt = addStoredItem(tag, "UnsealRoot", tooltip, insertAt);
-        addExtraPocketSlots(tag, gluttonyLevel, tooltip, insertAt);
+        for (int slot : storedSlots) {
+            insertAt = addStoredItem(tag, pocketSlotKey(slot), tooltip, insertAt);
+        }
     }
 
-    private static void addExtraPocketSlots(CompoundTag tag, int gluttonyLevel,
-                                            List<Component> tooltip, int insertAt) {
-        for (int i = 1; i <= gluttonyLevel; i++) {
-            insertAt = addStoredItem(tag, "UnsealRoot_" + i, tooltip, insertAt);
+    static boolean hasStoredPocketContents(CompoundTag tag) {
+        return !storedPocketSlotIndices(tag).isEmpty();
+    }
+
+    static List<Integer> storedPocketSlotIndices(CompoundTag tag) {
+        TreeSet<Integer> candidates = new TreeSet<>();
+        if (tag.contains("UnsealRoot", Tag.TAG_COMPOUND)) candidates.add(0);
+        for (String key : tag.getAllKeys()) {
+            if (!key.startsWith("UnsealRoot_") || !tag.contains(key, Tag.TAG_COMPOUND)) continue;
+            try {
+                int index = Integer.parseInt(key.substring("UnsealRoot_".length()));
+                if (index > 0) candidates.add(index);
+            } catch (NumberFormatException ignored) {
+            }
         }
+        List<Integer> stored = new ArrayList<>();
+        for (int index : candidates) {
+            CompoundTag slot = tag.getCompound(pocketSlotKey(index));
+            if (slot.contains(SealedItem.DATA, Tag.TAG_COMPOUND)
+                    && !ItemStack.of(slot.getCompound(SealedItem.DATA)).isEmpty()) {
+                stored.add(index);
+            }
+        }
+        return List.copyOf(stored);
+    }
+
+    private static void addExtraPocketSlots(CompoundTag tag, List<Integer> storedSlots,
+                                            List<Component> tooltip, int insertAt) {
+        for (int slot : storedSlots) {
+            if (slot > 0) {
+                insertAt = addStoredItem(tag, pocketSlotKey(slot), tooltip, insertAt);
+            }
+        }
+    }
+
+    private static String pocketSlotKey(int index) {
+        return index == 0 ? "UnsealRoot" : "UnsealRoot_" + index;
     }
 
     private static int addStoredItem(CompoundTag tag, String key,

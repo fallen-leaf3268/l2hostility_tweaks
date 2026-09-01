@@ -34,7 +34,7 @@ public class TraitRomanMixin {
     }
 
     @Unique
-    static String l2fix$levelText(int value, boolean romanNumerals) {
+    private static String l2fix$levelText(int value, boolean romanNumerals) {
         int level = Math.abs(value);
         if (level <= 1) return null;
         return romanNumerals ? RomanNumeral.toRoman(level) : String.valueOf(level);

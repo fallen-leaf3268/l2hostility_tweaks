@@ -23,6 +23,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import top.theillusivec4.curios.api.CuriosApi;
 import top.theillusivec4.curios.api.SlotContext;
 
+import java.util.List;
+import java.util.TreeSet;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
@@ -42,10 +44,12 @@ public class PocketOfRestorationMixin {
 
 		int abyss = EnchantmentHelper.getTagEnchantmentLevel(L2HFEnchantments.ABYSS_POCKET.get(), stack);
 		int gluttony = EnchantmentHelper.getTagEnchantmentLevel(L2HFEnchantments.GLUTTONY_POCKET.get(), stack);
+		int activeSlots = 1 + gluttony;
+		List<Integer> restoreSlots = l2fix$restorableSlotIndices(stack.getTag(), activeSlots);
 
-		if (gluttony > 0) {
+		if (gluttony > 0 || restoreSlots.size() > activeSlots) {
 			ci.cancel();
-			l2fix$runMultiSlotTick(slotContext, stack, abyss, gluttony);
+			l2fix$runMultiSlotTick(slotContext, stack, abyss, activeSlots, restoreSlots);
 			return;
 		}
 		l2fix$abyssLevel.set(abyss);
@@ -85,13 +89,13 @@ public class PocketOfRestorationMixin {
 	}
 
 	@Unique
-	private void l2fix$runMultiSlotTick(SlotContext slotContext, ItemStack stack, int abyss, int gluttony) {
+	private void l2fix$runMultiSlotTick(SlotContext slotContext, ItemStack stack, int abyss,
+			int activeSlots, List<Integer> restoreSlots) {
 		var le = slotContext.entity();
-		int maxSlots = 1 + gluttony;
 		var list = CurioCompat.getItemAccess(le);
 		boolean changed = false;
 
-		for (int i = 0; i < maxSlots; i++) {
+		for (int i : restoreSlots) {
 			String key = l2fix$slotKey(i);
 			if (stack.getTag() == null || !stack.getTag().contains(key)) continue;
 
@@ -116,7 +120,7 @@ public class PocketOfRestorationMixin {
 		for (var e : list) {
 			if (!(e.get().getItem() instanceof SealedItem)) continue;
 
-			int emptySlot = l2fix$findEmptySlot(stack, maxSlots);
+			int emptySlot = l2fix$findEmptySlot(stack, activeSlots);
 			if (emptySlot < 0) break;
 
 			if (stack.getDamageValue() + 1 + abyss >= stack.getMaxDamage()) break;
@@ -143,6 +147,26 @@ public class PocketOfRestorationMixin {
 		if (changed) {
 			l2fix$syncStack(slotContext, stack);
 		}
+	}
+
+	@Unique
+	private static List<Integer> l2fix$restorableSlotIndices(CompoundTag root, int activeSlots) {
+		TreeSet<Integer> indices = new TreeSet<>();
+		for (int i = 0; i < Math.max(1, activeSlots); i++) {
+			indices.add(i);
+		}
+		if (root != null) {
+			String prefix = PocketOfRestoration.ROOT + "_";
+			for (String key : root.getAllKeys()) {
+				if (!key.startsWith(prefix) || !root.contains(key, Tag.TAG_COMPOUND)) continue;
+				try {
+					int index = Integer.parseInt(key.substring(prefix.length()));
+					if (index > 0) indices.add(index);
+				} catch (NumberFormatException ignored) {
+				}
+			}
+		}
+		return List.copyOf(indices);
 	}
 
 	@Unique
@@ -175,7 +199,7 @@ public class PocketOfRestorationMixin {
 	}
 
 	@Unique
-	static boolean l2fix$restoreStoredItem(boolean originalSlotEmpty, Runnable restoreOriginal,
+	private static boolean l2fix$restoreStoredItem(boolean originalSlotEmpty, Runnable restoreOriginal,
 			BooleanSupplier deliverFallback) {
 		if (originalSlotEmpty) {
 			restoreOriginal.run();
@@ -185,7 +209,7 @@ public class PocketOfRestorationMixin {
 	}
 
 	@Unique
-	static ItemStack l2fix$readStoredItem(CompoundTag tag) {
+	private static ItemStack l2fix$readStoredItem(CompoundTag tag) {
 		if (!l2fix$hasStoredItemData(tag)) {
 			return ItemStack.EMPTY;
 		}
@@ -193,7 +217,7 @@ public class PocketOfRestorationMixin {
 	}
 
 	@Unique
-	static boolean l2fix$hasStoredItemData(CompoundTag tag) {
+	private static boolean l2fix$hasStoredItemData(CompoundTag tag) {
 		return tag != null && tag.contains(SealedItem.DATA, Tag.TAG_COMPOUND);
 	}
 }

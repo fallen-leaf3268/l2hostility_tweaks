@@ -146,6 +146,13 @@ class TraitDisableHelperTest {
     }
 
     @Test
+    void clearsSplitSuppressionOnlyWhenSplitIsReactivatedOnSlime() {
+        assertTrue(TraitDisableHelper.shouldClearSplitSuppression(true, "l2hostility:split"));
+        assertFalse(TraitDisableHelper.shouldClearSplitSuppression(false, "l2hostility:split"));
+        assertFalse(TraitDisableHelper.shouldClearSplitSuppression(true, "l2hostility:tank"));
+    }
+
+    @Test
     void clearingUndyingSealDataAlsoClearsItsResurrectionCount() {
         CompoundTag data = new CompoundTag();
         data.putInt(TraitDisableHelper.UNDYING_COUNT_KEY, 2);
@@ -438,6 +445,14 @@ class TraitDisableHelperTest {
     }
 
     @Test
+    void healthRefreshNeverRevivesAnEntityAtZeroHealth() throws Exception {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/util/TraitDisableHelper.java"));
+
+        assertTrue(source.contains("if (heal && oldHealth > 0 && entity.isAlive())"));
+    }
+
+    @Test
     void capabilityTickOwnsSealMaintenanceWithoutAGlobalLivingTickScan() throws Exception {
         String main = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/L2HostilityFix.java"));
@@ -509,5 +524,19 @@ class TraitDisableHelperTest {
         assertTrue(deathFlow.contains("LOGGER.debug(\"SYNC:"));
         assertTrue(deathFlow.contains("LOGGER.warn(\"CLONE: no death snapshot"));
         assertTrue(deathFlow.contains("LOGGER.warn(\"CLONE: HOLDER.isProper failed"));
+    }
+
+    @Test
+    void delayedTraitSyncHoldsTheSynchronizedSetLockWhileIterating() throws Exception {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/L2HostilityFix.java"));
+        int tickStart = source.indexOf("public void onServerTick");
+        int tickEnd = source.indexOf("public void onPlayerClone", tickStart);
+        String tickFlow = source.substring(tickStart, tickEnd);
+
+        int lock = tickFlow.indexOf("synchronized (pendingTraitSync)");
+        int iterator = tickFlow.indexOf("pendingTraitSync.iterator()");
+        assertTrue(lock >= 0);
+        assertTrue(lock < iterator);
     }
 }

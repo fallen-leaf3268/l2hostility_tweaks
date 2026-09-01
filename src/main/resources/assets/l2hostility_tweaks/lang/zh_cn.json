@@ -42,6 +42,7 @@
   "tooltip.l2hostility_tweaks.player_override.invisible": "仅获得隐身效果",
   "tooltip.l2hostility_tweaks.player_override.dementor": "穿透效果已被修正为无",
   "tooltip.l2hostility_tweaks.player_override.disabled": "玩家修正: 该词条已被禁用",
+  "tooltip.l2hostility_tweaks.player_override.globally_disabled": "服务器已禁用玩家自我词条",
   "tooltip.l2hostility_tweaks.player_override.mutual": "与词条 %s 互斥",
   "tooltip.l2hostility_tweaks.player_override.override": "最低恶意等级:%s 消耗:%s",
 
@@ -51,7 +52,7 @@
   "tooltip.l2hostility_tweaks.tranquil_belt": "佩戴后免疫排斥、吸引、重力词条效果，同时免疫击退和屏幕摇晃",
 
   "item.l2hostility_tweaks.dimension_breaker": "破界爪",
-  "tooltip.l2hostility_tweaks.dimension_breaker": "玩家采掘速度+50%，并将装备者的基础挖掘等级提升至下界合金。可在领域压制状态下正常破坏，放置方块。",
+  "tooltip.l2hostility_tweaks.dimension_breaker": "装备后，对镐、斧、锹可采掘方块，基础采掘速度与采掘等级均至少视为下界合金工具。可在领域压制状态下正常破坏、放置方块。",
   "tooltip.l2hostility_tweaks.dimension_breaker.protect_on": "挖掘保护模式: 开",
   "tooltip.l2hostility_tweaks.dimension_breaker.protect_off": "挖掘保护模式: 关",
 

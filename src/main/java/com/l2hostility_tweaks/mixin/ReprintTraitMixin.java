@@ -110,8 +110,9 @@ public class ReprintTraitMixin {
 		}
 
 		if (antiReprintArmor > 0) {
-			float reduction = antiReprintArmor * (float) L2HConfig.getAntiReprintReduction();
-			cache.addHurtModifier(DamageModifier.multTotal(1 - Math.min(reduction, 0.8f)));
+			float reduction = (float) ReprintDamageCalculator.counterReduction(
+					antiReprintArmor, L2HConfig.getAntiReprintReduction());
+			cache.addHurtModifier(DamageModifier.multTotal(1 - reduction));
 		}
 		cache.addHurtModifier(DamageModifier.multTotal(1 + (float) (L2HConfig.getReprintDamage() * factor)));
 	}
@@ -131,8 +132,9 @@ public class ReprintTraitMixin {
 
 		float factor = ReprintDamageCalculator.calculate(linear, points).factor();
 		if (antiReprintArmor > 0) {
-			float reduction = antiReprintArmor * (float) L2HConfig.getAntiReprintReduction();
-			cache.addHurtModifier(DamageModifier.multTotal(1 - Math.min(reduction, 0.8f)));
+			float reduction = (float) ReprintDamageCalculator.counterReduction(
+					antiReprintArmor, L2HConfig.getAntiReprintReduction());
+			cache.addHurtModifier(DamageModifier.multTotal(1 - reduction));
 		}
 		cache.addHurtModifier(DamageModifier.multTotal(1 + (float) (L2HConfig.getReprintDamage() * factor)));
 	}

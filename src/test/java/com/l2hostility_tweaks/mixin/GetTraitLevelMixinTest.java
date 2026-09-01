@@ -1,7 +1,11 @@
 package com.l2hostility_tweaks.mixin;
 
+import com.l2hostility_tweaks.util.TraitDisableHelper;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -10,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.BiConsumer;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -21,10 +26,53 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GetTraitLevelMixinTest {
 
     @Test
+    void mixinsDoNotDeclareNonPrivateStaticMethods() throws Exception {
+        Pattern invalid = Pattern.compile(
+                "(?m)^\\s*(?!private\\s)(?:public\\s+|protected\\s+)?static\\s+[^=\\n]+\\(");
+        List<String> violations = new ArrayList<>();
+        try (var files = Files.list(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin"))) {
+            files.filter(path -> path.toString().endsWith(".java")).forEach(path -> {
+                try {
+                    String source = Files.readString(path);
+                    if (source.contains("@Mixin") && invalid.matcher(source).find()) {
+                        violations.add(path.getFileName().toString());
+                    }
+                } catch (Exception e) {
+                    throw new AssertionError(e);
+                }
+            });
+        }
+        assertEquals(List.of(), violations);
+    }
+
+    @Test
+    void productionJarIsAlwaysReobfuscated() throws Exception {
+        String buildScript = Files.readString(Path.of("build.gradle"));
+        assertTrue(buildScript.contains("jar.finalizedBy('reobfJar')"));
+    }
+
+    @Test
+    void attackListenerRegistersAfterParallelModConstruction() throws Exception {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/L2HostilityFix.java"));
+        int setupListener = source.indexOf("addListener(this::onCommonSetup)");
+        int setupMethod = source.indexOf("void onCommonSetup(FMLCommonSetupEvent event)");
+        int enqueue = source.indexOf("event.enqueueWork(", setupMethod);
+        int registration = source.indexOf(
+                "AttackEventHandler.register(4500, new RingDamageListener())");
+
+        assertTrue(setupListener >= 0);
+        assertTrue(setupMethod >= 0);
+        assertTrue(enqueue > setupMethod);
+        assertTrue(registration > enqueue);
+    }
+
+    @Test
     void onlyPositiveRawLevelsAreActive() {
-        assertTrue(GetTraitLevelMixin.l2fix$isActiveLevel(1));
-        assertFalse(GetTraitLevelMixin.l2fix$isActiveLevel(0));
-        assertFalse(GetTraitLevelMixin.l2fix$isActiveLevel(-1));
+        assertTrue(MixinTestInvoker.<Boolean>call(GetTraitLevelMixin.class, "l2fix$isActiveLevel", 1));
+        assertFalse(MixinTestInvoker.<Boolean>call(GetTraitLevelMixin.class, "l2fix$isActiveLevel", 0));
+        assertFalse(MixinTestInvoker.<Boolean>call(GetTraitLevelMixin.class, "l2fix$isActiveLevel", -1));
     }
 
     @Test
@@ -88,8 +136,10 @@ class GetTraitLevelMixinTest {
     void clearsCounterStrikeTargetWhenItBecomesInvalid() {
         var strikeId = UUID.randomUUID();
 
-        assertNull(CounterStrikeTraitMixin.l2fix$clearInvalidTarget(strikeId, false));
-        assertSame(strikeId, CounterStrikeTraitMixin.l2fix$clearInvalidTarget(strikeId, true));
+        assertNull(MixinTestInvoker.call(CounterStrikeTraitMixin.class,
+                "l2fix$clearInvalidTarget", strikeId, false));
+        assertSame(strikeId, MixinTestInvoker.call(CounterStrikeTraitMixin.class,
+                "l2fix$clearInvalidTarget", strikeId, true));
     }
 
     @Test
@@ -151,5 +201,74 @@ class GetTraitLevelMixinTest {
         assertTrue(source.contains("MobTraitCap.HOLDER.isProper(attacker)"));
         assertTrue(source.contains("getTraitLevel((ArenaTrait) (Object) this) >= level"));
         assertTrue(source.contains("cache.addDealtModifier(modifier)"));
+    }
+
+    @Test
+    void dispellRestorationKeepsHighestDuplicateEnchantmentLevel() throws Exception {
+        ListTag saved = new ListTag();
+        CompoundTag sharpnessFive = new CompoundTag();
+        sharpnessFive.putString("id", "minecraft:sharpness");
+        sharpnessFive.putShort("lvl", (short) 5);
+        saved.add(sharpnessFive);
+
+        ListTag current = new ListTag();
+        CompoundTag sharpnessOne = new CompoundTag();
+        sharpnessOne.putString("id", "minecraft:sharpness");
+        sharpnessOne.putShort("lvl", (short) 1);
+        current.add(sharpnessOne);
+        CompoundTag mending = new CompoundTag();
+        mending.putString("id", "minecraft:mending");
+        mending.putShort("lvl", (short) 1);
+        current.add(mending);
+
+        Method merge = Arrays.stream(TraitDisableHelper.class.getDeclaredMethods())
+                .filter(method -> method.getName().equals("mergeEnchantments"))
+                .findFirst().orElse(null);
+        assertNotNull(merge);
+        merge.invoke(null, saved, current);
+
+        assertEquals(2, saved.size());
+        assertEquals("minecraft:sharpness", saved.getCompound(0).getString("id"));
+        assertEquals(5, saved.getCompound(0).getShort("lvl"));
+        assertEquals("minecraft:mending", saved.getCompound(1).getString("id"));
+    }
+
+    @Test
+    void bothDispellRestorationEntrypointsUseTheSharedMerge() throws Exception {
+        String equipment = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/DispealEquipmentTickMixin.java"));
+        String upstream = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/EnchantmentDisablerRestoreMixin.java"));
+        String mixins = Files.readString(Path.of(
+                "src/main/resources/l2hostility_tweaks.mixins.json"));
+
+        assertFalse(equipment.contains("saved.addAll(current)"));
+        assertFalse(equipment.contains("static boolean l2fix$mergeEnchantments"));
+        assertTrue(equipment.contains("TraitDisableHelper.mergeEnchantments(saved, current)"));
+        assertTrue(upstream.contains("EnchantmentDisabler.class"));
+        assertTrue(upstream.contains("ListTag;addAll(Ljava/util/Collection;)Z"));
+        assertTrue(upstream.contains("TraitDisableHelper.mergeEnchantments"));
+        assertTrue(mixins.contains("\"EnchantmentDisablerRestoreMixin\""));
+    }
+}
+
+final class MixinTestInvoker {
+
+    @SuppressWarnings("unchecked")
+    static <T> T call(Class<?> owner, String name, Object... args) {
+        for (Method method : owner.getDeclaredMethods()) {
+            if (!method.getName().equals(name) || method.getParameterCount() != args.length) continue;
+            try {
+                method.setAccessible(true);
+                return (T) method.invoke(null, args);
+            } catch (IllegalArgumentException ignored) {
+            } catch (ReflectiveOperationException e) {
+                throw new AssertionError(e);
+            }
+        }
+        throw new AssertionError("Missing static helper " + owner.getName() + "." + name);
+    }
+
+    private MixinTestInvoker() {
     }
 }

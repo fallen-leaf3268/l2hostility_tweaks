@@ -10,10 +10,14 @@ import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.config.ModConfig;
 import org.apache.commons.lang3.tuple.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class L2HConfig {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger("l2htweaks:config");
 
     public static final int MAX_DISPLAY_CONFIG_ENTRIES = 4096;
     public static final int MAX_DISPLAY_CONFIG_STRING_LENGTH = 21_845;
@@ -64,9 +68,6 @@ public class L2HConfig {
         // === 不死 ===
         public final ForgeConfigSpec.IntValue undyingMaxResurrections;
         public final ForgeConfigSpec.IntValue undyingSealDuration;
-
-        // === HUD ===
-        public final ForgeConfigSpec.BooleanValue showHud;
 
         // === 等级限制 ===
         public final ForgeConfigSpec.BooleanValue levelCapEnabled;
@@ -157,21 +158,21 @@ public class L2HConfig {
             sealDurationLinear = builder.comment("线性模式每级封印时间")
                     .defineInRange("duration_linear", 3, 1, 3600);
             sealDurationArray = builder.comment("数组模式每级对应的封印时间")
-                    .defineList("duration_array", List.of(), e -> e instanceof Integer);
+                    .defineList("duration_array", List.of(), L2HConfig::isPositiveInteger);
             builder.pop();
 
             builder.push("ragnarok");
             ragnarokCountArray = builder.comment("诸神黄昏数组模式配置",
                     "每级封印物品数量")
-                    .defineList("count_array", List.of(), e -> e instanceof Integer);
+                    .defineList("count_array", List.of(), L2HConfig::isNonNegativeInteger);
             ragnarokTimeArray = builder.comment("每级封印时长 (tick)")
-                    .defineList("time_array", List.of(), e -> e instanceof Integer);
+                    .defineList("time_array", List.of(), L2HConfig::isPositiveInteger);
             builder.pop();
 
             builder.push("killer_aura");
             killerAuraDamageArray = builder.comment("Killer Aura 数组配置",
                     "每级伤害")
-                    .defineList("damage_array", List.of(), e -> e instanceof Integer);
+                    .defineList("damage_array", List.of(), L2HConfig::isPositiveInteger);
             killerAuraIntervalArray = builder.comment("每级攻击间隔 (tick)，必须大于 0")
                     .defineList("interval_array", List.of(), L2HConfig::isPositiveInteger);
             builder.pop();
@@ -179,21 +180,21 @@ public class L2HConfig {
             builder.push("dispell");
             dispellTimeArray = builder.comment("Dispell 数组配置",
                     "每级封印时长 (tick)")
-                    .defineList("time_array", List.of(), e -> e instanceof Integer);
+                    .defineList("time_array", List.of(), L2HConfig::isPositiveInteger);
             dispellCountArray = builder.comment("每级封印物品数量")
-                    .defineList("count_array", List.of(), e -> e instanceof Integer);
+                    .defineList("count_array", List.of(), L2HConfig::isNonNegativeInteger);
             builder.pop();
 
             builder.push("drain");
             drainDamageArray = builder.comment("Drain 数组配置",
                     "每级伤害加成")
-                    .defineList("damage_array", List.of(), e -> e instanceof Integer);
+                    .defineList("damage_array", List.of(), L2HConfig::isNonNegativeInteger);
             drainDurationArray = builder.comment("每级时长时间")
-                    .defineList("duration_array", List.of(), e -> e instanceof Integer);
+                    .defineList("duration_array", List.of(), L2HConfig::isNonNegativeInteger);
             drainDurationMaxArray = builder.comment("每级最高延长时间 (s)")
-                    .defineList("duration_max_array", List.of(), e -> e instanceof Integer);
+                    .defineList("duration_max_array", List.of(), L2HConfig::isNonNegativeInteger);
             drainCountArray = builder.comment("每级剥夺效果数量")
-                    .defineList("count_array", List.of(), e -> e instanceof Integer);
+                    .defineList("count_array", List.of(), L2HConfig::isNonNegativeInteger);
             builder.pop();
 
             builder.push("undying");
@@ -201,11 +202,6 @@ public class L2HConfig {
                     .defineInRange("max_resurrections", -1, -1, 114514);
             undyingSealDuration = builder.comment("不死词条耗尽后封印时长（秒），-1 永久，0 不封印")
                     .defineInRange("seal_duration", 0, -1, 3600);
-            builder.pop();
-
-            builder.push("hud");
-            showHud = builder.comment("显示自定义血条 HUD")
-                    .define("enabled", false);
             builder.pop();
 
             builder.push("level_cap");
@@ -293,22 +289,46 @@ public class L2HConfig {
 
     public static Map<String, int[]> getPerTraitThresholds() {
         if (parsedPerTraitThresholds == null) {
-            parsedPerTraitThresholds = new LinkedHashMap<>();
-            for (String entry : COMMON.levelCapPerTrait.get()) {
-                int firstComma = entry.indexOf(',');
-                if (firstComma < 0) continue;
-                String traitId = entry.substring(0, firstComma);
-                String[] parts = entry.substring(firstComma + 1).split(",");
-                int[] arr = new int[parts.length];
-                boolean valid = true;
-                for (int i = 0; i < parts.length; i++) {
-                    try { arr[i] = Integer.parseInt(parts[i].trim()); }
-                    catch (NumberFormatException e) { valid = false; break; }
-                }
-                if (valid) parsedPerTraitThresholds.put(traitId, arr);
-            }
+            parsedPerTraitThresholds = parsePerTraitThresholds(COMMON.levelCapPerTrait.get());
         }
         return parsedPerTraitThresholds;
+    }
+
+    static Map<String, int[]> parsePerTraitThresholds(List<? extends String> raw) {
+        Map<String, int[]> result = new LinkedHashMap<>();
+        for (String entry : raw) {
+            int firstComma = entry.indexOf(',');
+            if (firstComma < 0) continue;
+            String traitId = entry.substring(0, firstComma);
+            String[] parts = entry.substring(firstComma + 1).split(",");
+            int[] arr = new int[parts.length];
+            boolean valid = true;
+            for (int i = 0; i < parts.length; i++) {
+                try {
+                    arr[i] = Integer.parseInt(parts[i].trim());
+                    if (i > 0) arr[i] = Math.max(arr[i - 1], arr[i]);
+                } catch (NumberFormatException e) {
+                    valid = false;
+                    break;
+                }
+            }
+            if (valid) result.put(traitId, arr);
+        }
+        return result;
+    }
+
+    public static int applyPerTraitLevelCap(int rolledRank, int globalCap,
+                                            int difficulty, int[] thresholds) {
+        int maxRank = globalCap;
+        if (thresholds != null) {
+            for (int i = 0; i < thresholds.length; i++) {
+                if (difficulty < thresholds[i]) {
+                    maxRank = Math.min(maxRank, i + 1);
+                    break;
+                }
+            }
+        }
+        return Math.min(rolledRank, maxRank);
     }
 
     public static List<int[]> getLegendaryThresholds() {
@@ -337,13 +357,21 @@ public class L2HConfig {
         for (String entry : raw) {
             String[] parts = entry.split(",");
             if (parts.length < 2) continue;
-            String rule = parts[0].trim();
-            List<String> traits = new ArrayList<>();
+            String rule = parts[0].trim().toLowerCase(Locale.ROOT);
+            if (!"first".equals(rule) && !"roll".equals(rule)) {
+                LOGGER.warn("Ignoring exclusion group with unknown rule '{}': {}", parts[0].trim(), entry);
+                continue;
+            }
+            Set<String> traits = new LinkedHashSet<>();
             for (int i = 1; i < parts.length; i++) {
                 String id = parts[i].trim();
                 if (ResourceLocation.tryParse(id) != null) traits.add(id);
             }
-            if (!traits.isEmpty()) result.add(new ExclusionGroup(rule, traits));
+            if (traits.size() < 2) {
+                LOGGER.warn("Ignoring exclusion group with fewer than two distinct valid trait IDs: {}", entry);
+                continue;
+            }
+            result.add(new ExclusionGroup(rule, new ArrayList<>(traits)));
         }
         return result;
     }
@@ -362,6 +390,9 @@ public class L2HConfig {
             }
         }
         result.sort(Comparator.comparingInt(a -> a[0]));
+        for (int i = 1; i < result.size(); i++) {
+            result.get(i)[1] = Math.max(result.get(i - 1)[1], result.get(i)[1]);
+        }
         return result;
     }
 
@@ -482,6 +513,10 @@ public class L2HConfig {
 		return value instanceof Integer integer && integer > 0;
 	}
 
+	static boolean isNonNegativeInteger(Object value) {
+		return value instanceof Integer integer && integer >= 0;
+	}
+
 	static int sanitizeKillerAuraInterval(int interval) {
 		return Math.max(1, interval);
 	}
@@ -587,20 +622,37 @@ public class L2HConfig {
 
     public static Map<String, PlayerTraitOverride> getPlayerTraitOverrides() {
         if (parsedPlayerTraitOverrides == null) {
-            parsedPlayerTraitOverrides = new LinkedHashMap<>();
-            for (String entry : COMMON.playerTraitOverrides.get()) {
-                String[] parts = entry.split(",");
-                if (parts.length < 3) continue;
-                String traitId = parts[0].trim();
-                if (traitId.isEmpty()) continue;
-                try {
-                    int minLevel = Integer.parseInt(parts[1].trim());
-                    int cost = Integer.parseInt(parts[2].trim());
-                    parsedPlayerTraitOverrides.put(traitId, new PlayerTraitOverride(minLevel, cost));
-                } catch (NumberFormatException ignored) {}
-            }
+            parsedPlayerTraitOverrides = parsePlayerTraitOverrides(COMMON.playerTraitOverrides.get());
         }
         return parsedPlayerTraitOverrides;
+    }
+
+    static Map<String, PlayerTraitOverride> parsePlayerTraitOverrides(List<? extends String> values) {
+        Map<String, PlayerTraitOverride> result = new LinkedHashMap<>();
+        for (String entry : values) {
+            String[] parts = entry.split(",", -1);
+            if (parts.length != 3) {
+                LOGGER.warn("Ignoring malformed player trait override: {}", entry);
+                continue;
+            }
+            String traitId = parts[0].trim();
+            if (ResourceLocation.tryParse(traitId) == null) {
+                LOGGER.warn("Ignoring player trait override with invalid trait ID: {}", entry);
+                continue;
+            }
+            try {
+                int minLevel = Integer.parseInt(parts[1].trim());
+                int cost = Integer.parseInt(parts[2].trim());
+                if (minLevel < 0 || cost < 0) {
+                    LOGGER.warn("Ignoring player trait override with negative values: {}", entry);
+                    continue;
+                }
+                result.put(traitId, new PlayerTraitOverride(minLevel, cost));
+            } catch (NumberFormatException ignored) {
+                LOGGER.warn("Ignoring player trait override with non-integer values: {}", entry);
+            }
+        }
+        return Collections.unmodifiableMap(result);
     }
 
     public static void installDisplaySnapshot(CompoundTag tag) {
@@ -650,6 +702,8 @@ public class L2HConfig {
                 readStringSet(tag, "extraLegendaryIds"),
                 tag.contains("exclusionEnabled", Tag.TAG_BYTE) ? tag.getBoolean("exclusionEnabled") : null,
                 readExclusionGroups(tag, "exclusionGroups"),
+                tag.contains("playerSelfTraitEnabled", Tag.TAG_BYTE)
+                        ? tag.getBoolean("playerSelfTraitEnabled") : null,
                 tag.contains("playerSelfTraitBalanceEnabled", Tag.TAG_BYTE)
                         ? tag.getBoolean("playerSelfTraitBalanceEnabled") : null,
                 tag.contains("playerSelfTraitBudgetRatio", Tag.TAG_ANY_NUMERIC)
@@ -713,6 +767,7 @@ public class L2HConfig {
         putStringList(tag, "extraLegendaryIds", COMMON.extraLegendaryIds.get());
         tag.putBoolean("exclusionEnabled", COMMON.exclusionEnabled.get());
         putStringList(tag, "exclusionGroups", COMMON.exclusionGroups.get());
+        tag.putBoolean("playerSelfTraitEnabled", COMMON.playerSelfTraitEnabled.get());
         tag.putBoolean("playerSelfTraitBalanceEnabled", COMMON.playerSelfTraitBalanceEnabled.get());
         tag.putDouble("playerSelfTraitBudgetRatio", COMMON.playerSelfTraitBudgetRatio.get());
         tag.putInt("playerSelfTraitCostMode", COMMON.playerSelfTraitCostMode.get());
@@ -988,6 +1043,12 @@ public class L2HConfig {
                 ? snapshot.playerSelfTraitBalanceEnabled() : isPlayerSelfTraitBalanceEnabled();
     }
 
+    public static boolean isDisplayPlayerSelfTraitEnabled() {
+        DisplaySnapshot snapshot = displaySnapshot;
+        return snapshot != null && snapshot.playerSelfTraitEnabled() != null
+                ? snapshot.playerSelfTraitEnabled() : isPlayerSelfTraitEnabled();
+    }
+
     public static double getDisplayPlayerSelfTraitBudgetRatio() {
         DisplaySnapshot snapshot = displaySnapshot;
         return snapshot != null && snapshot.playerSelfTraitBudgetRatio() != null
@@ -1124,18 +1185,7 @@ public class L2HConfig {
 
     private static Map<String, PlayerTraitOverride> readPlayerTraitOverrides(CompoundTag tag, String key) {
         List<String> values = readStrings(tag, key);
-        if (values == null) return null;
-        Map<String, PlayerTraitOverride> result = new LinkedHashMap<>();
-        for (String entry : values) {
-            String[] parts = entry.split(",");
-            if (parts.length < 3 || parts[0].trim().isEmpty()) continue;
-            try {
-                result.put(parts[0].trim(), new PlayerTraitOverride(
-                        Integer.parseInt(parts[1].trim()), Integer.parseInt(parts[2].trim())));
-            } catch (NumberFormatException ignored) {
-            }
-        }
-        return Collections.unmodifiableMap(result);
+        return values == null ? null : parsePlayerTraitOverrides(values);
     }
 
     private record DisplaySnapshot(
@@ -1182,6 +1232,7 @@ public class L2HConfig {
             Set<String> extraLegendaryIds,
             Boolean exclusionEnabled,
             List<ExclusionGroup> exclusionGroups,
+            Boolean playerSelfTraitEnabled,
             Boolean playerSelfTraitBalanceEnabled,
             Double playerSelfTraitBudgetRatio,
             Integer playerSelfTraitCostMode,

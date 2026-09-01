@@ -5,6 +5,10 @@ public final class ReprintDamageCalculator {
 	private ReprintDamageCalculator() {
 	}
 
+	public static double counterReduction(int level, double reductionPerLevel) {
+		return Math.min(level * reductionPerLevel, 0.8);
+	}
+
 	public static Result calculate(boolean linear, Iterable<Point> points) {
 		long total = 0;
 		int maxLevel = 0;
@@ -17,7 +21,7 @@ public final class ReprintDamageCalculator {
 				counterTotal += level;
 				if (linear) {
 					total -= level;
-				} else if (!highLevel && total >= 0) {
+				} else if (!highLevel) {
 					total -= 1L << (level - 1);
 				}
 				continue;
@@ -28,7 +32,7 @@ public final class ReprintDamageCalculator {
 				total += level;
 			} else if (level >= 30) {
 				highLevel = true;
-			} else if (!highLevel && total >= 0) {
+			} else if (!highLevel) {
 				total += 1L << (level - 1);
 			}
 		}

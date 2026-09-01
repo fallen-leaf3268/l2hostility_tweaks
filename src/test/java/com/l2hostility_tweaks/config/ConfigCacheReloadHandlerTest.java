@@ -8,11 +8,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConfigCacheReloadHandlerTest {
+
+    @Test
+    void ragnarokOverrideTargetsCurrentUpstreamPostHurtMethod() throws Exception {
+        String ragnarok = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/RagnarokTraitMixin.java"));
+
+        assertTrue(ragnarok.contains("@Inject(method = \"postHurtImpl\""));
+        assertTrue(ragnarok.contains(
+                "int level, LivingEntity attacker, LivingEntity target, CallbackInfo ci"));
+        assertFalse(ragnarok.contains("@Inject(method = \"sealItems\""));
+    }
 
     @Test
     void routesInvalidationByExactConfigSpec() throws Exception {
@@ -67,7 +79,7 @@ class ConfigCacheReloadHandlerTest {
                 "drainBaseDamage", "drainDurationArray", "drainBaseDuration",
                 "drainDurationMaxArray", "drainBaseDurationMax", "drainCountArray",
                 "extraLegendaryIds", "exclusionEnabled", "exclusionGroups",
-                "playerSelfTraitBalanceEnabled", "playerSelfTraitBudgetRatio",
+                "playerSelfTraitEnabled", "playerSelfTraitBalanceEnabled", "playerSelfTraitBudgetRatio",
                 "playerSelfTraitCostMode", "playerTraitOverrides"}) {
             assertTrue(config.contains("\"" + key + "\""), key);
         }
@@ -85,6 +97,8 @@ class ConfigCacheReloadHandlerTest {
                 "src/main/java/com/l2hostility_tweaks/client/PlayerTraitScreen.java"));
         String symbol = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/mixin/TraitSymbolMixin.java"));
+        String selfUse = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/TraitSymbolSelfUseMixin.java"));
         String ragnarok = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/mixin/RagnarokTraitMixin.java"));
         String killerAura = Files.readString(Path.of(
@@ -122,6 +136,8 @@ class ConfigCacheReloadHandlerTest {
         assertTrue(symbol.contains("L2HConfig.isDisplayExclusionEnabled()"));
         assertTrue(symbol.contains("L2HConfig.getDisplayExclusionGroups()"));
         assertTrue(symbol.contains("L2HConfig.getDisplayPlayerTraitOverrides()"));
+        assertTrue(symbol.contains("L2HConfig.isDisplayPlayerSelfTraitEnabled()"));
+        assertTrue(selfUse.contains("L2HConfig.isDisplayPlayerSelfTraitEnabled()"));
 
         assertTrue(ragnarok.contains("L2HConfig.getRagnarokCount(level)"));
         assertTrue(ragnarok.contains("L2HConfig.getRagnarokTime(level)"));
@@ -155,7 +171,7 @@ class ConfigCacheReloadHandlerTest {
         assertTrue(difficulty.contains("L2HConfig.getDisplayLevelThresholds()"));
         assertTrue(difficulty.contains("L2HConfig.isDisplayLegendaryEnabled()"));
         assertTrue(difficulty.contains("L2HConfig.getDisplayLegendaryThresholds()"));
-        assertTrue(glowing.contains("L2HConfig.isDisplayDetectorGlassesRevealEnabled()"));
+        assertFalse(glowing.contains("L2HConfig.isDisplayDetectorGlassesRevealEnabled()"));
         assertTrue(invisible.contains("L2HConfig.isDisplayDetectorGlassesRevealEnabled()"));
         assertTrue(invisible.contains("L2HConfig.getDisplayDetectorGlassesRange()"));
         assertTrue(compactInvisible.contains(
@@ -167,5 +183,58 @@ class ConfigCacheReloadHandlerTest {
         int initialBaseline = mod.indexOf("if (lastUpstreamDisplayConfig == null)");
         int loginSnapshot = mod.indexOf("NetworkHandler.sendDisplayConfigToPlayer(sp)");
         assertTrue(initialBaseline >= 0 && initialBaseline < loginSnapshot);
+    }
+
+    @Test
+    void unloaderCycleInterceptsEveryAttackInput() throws Exception {
+        String client = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/client/ClientEventHandler.java"));
+        int handler = client.indexOf(
+                "onAttackInput(InputEvent.InteractionKeyMappingTriggered event)");
+        int attackGuard = client.indexOf("if (!event.isAttack()) return;", handler);
+        int heldItemGuard = client.indexOf("instanceof TraitUnloaderWand", attackGuard);
+        int cycle = client.indexOf("NetworkHandler.sendCycleToServer", heldItemGuard);
+        int cancel = client.indexOf("event.setCanceled(true);", cycle);
+
+        assertFalse(client.contains("PlayerInteractEvent.LeftClickEmpty"));
+        assertTrue(handler >= 0);
+        assertTrue(attackGuard > handler);
+        assertTrue(heldItemGuard > attackGuard);
+        assertTrue(cycle > heldItemGuard);
+        assertTrue(cancel > cycle);
+    }
+
+    @Test
+    void clientActionPacketsAreRestrictedToServerboundTraffic() throws Exception {
+        String network = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/network/NetworkHandler.java"));
+
+        for (String packet : new String[]{
+                "ToggleGlowPacket.class", "UnloaderCyclePacket.class",
+                "UnloadTraitPacket.class", "ToggleProtectPacket.class"}) {
+            int registration = network.indexOf(packet);
+            int nextRegistration = network.indexOf("CHANNEL.registerMessage", registration);
+            String block = network.substring(registration,
+                    nextRegistration >= 0 ? nextRegistration : network.length());
+            assertTrue(block.contains("Optional.of(NetworkDirection.PLAY_TO_SERVER)"), packet);
+        }
+    }
+
+    @Test
+    void unloadPacketRequiresServerVerifiedMainHandWandBeforeMutation() throws Exception {
+        String network = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/network/NetworkHandler.java"));
+        int packet = network.indexOf("public record UnloadTraitPacket");
+        int handler = network.indexOf("public static void handle", packet);
+        int heldItemGuard = network.indexOf(
+                "player.getMainHandItem().getItem() instanceof TraitUnloaderWand", handler);
+        int capabilityRead = network.indexOf("MobTraitCap.HOLDER.isProper(player)", handler);
+        int mutation = network.indexOf("TraitUnloaderWand.unload", handler);
+
+        assertTrue(packet >= 0);
+        assertTrue(handler > packet);
+        assertTrue(heldItemGuard > handler);
+        assertTrue(capabilityRead > heldItemGuard);
+        assertTrue(mutation > capabilityRead);
     }
 }

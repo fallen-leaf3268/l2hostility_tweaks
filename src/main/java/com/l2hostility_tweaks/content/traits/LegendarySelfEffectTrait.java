@@ -39,7 +39,8 @@ public class LegendarySelfEffectTrait extends LegendaryTrait {
 		if (mob.level().isClientSide()) return;
 		int d = duration > 0 ? duration : PerformanceConstants.selfEffectInterval();
 		EffectUtil.refreshEffect(mob,
-				new MobEffectInstance(effect.get(), d, (level - 1) * amplifierPerLevel),
+				new MobEffectInstance(effect.get(), d,
+						LegendaryTargetEffectTrait.scaleAmplifier(level, amplifierPerLevel)),
 				EffectUtil.AddReason.FORCE, mob);
 	}
 
@@ -53,7 +54,8 @@ public class LegendarySelfEffectTrait extends LegendaryTrait {
 		} else {
 			list.add(mapLevel(e ->
 					Component.translatable("potion.withAmplifier", effect.get().getDisplayName(),
-							Component.translatable("potion.potency." + (e - 1) * amplifierPerLevel))
+							LegendaryTargetEffectTrait.formatAmplifier(
+									LegendaryTargetEffectTrait.scaleAmplifier(e, amplifierPerLevel)))
 							.withStyle(c)));
 		}
 	}

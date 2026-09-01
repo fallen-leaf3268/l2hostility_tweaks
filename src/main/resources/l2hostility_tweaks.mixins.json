@@ -27,6 +27,7 @@
         "AdaptingTraitMixin",
         "DispellTraitMixin",
         "DispealEquipmentTickMixin",
+        "EnchantmentDisablerRestoreMixin",
         "GeneralCapabilityHolderMixin",
         "LivingEntityImmunityCacheMixin",
         "MobTraitCapTickMixin",
@@ -69,6 +70,7 @@
         "ClientGlowingHandlerMixin",
         "ContainerScreenMixin",
         "DimensionBreakerItemStackMixin",
+        "GameRendererHurtMixin",
         "TooltipPipelineMixin"
     ],
     "server": []

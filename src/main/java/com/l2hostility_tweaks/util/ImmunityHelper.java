@@ -7,14 +7,20 @@ import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.Item;
 import net.minecraft.core.registries.Registries;
 import org.slf4j.Logger;
 import top.theillusivec4.curios.api.CuriosApi;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -49,6 +55,16 @@ public class ImmunityHelper {
         return getCombatCurios(entity).bypasses(tag);
     }
 
+    public static LivingEntity resolveLivingAttacker(DamageSource source) {
+        Entity entity = source.getEntity();
+        if (entity instanceof LivingEntity living) return living;
+        Entity direct = source.getDirectEntity();
+        if (direct instanceof LivingEntity living) return living;
+        if (direct instanceof Projectile projectile &&
+                projectile.getOwner() instanceof LivingEntity owner) return owner;
+        return null;
+    }
+
     public static CombatCurioSnapshot getCombatCurios(LivingEntity entity) {
         long stamp = cacheStamp(immunityCacheGeneration.get(), entity.tickCount);
         return ((EntityImmunityCache) entity).l2fix$getCombatCurios(stamp);
@@ -72,6 +88,7 @@ public class ImmunityHelper {
         boolean bypassDementor = false;
         boolean bypassAdaptive = false;
         List<Float> ringMultipliers = null;
+        Set<RingItem> seenRings = null;
         var inventory = CuriosApi.getCuriosInventory(entity).resolve();
         if (inventory.isPresent()) {
             for (var stacksHandler : inventory.get().getCurios().values()) {
@@ -88,8 +105,11 @@ public class ImmunityHelper {
                         bypassAdaptive = true;
                     }
                     if (stack.getItem() instanceof RingItem ring) {
-                        if (ringMultipliers == null) ringMultipliers = new ArrayList<>();
-                        ringMultipliers.add(ring.getDamageMultiplier());
+                        if (ringMultipliers == null) {
+                            ringMultipliers = new ArrayList<>();
+                            seenRings = Collections.newSetFromMap(new IdentityHashMap<>());
+                        }
+                        addRingMultiplierIfAbsent(ring, seenRings, ringMultipliers);
                     }
                 }
             }
@@ -99,6 +119,13 @@ public class ImmunityHelper {
         }
         return new CombatCurioSnapshot(bypassDispell, bypassDementor, bypassAdaptive,
                 ringMultipliers == null ? List.of() : List.copyOf(ringMultipliers));
+    }
+
+    static boolean addRingMultiplierIfAbsent(RingItem ring, Set<RingItem> seenRings,
+            List<Float> ringMultipliers) {
+        if (!seenRings.add(ring)) return false;
+        ringMultipliers.add(ring.getDamageMultiplier());
+        return true;
     }
 
     private static boolean hasItemWithTag(LivingEntity entity, TagKey<Item> tag) {

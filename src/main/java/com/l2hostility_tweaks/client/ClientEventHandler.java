@@ -5,15 +5,16 @@ import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.network.NetworkHandler;
 import dev.xkmc.l2tabs.tabs.core.TabRegistry;
 import dev.xkmc.l2tabs.tabs.core.TabToken;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -49,11 +50,12 @@ public class ClientEventHandler {
 		}
 
 		@SubscribeEvent
-		public static void onLeftClick(PlayerInteractEvent.LeftClickEmpty event) {
-			if (event.getEntity().getMainHandItem().getItem() instanceof TraitUnloaderWand) {
-				boolean reverse = event.getEntity().isShiftKeyDown();
-				NetworkHandler.sendCycleToServer(reverse);
-			}
+		public static void onAttackInput(InputEvent.InteractionKeyMappingTriggered event) {
+			if (!event.isAttack()) return;
+			var player = Minecraft.getInstance().player;
+			if (player == null || !(player.getMainHandItem().getItem() instanceof TraitUnloaderWand)) return;
+			NetworkHandler.sendCycleToServer(player.isShiftKeyDown());
+			event.setCanceled(true);
 		}
 
 		@SubscribeEvent

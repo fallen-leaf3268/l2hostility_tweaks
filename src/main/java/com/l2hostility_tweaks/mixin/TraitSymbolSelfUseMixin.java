@@ -36,6 +36,7 @@ public class TraitSymbolSelfUseMixin {
 		if (!(stack.getItem() instanceof TraitSymbol traitSymbol)) return;
 		if (!player.isShiftKeyDown()) return;
 		if (level.isClientSide()) {
+			if (!L2HConfig.isDisplayPlayerSelfTraitEnabled()) return;
 			cir.setReturnValue(InteractionResultHolder.success(stack));
 			return;
 		}
@@ -180,16 +181,16 @@ public class TraitSymbolSelfUseMixin {
 		cir.setReturnValue(InteractionResultHolder.success(stack));
 	}
 
-	static boolean l2fix$isAtMaxLevel(Integer rawLevel, int maxLevel) {
+	private static boolean l2fix$isAtMaxLevel(Integer rawLevel, int maxLevel) {
 		return rawLevel != null && Math.abs(rawLevel) >= maxLevel;
 	}
 
-	static int l2fix$projectedTraitCount(Collection<Integer> levels, Integer targetRawLevel) {
+	private static int l2fix$projectedTraitCount(Collection<Integer> levels, Integer targetRawLevel) {
 		int count = (int) levels.stream().filter(value -> value != null && value != 0).count();
 		return targetRawLevel == null || targetRawLevel == 0 ? count + 1 : count;
 	}
 
-	static boolean l2fix$isPresentForExclusion(Integer rawLevel) {
+	private static boolean l2fix$isPresentForExclusion(Integer rawLevel) {
 		return rawLevel != null && rawLevel != 0;
 	}
 }

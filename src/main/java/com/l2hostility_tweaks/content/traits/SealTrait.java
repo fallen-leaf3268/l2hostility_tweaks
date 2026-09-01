@@ -25,6 +25,7 @@ public class SealTrait extends LegendaryTrait {
 	}
 
 	private void sealRandomTrait(int level, LivingEntity target) {
+		if (!target.isAlive() || target.isRemoved()) return;
 		if (!MobTraitCap.HOLDER.isProper(target)) return;
 		MobTraitCap cap = MobTraitCap.HOLDER.get(target);
 		if (cap.traits.isEmpty()) return;

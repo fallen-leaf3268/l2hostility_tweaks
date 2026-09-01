@@ -67,6 +67,19 @@ class ReprintDamageCalculatorTest {
     }
 
     @Test
+    void nonlinearCalculationDoesNotDependOnPointOrder() {
+        var normalFirst = ReprintDamageCalculator.calculate(false, List.of(
+                new ReprintDamageCalculator.Point(3, false),
+                new ReprintDamageCalculator.Point(1, true)));
+        var counterFirst = ReprintDamageCalculator.calculate(false, List.of(
+                new ReprintDamageCalculator.Point(1, true),
+                new ReprintDamageCalculator.Point(3, false)));
+
+        assertEquals(3.0f, normalFirst.factor());
+        assertEquals(normalFirst, counterFirst);
+    }
+
+    @Test
     void clampsOverCancelledExponentialPointsToZero() {
         var result = ReprintDamageCalculator.calculate(false, List.of(
                 new ReprintDamageCalculator.Point(1, true)));

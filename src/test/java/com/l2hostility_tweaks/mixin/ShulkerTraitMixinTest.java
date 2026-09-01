@@ -12,10 +12,14 @@ class ShulkerTraitMixinTest {
 
 	@Test
 	void detectsFriendlyCandidatesFromEitherAllianceDirectionOrOwnership() {
-		assertFalse(ShulkerTraitMixin.l2fix$isFriendlyCandidate(false, false, false));
-		assertTrue(ShulkerTraitMixin.l2fix$isFriendlyCandidate(true, false, false));
-		assertTrue(ShulkerTraitMixin.l2fix$isFriendlyCandidate(false, true, false));
-		assertTrue(ShulkerTraitMixin.l2fix$isFriendlyCandidate(false, false, true));
+		assertFalse(MixinTestInvoker.<Boolean>call(ShulkerTraitMixin.class,
+				"l2fix$isFriendlyCandidate", false, false, false));
+		assertTrue(MixinTestInvoker.<Boolean>call(ShulkerTraitMixin.class,
+				"l2fix$isFriendlyCandidate", true, false, false));
+		assertTrue(MixinTestInvoker.<Boolean>call(ShulkerTraitMixin.class,
+				"l2fix$isFriendlyCandidate", false, true, false));
+		assertTrue(MixinTestInvoker.<Boolean>call(ShulkerTraitMixin.class,
+				"l2fix$isFriendlyCandidate", false, false, true));
 	}
 
 	@Test
@@ -32,20 +36,33 @@ class ShulkerTraitMixinTest {
 	}
 
 	@Test
+	void candidateScanRejectsPlayersBlockedByPvpRulesBeforeGeometryWork() throws Exception {
+		String source = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/mixin/ShulkerTraitMixin.java"));
+		int scan = source.indexOf("player.level().getEntities(player, box,");
+		int pvpFilter = source.indexOf("!player.canHarmPlayer(candidate)", scan);
+		int geometry = source.indexOf("Vec3 toEntity", scan);
+
+		assertTrue(scan >= 0);
+		assertTrue(pvpFilter > scan);
+		assertTrue(geometry > pvpFilter);
+	}
+
+	@Test
 	void playerOwnedBulletRequiresAValidLivingNonFriendlyTarget() {
-		assertTrue(HostilityBulletMixin.l2fix$isValidPlayerOwnedTarget(
+		assertTrue(MixinTestInvoker.<Boolean>call(HostilityBulletMixin.class, "l2fix$isValidPlayerOwnedTarget",
 				true, false, true, false, false, false));
-		assertFalse(HostilityBulletMixin.l2fix$isValidPlayerOwnedTarget(
+		assertFalse(MixinTestInvoker.<Boolean>call(HostilityBulletMixin.class, "l2fix$isValidPlayerOwnedTarget",
 				false, false, true, false, false, false));
-		assertFalse(HostilityBulletMixin.l2fix$isValidPlayerOwnedTarget(
+		assertFalse(MixinTestInvoker.<Boolean>call(HostilityBulletMixin.class, "l2fix$isValidPlayerOwnedTarget",
 				true, true, true, false, false, false));
-		assertFalse(HostilityBulletMixin.l2fix$isValidPlayerOwnedTarget(
+		assertFalse(MixinTestInvoker.<Boolean>call(HostilityBulletMixin.class, "l2fix$isValidPlayerOwnedTarget",
 				true, false, false, false, false, false));
-		assertFalse(HostilityBulletMixin.l2fix$isValidPlayerOwnedTarget(
+		assertFalse(MixinTestInvoker.<Boolean>call(HostilityBulletMixin.class, "l2fix$isValidPlayerOwnedTarget",
 				true, false, true, true, false, false));
-		assertFalse(HostilityBulletMixin.l2fix$isValidPlayerOwnedTarget(
+		assertFalse(MixinTestInvoker.<Boolean>call(HostilityBulletMixin.class, "l2fix$isValidPlayerOwnedTarget",
 				true, false, true, false, true, false));
-		assertFalse(HostilityBulletMixin.l2fix$isValidPlayerOwnedTarget(
+		assertFalse(MixinTestInvoker.<Boolean>call(HostilityBulletMixin.class, "l2fix$isValidPlayerOwnedTarget",
 				true, false, true, false, false, true));
 	}
 
@@ -65,6 +82,20 @@ class ShulkerTraitMixinTest {
 		assertTrue(playerRule > playerOwner);
 		assertTrue(playerReturn > playerRule);
 		assertTrue(nonPlayerFallback > playerReturn);
+	}
+
+	@Test
+	void playerOwnedBulletRejectsPlayersBlockedByPvpRules() throws Exception {
+		String source = Files.readString(Path.of(
+				"src/main/java/com/l2hostility_tweaks/mixin/HostilityBulletMixin.java"));
+		int playerOwner = source.indexOf("if (owner instanceof Player");
+		int pvpFilter = source.indexOf("canHarmPlayer(candidate)", playerOwner);
+		int playerRule = source.indexOf(
+				"cir.setReturnValue(l2fix$isValidPlayerOwnedTarget(", playerOwner);
+
+		assertTrue(playerOwner >= 0);
+		assertTrue(pvpFilter > playerOwner);
+		assertTrue(playerRule > pvpFilter);
 	}
 
 	@Test

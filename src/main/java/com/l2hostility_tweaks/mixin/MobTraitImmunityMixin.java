@@ -31,16 +31,16 @@ public class MobTraitImmunityMixin {
 
 		if ("l2hostility:dispell".equals(id) && L2HConfig.isOldDispellEnabled()) {
 			if (source.is(L2DamageTypes.MAGIC)) {
-				var attacker = source.getEntity();
-				if (!(attacker instanceof LivingEntity living && ImmunityHelper.hasCombatCurioWithTag(living, L2HFBypassTags.BYPASSES_DISPELL_ITEM))) {
+				var attacker = ImmunityHelper.resolveLivingAttacker(source);
+				if (!(attacker != null && ImmunityHelper.hasCombatCurioWithTag(attacker, L2HFBypassTags.BYPASSES_DISPELL_ITEM))) {
 					event.setCanceled(true);
 				}
 			}
 		}
 		if ("l2hostility:dementor".equals(id) && L2HConfig.isOldDementorEnabled()) {
 			if (!source.is(L2DamageTypes.MAGIC)) {
-				var attacker = source.getEntity();
-				if (!(attacker instanceof LivingEntity living && ImmunityHelper.hasCombatCurioWithTag(living, L2HFBypassTags.BYPASSES_DEMENTOR_ITEM))) {
+				var attacker = ImmunityHelper.resolveLivingAttacker(source);
+				if (!(attacker != null && ImmunityHelper.hasCombatCurioWithTag(attacker, L2HFBypassTags.BYPASSES_DEMENTOR_ITEM))) {
 					event.setCanceled(true);
 				}
 			}

@@ -17,15 +17,19 @@ class TraitAdderWandMixinTest {
                 "src/main/java/com/l2hostility_tweaks/mixin/TraitAdderWandMixin.java"));
 
         assertTrue(source.contains("TraitDisableHelper.clearSealData(target.getPersistentData(), trait.getID())"));
+        assertTrue(source.contains("TraitDisableHelper.clearSplitSuppressionOnReactivation(target, trait.getID())"));
         assertFalse(source.contains("remove(TraitDisableHelper.sealExpiryKey"));
         assertFalse(source.contains("remove(\"l2htweaks_sealed_level_\""));
     }
 
     @Test
     void preservesSealedMaxLevelTraitOnNormalClick() {
-        assertTrue(TraitAdderWandMixin.l2fix$shouldPreserveSealedState(false, 3, 3));
-        assertFalse(TraitAdderWandMixin.l2fix$shouldPreserveSealedState(true, 3, 3));
-        assertFalse(TraitAdderWandMixin.l2fix$shouldPreserveSealedState(false, 2, 3));
+        assertTrue(MixinTestInvoker.<Boolean>call(
+                TraitAdderWandMixin.class, "l2fix$shouldPreserveSealedState", false, 3, 3));
+        assertFalse(MixinTestInvoker.<Boolean>call(
+                TraitAdderWandMixin.class, "l2fix$shouldPreserveSealedState", true, 3, 3));
+        assertFalse(MixinTestInvoker.<Boolean>call(
+                TraitAdderWandMixin.class, "l2fix$shouldPreserveSealedState", false, 2, 3));
     }
 
     @Test

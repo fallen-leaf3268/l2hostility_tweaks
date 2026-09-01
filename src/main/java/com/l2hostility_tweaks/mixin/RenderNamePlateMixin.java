@@ -1,7 +1,7 @@
 package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.client.PlayerTraitScreen;
-import com.l2hostility_tweaks.config.L2HConfig;
+import com.l2hostility_tweaks.client.config.ClientL2HConfig;
 import dev.xkmc.l2hostility.events.ClientEvents;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.client.event.RenderNameTagEvent;
@@ -15,7 +15,7 @@ public class RenderNamePlateMixin {
 
     @Inject(method = "renderNamePlate", at = @At("HEAD"), cancellable = true)
     private static void l2fix$cancelOverheadTrait(RenderNameTagEvent event, CallbackInfo ci) {
-        if (L2HConfig.COMMON.showHud.get() && !(event.getEntity() instanceof Player)) {
+        if (ClientL2HConfig.CLIENT.showHud.get() && !(event.getEntity() instanceof Player)) {
             ci.cancel();
             return;
         }

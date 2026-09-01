@@ -21,7 +21,7 @@ public class LegendaryAllowMixin {
     }
 
     @Unique
-    static int l2fix$resolveLegendaryGate(boolean bypass, int upstreamGate) {
+    private static int l2fix$resolveLegendaryGate(boolean bypass, int upstreamGate) {
         return bypass ? -1 : upstreamGate;
     }
 }

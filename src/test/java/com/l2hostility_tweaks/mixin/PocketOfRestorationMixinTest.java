@@ -6,8 +6,10 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -17,10 +19,11 @@ class PocketOfRestorationMixinTest {
     void completesRestoreWhenSharedFallbackDeliversTheItem() {
         AtomicBoolean delivered = new AtomicBoolean();
 
-        boolean restored = PocketOfRestorationMixin.l2fix$restoreStoredItem(
+        boolean restored = MixinTestInvoker.call(
+                PocketOfRestorationMixin.class, "l2fix$restoreStoredItem",
                 false,
-                () -> {},
-                () -> {
+                (Runnable) () -> {},
+                (java.util.function.BooleanSupplier) () -> {
                     delivered.set(true);
                     return true;
                 });
@@ -31,10 +34,11 @@ class PocketOfRestorationMixinTest {
 
     @Test
     void keepsStoredItemWhenSharedFallbackCannotDeliverIt() {
-        boolean restored = PocketOfRestorationMixin.l2fix$restoreStoredItem(
+        boolean restored = MixinTestInvoker.call(
+                PocketOfRestorationMixin.class, "l2fix$restoreStoredItem",
                 false,
-                () -> {},
-                () -> false);
+                (Runnable) () -> {},
+                (java.util.function.BooleanSupplier) () -> false);
 
         assertFalse(restored);
     }
@@ -44,7 +48,18 @@ class PocketOfRestorationMixinTest {
         CompoundTag tag = new CompoundTag();
         tag.putString(SealedItem.DATA, "corrupt");
 
-        assertFalse(PocketOfRestorationMixin.l2fix$hasStoredItemData(tag));
+        assertFalse(MixinTestInvoker.<Boolean>call(
+                PocketOfRestorationMixin.class, "l2fix$hasStoredItemData", tag));
+    }
+
+    @Test
+    void existingExtraSlotsRemainRestorableAfterGluttonyDowngrade() {
+        CompoundTag pocket = new CompoundTag();
+        pocket.put("UnsealRoot_3", new CompoundTag());
+
+        assertEquals(List.of(0, 3),
+                MixinTestInvoker.call(PocketOfRestorationMixin.class,
+                        "l2fix$restorableSlotIndices", pocket, 1));
     }
 
     @Test
@@ -53,8 +68,8 @@ class PocketOfRestorationMixinTest {
                 "src/main/java/com/l2hostility_tweaks/mixin/PocketOfRestorationMixin.java"));
 
         assertFalse(source.contains("ThreadLocal<Integer> l2fix$gluttonyLevel"));
-        assertTrue(source.contains("l2fix$runMultiSlotTick(slotContext, stack, abyss, gluttony)"));
-        assertTrue(source.contains("l2fix$runMultiSlotTick(SlotContext slotContext, ItemStack stack, int abyss, int gluttony)"));
+        assertTrue(source.contains("l2fix$runMultiSlotTick(slotContext, stack, abyss, activeSlots, restoreSlots)"));
+        assertTrue(source.contains("int activeSlots, List<Integer> restoreSlots)"));
     }
 
     @Test

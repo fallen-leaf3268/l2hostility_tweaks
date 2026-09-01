@@ -42,6 +42,7 @@
   "tooltip.l2hostility_tweaks.player_override.invisible": "Invisibility effect only",
   "tooltip.l2hostility_tweaks.player_override.dementor": "Penetration effect negated",
   "tooltip.l2hostility_tweaks.player_override.disabled": "Player Fix: This trait is disabled",
+  "tooltip.l2hostility_tweaks.player_override.globally_disabled": "Player self-traits are disabled by the server",
   "tooltip.l2hostility_tweaks.player_override.mutual": "Conflicts with %s",
   "tooltip.l2hostility_tweaks.player_override.override": "Min Level:%s Cost:%s",
 
@@ -51,7 +52,7 @@
   "tooltip.l2hostility_tweaks.tranquil_belt": "When worn in the Belt slot: immune to Repulsion, Attraction and Gravity traits, immune to knockback and screen shake",
 
   "item.l2hostility_tweaks.dimension_breaker": "Dimension Claw",
-  "tooltip.l2hostility_tweaks.dimension_breaker": "When equipped: bare-hand mining speed +50%, Netherite harvest tier, acts as Pickaxe/Axe/Shovel. Bypasses AntiBuild effect.",
+  "tooltip.l2hostility_tweaks.dimension_breaker": "When equipped: base mining speed and harvest tier are at least Netherite for Pickaxe/Axe/Shovel blocks. Bypasses AntiBuild breaking and placement restrictions.",
   "tooltip.l2hostility_tweaks.dimension_breaker.protect_on": "Mining Protection: ON",
   "tooltip.l2hostility_tweaks.dimension_breaker.protect_off": "Mining Protection: OFF",
 

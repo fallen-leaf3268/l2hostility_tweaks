@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.mixin;
 
+import com.l2hostility_tweaks.util.TraitDisableHelper;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -12,8 +13,8 @@ class RemoveTraitEnchantmentMixinTest {
 
     @Test
     void splitSuppressorAlwaysCreatesPermanentSeal() {
-        assertEquals(-1L, RemoveTraitEnchantmentMixin.l2fix$sealExpiry(1));
-        assertEquals(-1L, RemoveTraitEnchantmentMixin.l2fix$sealExpiry(99));
+        assertEquals(-1L, TraitDisableHelper.permanentSealExpiry(1));
+        assertEquals(-1L, TraitDisableHelper.permanentSealExpiry(99));
     }
 
     @Test
@@ -21,7 +22,7 @@ class RemoveTraitEnchantmentMixinTest {
         Map<String, Integer> traits = new LinkedHashMap<>();
         traits.put("l2hostility:speedy", 2);
 
-        assertNull(RemoveTraitEnchantmentMixin.l2fix$findActiveSplit(traits, id -> id));
+        assertNull(TraitDisableHelper.findActiveSplitTrait(traits, id -> id));
     }
 
     @Test
@@ -31,7 +32,7 @@ class RemoveTraitEnchantmentMixinTest {
         traits.put("l2hostility:split", 1);
 
         assertEquals("l2hostility:split",
-                RemoveTraitEnchantmentMixin.l2fix$findActiveSplit(traits, id -> id));
+                TraitDisableHelper.findActiveSplitTrait(traits, id -> id));
     }
 
     @Test
@@ -40,6 +41,6 @@ class RemoveTraitEnchantmentMixinTest {
         traits.put("l2hostility:split", -1);
         traits.put("l2hostility:speedy", 2);
 
-        assertNull(RemoveTraitEnchantmentMixin.l2fix$findActiveSplit(traits, id -> id));
+        assertNull(TraitDisableHelper.findActiveSplitTrait(traits, id -> id));
     }
 }

@@ -77,6 +77,8 @@ jar {
     }
 }
 
+jar.finalizedBy('reobfJar')
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.compilerArgs << '-Xlint:-deprecation' << '-Xlint:-removal'

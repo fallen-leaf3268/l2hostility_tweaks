@@ -75,6 +75,7 @@ public class TraitGenerationHelper {
                     }
                 }
                 legendaries.sort((first, second) -> Integer.compare(second.getValue(), first.getValue()));
+                l2fix$shuffleEqualLevelLegendaries(legendaries, entity.getRandom());
                 for (int index = maxAllowed; index < legendaries.size(); index++) {
                     traits.remove(legendaries.get(index).getKey());
                 }
@@ -83,6 +84,23 @@ public class TraitGenerationHelper {
 
         if (L2HConfig.COMMON.exclusionEnabled.get()) {
             applyExclusions(traits, entity.getRandom());
+        }
+    }
+
+    private static void l2fix$shuffleEqualLevelLegendaries(
+            List<Map.Entry<MobTrait, Integer>> legendaries, RandomSource random) {
+        int start = 0;
+        while (start < legendaries.size()) {
+            int end = start + 1;
+            while (end < legendaries.size() &&
+                    legendaries.get(end).getValue().equals(legendaries.get(start).getValue())) {
+                end++;
+            }
+            for (int index = end - 1; index > start; index--) {
+                int swapIndex = start + random.nextInt(index - start + 1);
+                Collections.swap(legendaries, index, swapIndex);
+            }
+            start = end;
         }
     }
 
