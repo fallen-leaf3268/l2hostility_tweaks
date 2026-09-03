@@ -221,20 +221,25 @@ class ConfigCacheReloadHandlerTest {
     }
 
     @Test
-    void unloadPacketRequiresServerVerifiedMainHandWandBeforeMutation() throws Exception {
+    void unloadPacketAllowsPanelUseWithoutTestWandAndKeepsServerValidation() throws Exception {
         String network = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/network/NetworkHandler.java"));
         int packet = network.indexOf("public record UnloadTraitPacket");
         int handler = network.indexOf("public static void handle", packet);
-        int heldItemGuard = network.indexOf(
-                "player.getMainHandItem().getItem() instanceof TraitUnloaderWand", handler);
-        int capabilityRead = network.indexOf("MobTraitCap.HOLDER.isProper(player)", handler);
-        int mutation = network.indexOf("TraitUnloaderWand.unload", handler);
+        int nextPacket = network.indexOf("public record ToggleProtectPacket", handler);
+        String handlerBody = network.substring(handler, nextPacket);
+        int capabilityRead = handlerBody.indexOf("MobTraitCap.HOLDER.isProper(player)");
+        int traitIdValidation = handlerBody.indexOf("ResourceLocation.tryParse(msg.traitId)");
+        int ownedTraitRead = handlerBody.indexOf("cap.traits.get(trait)");
+        int mutation = handlerBody.indexOf("TraitUnloaderWand.unload");
 
         assertTrue(packet >= 0);
         assertTrue(handler > packet);
-        assertTrue(heldItemGuard > handler);
-        assertTrue(capabilityRead > heldItemGuard);
-        assertTrue(mutation > capabilityRead);
+        assertTrue(nextPacket > handler);
+        assertFalse(handlerBody.contains("player.getMainHandItem()"));
+        assertFalse(handlerBody.contains("instanceof TraitUnloaderWand"));
+        assertTrue(capabilityRead >= 0 && capabilityRead < traitIdValidation);
+        assertTrue(traitIdValidation < ownedTraitRead);
+        assertTrue(ownedTraitRead < mutation);
     }
 }

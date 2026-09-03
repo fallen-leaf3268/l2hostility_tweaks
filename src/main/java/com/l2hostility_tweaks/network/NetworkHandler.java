@@ -290,7 +290,6 @@ public class NetworkHandler {
 			ctx.enqueueWork(() -> {
 				ServerPlayer player = ctx.getSender();
 				if (player == null) return;
-				if (!(player.getMainHandItem().getItem() instanceof TraitUnloaderWand)) return;
 				if (!MobTraitCap.HOLDER.isProper(player)) return;
 				MobTraitCap cap = MobTraitCap.HOLDER.get(player);
 				if (!cap.isInitialized() || cap.traits.isEmpty()) return;
