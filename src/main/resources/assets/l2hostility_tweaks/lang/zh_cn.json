@@ -51,8 +51,11 @@
   "item.l2hostility_tweaks.tranquil_belt": "恒静腰带",
   "tooltip.l2hostility_tweaks.tranquil_belt": "佩戴后免疫排斥、吸引、重力词条效果，同时免疫击退和屏幕摇晃",
 
+  "item.l2hostility_tweaks.walking_boots": "漫步之靴",
+  "tooltip.l2hostility_tweaks.walking_boots": "佩戴后，移动速度不会超过 %s",
+
   "item.l2hostility_tweaks.dimension_breaker": "破界爪",
-  "tooltip.l2hostility_tweaks.dimension_breaker": "装备后，对镐、斧、锹可采掘方块，基础采掘速度与采掘等级均至少视为下界合金工具。可在领域压制状态下正常破坏、放置方块。",
+  "tooltip.l2hostility_tweaks.dimension_breaker": "装备后，你的基础挖掘等级变为下界合金。可在领域压制状态下正常破坏、放置方块。",
   "tooltip.l2hostility_tweaks.dimension_breaker.protect_on": "挖掘保护模式: 开",
   "tooltip.l2hostility_tweaks.dimension_breaker.protect_off": "挖掘保护模式: 关",
 

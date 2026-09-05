@@ -61,6 +61,8 @@ public class L2HConfig {
         public final ForgeConfigSpec.BooleanValue detectorGlassesReveal;
         public final ForgeConfigSpec.IntValue detectorGlassesRange;
 
+        public final ForgeConfigSpec.DoubleValue walkingBootsMovementSpeedCap;
+
         // === 旧版防御 ===
         public final ForgeConfigSpec.BooleanValue oldDispell;
         public final ForgeConfigSpec.BooleanValue oldDementor;
@@ -141,6 +143,11 @@ public class L2HConfig {
                     .define("reveal_invisible", true);
             detectorGlassesRange = builder.comment("探测目镜显示隐身生物的范围（格）")
                     .defineInRange("reveal_range", 48, 1, 256);
+            builder.pop();
+
+            builder.push("walking_boots");
+            walkingBootsMovementSpeedCap = builder.comment("漫步之靴限制的玩家最终移动速度上限")
+                    .defineInRange("movement_speed_cap", 0.15, 0.0, 1024.0);
             builder.pop();
 
             builder.push("legendary_defense");
@@ -436,6 +443,10 @@ public class L2HConfig {
 
     public static int getDetectorGlassesRange() {
         return COMMON.detectorGlassesRange.get();
+    }
+
+    public static double getWalkingBootsMovementSpeedCap() {
+        return COMMON.walkingBootsMovementSpeedCap.get();
     }
 
     public static boolean isOldDispellEnabled() {

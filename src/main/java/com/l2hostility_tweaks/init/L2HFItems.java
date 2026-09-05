@@ -6,6 +6,7 @@ import com.l2hostility_tweaks.content.RingItem;
 import com.l2hostility_tweaks.content.TranquilBeltItem;
 import com.l2hostility_tweaks.content.TraitSeal;
 import com.l2hostility_tweaks.content.TraitUnloaderWand;
+import com.l2hostility_tweaks.content.WalkingBootsItem;
 import com.l2hostility_tweaks.content.traits.SealTrait;
 import dev.xkmc.l2hostility.content.item.traits.TraitSymbol;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
@@ -45,6 +46,7 @@ public class L2HFItems {
     public static final RegistryObject<TraitSeal> TRAIT_SEAL;
     public static final RegistryObject<TraitUnloaderWand> TRAIT_UNLOADER;
     public static final RegistryObject<TranquilBeltItem> TRANQUIL_BELT;
+    public static final RegistryObject<WalkingBootsItem> WALKING_BOOTS;
     public static final RegistryObject<RingItem> DISPELL_RING;
     public static final RegistryObject<RingItem> DEMENTOR_RING;
     public static final RegistryObject<RingItem> ADAPTIVE_RING;
@@ -64,6 +66,8 @@ public class L2HFItems {
                 () -> new TraitUnloaderWand(new Item.Properties()));
         TRANQUIL_BELT = ITEMS.register("tranquil_belt",
                 () -> new TranquilBeltItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
+        WALKING_BOOTS = ITEMS.register("walking_boots",
+                () -> new WalkingBootsItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
         DISPELL_RING = ITEMS.register("dispell_ring",
                 () -> new RingItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC), 0.65f));
         DEMENTOR_RING = ITEMS.register("dementor_ring",
@@ -86,6 +90,7 @@ public class L2HFItems {
                     output.accept(TRAIT_SEAL.get());
                     output.accept(TRAIT_UNLOADER.get());
                     output.accept(TRANQUIL_BELT.get());
+                    output.accept(WALKING_BOOTS.get());
                     output.accept(DISPELL_RING.get());
                     output.accept(DEMENTOR_RING.get());
                     output.accept(ADAPTIVE_RING.get());

@@ -51,6 +51,9 @@
   "item.l2hostility_tweaks.tranquil_belt": "Tranquil Belt",
   "tooltip.l2hostility_tweaks.tranquil_belt": "When worn in the Belt slot: immune to Repulsion, Attraction and Gravity traits, immune to knockback and screen shake",
 
+  "item.l2hostility_tweaks.walking_boots": "Walking Boots",
+  "tooltip.l2hostility_tweaks.walking_boots": "When worn, movement speed cannot exceed %s",
+
   "item.l2hostility_tweaks.dimension_breaker": "Dimension Claw",
   "tooltip.l2hostility_tweaks.dimension_breaker": "When equipped: base mining speed and harvest tier are at least Netherite for Pickaxe/Axe/Shovel blocks. Bypasses AntiBuild breaking and placement restrictions.",
   "tooltip.l2hostility_tweaks.dimension_breaker.protect_on": "Mining Protection: ON",
