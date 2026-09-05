@@ -8,3 +8,4 @@ bin/
 *.zip
 .worktrees/
 /docs/
+/src/test/
