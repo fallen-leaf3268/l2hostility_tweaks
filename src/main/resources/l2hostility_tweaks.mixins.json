@@ -55,6 +55,7 @@
         "HostilityBulletMixin",
         "ArenaTraitMixin",
         "CounterStrikeTraitMixin",
+        "DimensionBreakerMiningProtectionMixin",
         "DimensionBreakerToolMixin",
         "PushCancelMixin",
         "RagnarokTraitMixin",
