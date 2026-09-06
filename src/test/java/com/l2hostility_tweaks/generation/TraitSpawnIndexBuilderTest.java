@@ -88,7 +88,7 @@ class TraitSpawnIndexBuilderTest {
                 Set.of(), List.of());
         String condition = "{\"nbt\":{\"Health\":100}}";
         ConfigInput conditional = config("example:conditional", condition,
-                view("example:conditional", condition, 1, 1, 0), Set.of(speedy.traitId()),
+                view("example:conditional", condition, 1, 1, 0), Set.of(),
                 List.of(preset("l2hostility:speedy", 1, 1, false, 1, 0, null)));
         Inputs inputs = inputs(
                 List.of(entity("minecraft:zombie", false, List.of(base), List.of(conditional))),
