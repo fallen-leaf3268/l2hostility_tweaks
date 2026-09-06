@@ -24,7 +24,7 @@ public abstract class CursePandoraWalkingBootsCompatMixin {
         return l2fix$shouldIgnore(ignored, candidate);
     }
 
-    static boolean l2fix$shouldIgnore(Set<?> ignored, Object candidate) {
+    private static boolean l2fix$shouldIgnore(Set<?> ignored, Object candidate) {
         return WalkingBootsModifierIds.isMovementSpeedCapModifier(candidate)
                 || ignored.contains(candidate);
     }
