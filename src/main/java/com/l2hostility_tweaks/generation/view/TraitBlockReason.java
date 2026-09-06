@@ -1,0 +1,13 @@
+package com.l2hostility_tweaks.generation.view;
+
+public enum TraitBlockReason {
+    ENTITY_CONFIG_BLACKLIST,
+    TRAIT_ENTITY_BLACKLIST,
+    TRAIT_WHITELIST_MISS,
+    TRAIT_GLOBALLY_DISABLED,
+    ENTITY_NO_TRAIT,
+    PRESET_ONLY,
+    TWEAKS_DISABLE_RANDOM,
+    TWEAKS_DISABLE_ALL,
+    TWEAKS_DISABLE_MOB_LEVEL
+}
