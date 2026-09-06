@@ -45,7 +45,7 @@ public class ClientEventHandler {
 		@SubscribeEvent
 		public static void onRenderLevelStage(RenderLevelStageEvent event) {
 			if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_SKY) {
-				L2HHealthOverlay.precomputeHudState();
+				L2HHealthOverlay.precomputeHudState(event.getPartialTick());
 			}
 		}
 
