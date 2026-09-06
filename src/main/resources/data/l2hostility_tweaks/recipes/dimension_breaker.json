@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "ABA",
+    "CDC",
+    "AEA"
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:crying_obsidian"
+    },
+    "B": {
+      "item": "l2complements:eternium_pickaxe"
+    },
+    "C": {
+      "item": "l2hostility:miracle_powder"
+    },
+    "D": {
+      "item": "l2hostility:chaos_ingot"
+    },
+    "E": {
+      "item": "l2complements:sculkium_pickaxe"
+    }
+  },
+  "result": {
+    "item": "l2hostility_tweaks:dimension_breaker",
+    "count": 1
+  }
+}
