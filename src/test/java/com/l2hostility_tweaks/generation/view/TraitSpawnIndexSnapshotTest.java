@@ -89,7 +89,8 @@ class TraitSpawnIndexSnapshotTest {
     void rejectsNullDynamicConstraintTypeAndArguments() {
         assertThrows(NullPointerException.class, () -> new TraitDynamicConstraint(null, List.of()));
         assertThrows(NullPointerException.class, () -> new TraitDynamicConstraint("attribute", null));
-        assertThrows(NullPointerException.class, () -> new TraitDynamicConstraint("attribute", List.of("ok", null)));
+        assertThrows(NullPointerException.class, () -> new TraitDynamicConstraint(
+                "attribute", new ArrayList<>(java.util.Arrays.asList("ok", null))));
     }
 
     @Test
