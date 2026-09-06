@@ -13,7 +13,7 @@ import java.util.Set;
 public abstract class CursePandoraWalkingBootsCompatMixin {
 
     @Redirect(
-            method = "remove",
+            method = "remove(Lnet/minecraft/world/entity/ai/attributes/AttributeInstance;Lnet/minecraft/world/entity/ai/attributes/AttributeModifier$Operation;Ljava/util/UUID;Ljava/lang/String;Ljava/util/Set;Ldev/xkmc/curseofpandora/content/reality/CursePandoraUtil$ValueConsumer;Ldev/xkmc/curseofpandora/content/reality/CursePandoraUtil$ValueConsumer;Z)V",
             at = @At(
                     value = "INVOKE",
                     target = "Ljava/util/Set;contains(Ljava/lang/Object;)Z",
