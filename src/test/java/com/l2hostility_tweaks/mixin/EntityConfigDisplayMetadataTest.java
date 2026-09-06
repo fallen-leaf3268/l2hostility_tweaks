@@ -3,7 +3,6 @@ package com.l2hostility_tweaks.mixin;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.l2hostility_tweaks.util.EntityConfigDisplayData;
-import dev.xkmc.l2hostility.content.config.EntityConfig;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
@@ -14,8 +13,7 @@ class EntityConfigDisplayMetadataTest {
 
     @Test
     void configMixinDefensivelyCopiesDisplayMetadata() {
-        EntityConfig.Config config = new EntityConfig.Config();
-        EntityConfigDisplayData data = (EntityConfigDisplayData) (Object) config;
+        EntityConfigDisplayData data = new EntityConfigConfigMixin();
         JsonObject raw = JsonParser.parseString("{\"presetTraitsOnly\":true}").getAsJsonObject();
         ResourceLocation source = new ResourceLocation("example", "boss");
 
