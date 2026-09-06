@@ -125,13 +125,13 @@ public final class MinecraftTraitSpawnIndexSource {
     }
 
     private static List<EntityInput> captureEntities(MinecraftServer server, ConfigGroups configs) {
-        List<Map.Entry<ResourceLocation, EntityType<?>>> registered = ForgeRegistries.ENTITY_TYPES
+        var registered = ForgeRegistries.ENTITY_TYPES
                 .getEntries().stream()
                 .map(entry -> Map.entry(entry.getKey().location(), entry.getValue()))
                 .sorted(Map.Entry.comparingByKey(ID_ORDER))
                 .toList();
         List<EntityInput> entities = new ArrayList<>();
-        for (Map.Entry<ResourceLocation, EntityType<?>> entry : registered) {
+        for (var entry : registered) {
             Entity temporary;
             try {
                 temporary = entry.getValue().create(server.overworld());
