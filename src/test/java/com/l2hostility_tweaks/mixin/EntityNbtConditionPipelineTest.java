@@ -120,4 +120,3 @@ class EntityNbtConditionPipelineTest {
         return result;
     }
 }
-
