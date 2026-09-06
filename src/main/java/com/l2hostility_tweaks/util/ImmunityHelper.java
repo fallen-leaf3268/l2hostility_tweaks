@@ -2,7 +2,6 @@ package com.l2hostility_tweaks.util;
 
 import com.l2hostility_tweaks.L2HFBypassTags;
 import com.l2hostility_tweaks.content.RingItem;
-import com.mojang.logging.LogUtils;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import net.minecraft.resources.ResourceLocation;
@@ -13,7 +12,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.Item;
 import net.minecraft.core.registries.Registries;
-import org.slf4j.Logger;
 import top.theillusivec4.curios.api.CuriosApi;
 
 import java.util.ArrayList;
@@ -26,8 +24,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 public class ImmunityHelper {
-
-    private static final Logger LOGGER = LogUtils.getLogger();
 
     private static TagKey<MobTrait> forceImmuneTraitTag;
     private static TagKey<MobTrait> gravityImmuneTraitTag;
@@ -205,31 +201,17 @@ public class ImmunityHelper {
     }
 
     public static boolean computeImmuneToForce(LivingEntity entity) {
-        if (hasItemWithTag(entity, ItemTags.IMMUNE_TO_FORCE)) {
-            LOGGER.debug("[ForceImmunity] Force immunity (Curios tag) for {}", entity.getName().getString());
-            return true;
-        }
+        if (hasItemWithTag(entity, ItemTags.IMMUNE_TO_FORCE)) return true;
         TagKey<MobTrait> tag = resolveAfterDiscovery(
                 ImmunityHelper::discoverTraitRegistry, () -> forceImmuneTraitTag);
-        if (hasTraitInTag(entity, tag)) {
-            LOGGER.debug("[ForceImmunity] Force immunity (trait tag) for {}", entity.getName().getString());
-            return true;
-        }
-        return false;
+        return hasTraitInTag(entity, tag);
     }
 
     public static boolean computeImmuneToGravity(LivingEntity entity) {
-        if (hasItemWithTag(entity, ItemTags.IMMUNE_TO_GRAVITY)) {
-            LOGGER.debug("[GravityImmunity] Gravity immunity (Curios tag) for {}", entity.getName().getString());
-            return true;
-        }
+        if (hasItemWithTag(entity, ItemTags.IMMUNE_TO_GRAVITY)) return true;
         TagKey<MobTrait> tag = resolveAfterDiscovery(
                 ImmunityHelper::discoverTraitRegistry, () -> gravityImmuneTraitTag);
-        if (hasTraitInTag(entity, tag)) {
-            LOGGER.debug("[GravityImmunity] Gravity immunity (trait tag) for {}", entity.getName().getString());
-            return true;
-        }
-        return false;
+        return hasTraitInTag(entity, tag);
     }
 
     static <T> T resolveAfterDiscovery(Runnable discovery, Supplier<T> refreshedValue) {
