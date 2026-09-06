@@ -53,6 +53,9 @@ public final class MinecraftTraitSpawnIndexSource {
         Map<ResourceLocation, List<ConfigInput>> conditional = new HashMap<>();
         EntityConfig merged = L2Hostility.ENTITY.getMerged();
         for (EntityConfig.Config config : merged.list) {
+            EntityConfigNbtData.State nbtState = config instanceof EntityConfigNbtData data
+                    ? data.l2fix$getNbtConditionState() : EntityConfigNbtData.State.NONE;
+            if (!shouldIncludeConfig(nbtState)) continue;
             ConfigInput input = configInput(config);
             Map<ResourceLocation, List<ConfigInput>> destination = isConditional(config)
                     ? conditional : base;
@@ -64,6 +67,10 @@ public final class MinecraftTraitSpawnIndexSource {
             }
         }
         return new ConfigGroups(base, conditional);
+    }
+
+    static boolean shouldIncludeConfig(EntityConfigNbtData.State nbtState) {
+        return nbtState != EntityConfigNbtData.State.INVALID;
     }
 
     private static ConfigInput configInput(EntityConfig.Config config) {
