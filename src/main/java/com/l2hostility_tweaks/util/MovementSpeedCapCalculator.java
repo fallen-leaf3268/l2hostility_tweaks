@@ -21,16 +21,28 @@ public final class MovementSpeedCapCalculator {
                                                 List<Double> multiplyTotal) {
         double addedValue = baseValue;
         for (double amount : additions) {
-            addedValue += amount;
+            addedValue = applyAddition(addedValue, amount);
         }
         double value = addedValue;
         for (double amount : multiplyBase) {
-            value += addedValue * amount;
+            value = applyMultiplyBase(value, addedValue, amount);
         }
         for (double amount : multiplyTotal) {
-            value *= 1.0 + amount;
+            value = applyMultiplyTotal(value, amount);
         }
         return value;
+    }
+
+    public static double applyAddition(double value, double amount) {
+        return value + amount;
+    }
+
+    public static double applyMultiplyBase(double value, double addedValue, double amount) {
+        return value + addedValue * amount;
+    }
+
+    public static double applyMultiplyTotal(double value, double amount) {
+        return value * (1.0 + amount);
     }
 
     public static String formatCap(double cap) {

@@ -68,19 +68,28 @@ public class WalkingBootsItem extends Item implements ICurioItem {
     }
 
     private static double calculateExternalValue(AttributeInstance attribute) {
-        return MovementSpeedCapCalculator.calculateExternalValue(
-                attribute.getBaseValue(),
-                modifierAmounts(attribute, AttributeModifier.Operation.ADDITION),
-                modifierAmounts(attribute, AttributeModifier.Operation.MULTIPLY_BASE),
-                modifierAmounts(attribute, AttributeModifier.Operation.MULTIPLY_TOTAL));
-    }
+        double addedValue = attribute.getBaseValue();
+        for (AttributeModifier modifier : attribute.getModifiers(AttributeModifier.Operation.ADDITION)) {
+            if (isExternalModifier(modifier)) {
+                addedValue = MovementSpeedCapCalculator.applyAddition(
+                        addedValue, modifier.getAmount());
+            }
+        }
 
-    private static List<Double> modifierAmounts(AttributeInstance attribute,
-                                                AttributeModifier.Operation operation) {
-        return attribute.getModifiers(operation).stream()
-                .filter(WalkingBootsItem::isExternalModifier)
-                .map(AttributeModifier::getAmount)
-                .toList();
+        double value = addedValue;
+        for (AttributeModifier modifier : attribute.getModifiers(AttributeModifier.Operation.MULTIPLY_BASE)) {
+            if (isExternalModifier(modifier)) {
+                value = MovementSpeedCapCalculator.applyMultiplyBase(
+                        value, addedValue, modifier.getAmount());
+            }
+        }
+        for (AttributeModifier modifier : attribute.getModifiers(AttributeModifier.Operation.MULTIPLY_TOTAL)) {
+            if (isExternalModifier(modifier)) {
+                value = MovementSpeedCapCalculator.applyMultiplyTotal(
+                        value, modifier.getAmount());
+            }
+        }
+        return value;
     }
 
     private static boolean isExternalModifier(AttributeModifier modifier) {
