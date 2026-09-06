@@ -2,6 +2,7 @@ package com.l2hostility_tweaks.content;
 
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.util.MovementSpeedCapCalculator;
+import com.l2hostility_tweaks.util.WalkingBootsModifierIds;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -22,8 +23,6 @@ import java.util.UUID;
 
 public class WalkingBootsItem extends Item implements ICurioItem {
 
-    private static final UUID MOVEMENT_SPEED_CAP_ID =
-            UUID.fromString("5e096b4f-0c23-47f0-bc93-cb91ce06b379");
     private static final UUID SPRINTING_SPEED_BOOST_ID =
             UUID.fromString("662a6b8d-da3e-4c1c-8813-96ea6097278d");
 
@@ -40,22 +39,27 @@ public class WalkingBootsItem extends Item implements ICurioItem {
         double externalValue = calculateExternalValue(attribute);
         OptionalDouble amount = MovementSpeedCapCalculator.calculateModifierAmount(
                 externalValue, L2HConfig.getWalkingBootsMovementSpeedCap());
-        AttributeModifier existing = attribute.getModifier(MOVEMENT_SPEED_CAP_ID);
+        AttributeModifier existing = attribute.getModifier(
+                WalkingBootsModifierIds.MOVEMENT_SPEED_CAP_ID);
         if (amount.isEmpty()) {
-            if (existing != null) attribute.removeModifier(MOVEMENT_SPEED_CAP_ID);
+            if (existing != null) {
+                attribute.removeModifier(WalkingBootsModifierIds.MOVEMENT_SPEED_CAP_ID);
+            }
             return;
         }
         if (existing != null && existing.getAmount() == amount.getAsDouble()) return;
-        if (existing != null) attribute.removeModifier(MOVEMENT_SPEED_CAP_ID);
+        if (existing != null) attribute.removeModifier(WalkingBootsModifierIds.MOVEMENT_SPEED_CAP_ID);
         attribute.addTransientModifier(new AttributeModifier(
-                MOVEMENT_SPEED_CAP_ID, "walking_boots_speed_cap", amount.getAsDouble(),
+                WalkingBootsModifierIds.MOVEMENT_SPEED_CAP_ID, "walking_boots_speed_cap", amount.getAsDouble(),
                 AttributeModifier.Operation.MULTIPLY_TOTAL));
     }
 
     @Override
     public void onUnequip(SlotContext slotContext, ItemStack newStack, ItemStack stack) {
         AttributeInstance attribute = slotContext.entity().getAttribute(Attributes.MOVEMENT_SPEED);
-        if (attribute != null) attribute.removeModifier(MOVEMENT_SPEED_CAP_ID);
+        if (attribute != null) {
+            attribute.removeModifier(WalkingBootsModifierIds.MOVEMENT_SPEED_CAP_ID);
+        }
     }
 
     @Override
@@ -93,7 +97,7 @@ public class WalkingBootsItem extends Item implements ICurioItem {
     }
 
     private static boolean isExternalModifier(AttributeModifier modifier) {
-        return !modifier.getId().equals(MOVEMENT_SPEED_CAP_ID)
+        return !WalkingBootsModifierIds.isMovementSpeedCapModifier(modifier.getId())
                 && !modifier.getId().equals(SPRINTING_SPEED_BOOST_ID);
     }
 }

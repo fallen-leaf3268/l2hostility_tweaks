@@ -61,7 +61,8 @@
         "RagnarokTraitMixin",
         "RemoveTraitEnchantmentMixin",
         "TraitSealFilterMixin",
-        "PocketOfRestorationMixin"
+        "PocketOfRestorationMixin",
+        "CursePandoraWalkingBootsCompatMixin"
     ],
     "client": [
         "DifficultyScreenMixin",
