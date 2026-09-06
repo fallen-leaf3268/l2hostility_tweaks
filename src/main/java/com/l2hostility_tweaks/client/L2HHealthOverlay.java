@@ -40,7 +40,8 @@ public class L2HHealthOverlay implements IGuiOverlay {
 	public static int trackedEntityId = -1;
 	private static Optional<LivingEntity> precomputedTarget = Optional.empty();
 	private static boolean targetPrecomputed;
-	private static float precomputedPartialTick;
+	private static long renderFrameToken;
+	private static long precomputedFrameToken = -1L;
 
 	record HudState(boolean hudActive, boolean hideBossBars) {}
 
@@ -107,8 +108,8 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		}
 
 		Minecraft mc = Minecraft.getInstance();
-		boolean usePrecomputedTarget = targetPrecomputed
-				&& Float.compare(precomputedPartialTick, partialTick) == 0;
+		boolean usePrecomputedTarget = l2fix$isPrecomputedForCurrentFrame(
+				targetPrecomputed, precomputedFrameToken, renderFrameToken);
 		Optional<LivingEntity> target = usePrecomputedTarget ? precomputedTarget : Optional.empty();
 		clearPrecomputedTarget();
 		if (!usePrecomputedTarget) target = getMouseOverEntity(mc, partialTick);
@@ -119,6 +120,15 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		hideBossBars = state.hideBossBars();
 		trackedEntityId = state.hudActive() ? target.get().getId() : -1;
 		if (state.hudActive()) renderHealthBar(g, target.get());
+	}
+
+	public static void beginRenderFrame() {
+		renderFrameToken++;
+	}
+
+	static boolean l2fix$isPrecomputedForCurrentFrame(boolean precomputed,
+			long precomputedFrame, long currentFrame) {
+		return precomputed && precomputedFrame == currentFrame;
 	}
 
 	public static void precomputeHudState(float partialTick) {
@@ -138,7 +148,7 @@ public class L2HHealthOverlay implements IGuiOverlay {
 			return;
 		}
 		precomputedTarget = getMouseOverEntity(mc, partialTick);
-		precomputedPartialTick = partialTick;
+		precomputedFrameToken = renderFrameToken;
 		targetPrecomputed = true;
 		var target = precomputedTarget;
 		boolean hasValidTarget = target.isPresent() && !(target.get() instanceof Player);
@@ -156,6 +166,7 @@ public class L2HHealthOverlay implements IGuiOverlay {
 	private static void clearPrecomputedTarget() {
 		precomputedTarget = Optional.empty();
 		targetPrecomputed = false;
+		precomputedFrameToken = -1L;
 	}
 
 	private static Optional<LivingEntity> getMouseOverEntity(Minecraft mc, float partialTicks) {

@@ -15,6 +15,7 @@ import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
@@ -41,6 +42,13 @@ public class ClientEventHandler {
 
 	@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = "l2hostility_tweaks")
 	public static class ForgeEvents {
+
+		@SubscribeEvent
+		public static void onRenderTick(TickEvent.RenderTickEvent event) {
+			if (event.phase == TickEvent.Phase.START) {
+				L2HHealthOverlay.beginRenderFrame();
+			}
+		}
 
 		@SubscribeEvent
 		public static void onRenderLevelStage(RenderLevelStageEvent event) {
