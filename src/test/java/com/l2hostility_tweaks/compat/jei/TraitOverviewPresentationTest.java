@@ -45,7 +45,24 @@ class TraitOverviewPresentationTest {
         assertTrue(keys.contains("jei.l2hostility_tweaks.source"));
         assertTrue(keys.contains("jei.l2hostility_tweaks.condition"));
         assertTrue(keys.contains("jei.l2hostility_tweaks.dynamic.level"));
+        assertTrue(keys.contains("jei.l2hostility_tweaks.free_rank"));
+        assertTrue(keys.contains("jei.l2hostility_tweaks.advancement"));
         assertFalse(keys.contains("jei.l2hostility_tweaks.final_chance"));
+    }
+
+    @Test
+    void entityConfigTooltipCoversEveryDisplayField() {
+        TraitSpawnIndexSnapshot.EntityConfigView config = new TraitSpawnIndexSnapshot.EntityConfigView(
+                id("example:zombies"), "{}", 10, 20, 0.2, 1.5, 0.8, 0.6,
+                0.1, 5, 100, 4, true);
+
+        List<String> keys = TraitOverviewPresentation.entityConfigTooltipKeys(config);
+
+        assertTrue(keys.containsAll(List.of(
+                "jei.l2hostility_tweaks.difficulty", "jei.l2hostility_tweaks.variation",
+                "jei.l2hostility_tweaks.scale", "jei.l2hostility_tweaks.suppression",
+                "jei.l2hostility_tweaks.min_spawn_level", "jei.l2hostility_tweaks.max_level",
+                "jei.l2hostility_tweaks.max_trait_count", "jei.l2hostility_tweaks.preset_only")));
     }
 
     @Test

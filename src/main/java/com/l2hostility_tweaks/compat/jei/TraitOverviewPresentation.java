@@ -72,6 +72,11 @@ public final class TraitOverviewPresentation {
     public static List<String> presetTooltipKeys(TraitSpawnIndexSnapshot.PresetTraitView preset) {
         LinkedHashSet<String> keys = new LinkedHashSet<>();
         keys.add("jei.l2hostility_tweaks.preset_chance");
+        keys.add("jei.l2hostility_tweaks.free_rank");
+        keys.add("jei.l2hostility_tweaks.min_rank");
+        keys.add("jei.l2hostility_tweaks.cap");
+        keys.add("jei.l2hostility_tweaks.condition_level");
+        keys.add("jei.l2hostility_tweaks.advancement");
         keys.add("jei.l2hostility_tweaks.source");
         keys.add("jei.l2hostility_tweaks.condition");
         for (TraitDynamicConstraint constraint : preset.dynamicConstraints()) {
@@ -86,6 +91,22 @@ public final class TraitOverviewPresentation {
                 "jei.l2hostility_tweaks.min_level",
                 "jei.l2hostility_tweaks.cost",
                 "jei.l2hostility_tweaks.max_rank");
+    }
+
+    public static List<String> entityConfigTooltipKeys(TraitSpawnIndexSnapshot.EntityConfigView config) {
+        return List.of(
+                "jei.l2hostility_tweaks.source",
+                "jei.l2hostility_tweaks.difficulty",
+                "jei.l2hostility_tweaks.variation",
+                "jei.l2hostility_tweaks.scale",
+                "jei.l2hostility_tweaks.apply_chance",
+                "jei.l2hostility_tweaks.trait_chance",
+                "jei.l2hostility_tweaks.suppression",
+                "jei.l2hostility_tweaks.min_spawn_level",
+                "jei.l2hostility_tweaks.max_level",
+                "jei.l2hostility_tweaks.max_trait_count",
+                "jei.l2hostility_tweaks.preset_only",
+                "jei.l2hostility_tweaks.condition");
     }
 
     public static String blockReasonKey(TraitBlockReason reason) {
