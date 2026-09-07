@@ -4,6 +4,8 @@ import com.l2hostility_tweaks.generation.view.TraitBlockReason;
 import com.l2hostility_tweaks.generation.view.TraitDynamicConstraint;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +28,19 @@ public class TraitSpawnIndexCodecTest {
         CompoundTag root = new CompoundTag();
         root.putLong("revision", 1);
         root.putInt("mobCount", TraitSpawnIndexCodec.MAX_MOBS + 1);
+
+        assertThrows(IllegalArgumentException.class, () -> TraitSpawnIndexCodec.decode(root));
+    }
+
+    @Test
+    void rejectsNonemptyListWithWrongElementTypeEvenWhenDeclaredCountIsZero() {
+        CompoundTag root = new CompoundTag();
+        root.putLong("revision", 1);
+        root.putInt("warningCount", 0);
+        root.putInt("mobCount", 0);
+        ListTag mobs = new ListTag();
+        mobs.add(StringTag.valueOf("not a compound"));
+        root.put("mobs", mobs);
 
         assertThrows(IllegalArgumentException.class, () -> TraitSpawnIndexCodec.decode(root));
     }

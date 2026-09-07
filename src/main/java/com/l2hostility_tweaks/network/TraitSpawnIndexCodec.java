@@ -300,14 +300,14 @@ public final class TraitSpawnIndexCodec {
 
     private static ListTag checkedList(CompoundTag owner, String key, String countKey, int maximum,
                                        Counter counter, byte elementType) {
-        int count = requiredNonnegative(owner, countKey);
-        if (count > maximum) throw new IllegalArgumentException("Too many " + key + ": " + count);
-        if (!owner.contains(key, Tag.TAG_LIST)) throw new IllegalArgumentException("Missing list: " + key);
-        ListTag tags = owner.getList(key, elementType);
-        if (tags.size() != count) throw new IllegalArgumentException("Mismatched " + key + " count");
-        if (count > 0 && tags.getElementType() != elementType) {
+        Tag raw = owner.get(key);
+        if (!(raw instanceof ListTag tags)) throw new IllegalArgumentException("Missing list: " + key);
+        if (!tags.isEmpty() && tags.getElementType() != elementType) {
             throw new IllegalArgumentException("Invalid " + key + " element type");
         }
+        int count = requiredNonnegative(owner, countKey);
+        if (tags.size() != count) throw new IllegalArgumentException("Mismatched " + key + " count");
+        if (count > maximum) throw new IllegalArgumentException("Too many " + key + ": " + count);
         counter.add(count);
         return tags;
     }

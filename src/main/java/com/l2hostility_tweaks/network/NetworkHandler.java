@@ -27,16 +27,20 @@ import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 import net.minecraftforge.server.ServerLifecycleHooks;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
 public class NetworkHandler {
 
-	private static final String PROTOCOL_VERSION = "5";
+	private static final Logger LOGGER = LoggerFactory.getLogger(NetworkHandler.class);
+	private static final String PROTOCOL_VERSION = "6";
+	private static final TraitSpawnIndexReassembler TRAIT_INDEX_REASSEMBLER =
+			new TraitSpawnIndexReassembler();
 	public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
 			new ResourceLocation("l2hostility_tweaks", "toggle_glow"),
 			() -> PROTOCOL_VERSION,
@@ -129,15 +133,22 @@ public class NetworkHandler {
 	}
 
 	public static void sendTraitSpawnIndexToPlayer(ServerPlayer player, TraitSpawnIndexSnapshot snapshot) {
-		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
-				new TraitSpawnIndexSyncPacket(TraitSpawnIndexCodec.encode(snapshot)));
+		for (TraitSpawnIndexPart part : TraitSpawnIndexTransport.encode(snapshot)) {
+			CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
+					new TraitSpawnIndexSyncPacket(part));
+		}
 	}
 
 	public static void broadcastTraitSpawnIndex(TraitSpawnIndexSnapshot snapshot) {
 		var server = ServerLifecycleHooks.getCurrentServer();
 		if (server == null) return;
-		CHANNEL.send(PacketDistributor.ALL.noArg(),
-				new TraitSpawnIndexSyncPacket(TraitSpawnIndexCodec.encode(snapshot)));
+		for (TraitSpawnIndexPart part : TraitSpawnIndexTransport.encode(snapshot)) {
+			CHANNEL.send(PacketDistributor.ALL.noArg(), new TraitSpawnIndexSyncPacket(part));
+		}
+	}
+
+	public static void clearTraitSpawnIndexTransport() {
+		TRAIT_INDEX_REASSEMBLER.reset();
 	}
 
 	public record SealStateRequestPacket() {
@@ -191,33 +202,38 @@ public class NetworkHandler {
 		}
 	}
 
-	public record TraitSpawnIndexSyncPacket(CompoundTag values) {
+	public record TraitSpawnIndexSyncPacket(TraitSpawnIndexPart part) {
 
 		public TraitSpawnIndexSyncPacket {
-			if (values == null) throw new IllegalArgumentException("Trait spawn index snapshot must not be null");
-			TraitSpawnIndexCodec.decode(values);
-			values = values.copy();
-		}
-
-		@Override
-		public CompoundTag values() {
-			return values.copy();
+			if (part == null) throw new IllegalArgumentException("Trait spawn index part must not be null");
 		}
 
 		public static void encode(TraitSpawnIndexSyncPacket msg, FriendlyByteBuf buf) {
-			buf.writeNbt(msg.values);
+			buf.writeLong(msg.part.revision());
+			buf.writeVarInt(msg.part.partIndex());
+			buf.writeVarInt(msg.part.partCount());
+			buf.writeVarInt(msg.part.totalCompressedBytes());
+			buf.writeByteArray(msg.part.payload());
 		}
 
 		public static TraitSpawnIndexSyncPacket decode(FriendlyByteBuf buf) {
-			CompoundTag values = buf.readNbt();
-			if (values == null) throw new IllegalArgumentException("Missing trait spawn index snapshot");
-			return new TraitSpawnIndexSyncPacket(values);
+			return new TraitSpawnIndexSyncPacket(new TraitSpawnIndexPart(
+					buf.readLong(), buf.readVarInt(), buf.readVarInt(), buf.readVarInt(),
+					buf.readByteArray(TraitSpawnIndexTransport.MAX_PART_PAYLOAD_BYTES)));
 		}
 
 		public static void handle(TraitSpawnIndexSyncPacket msg,
 				Supplier<NetworkEvent.Context> ctxSupplier) {
 			NetworkEvent.Context ctx = ctxSupplier.get();
-			ctx.enqueueWork(() -> L2HostilityFix.PROXY.receiveTraitSpawnIndex(TraitSpawnIndexCodec.decode(msg.values())));
+			ctx.enqueueWork(() -> {
+				try {
+					TRAIT_INDEX_REASSEMBLER.accept(msg.part()).ifPresent(compressed ->
+							L2HostilityFix.PROXY.receiveTraitSpawnIndex(
+									TraitSpawnIndexTransport.decode(compressed)));
+				} catch (IllegalArgumentException exception) {
+					LOGGER.warn("Rejected trait spawn index part", exception);
+				}
+			});
 			ctx.setPacketHandled(true);
 		}
 	}
