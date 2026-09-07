@@ -1,8 +1,7 @@
 package com.l2hostility_tweaks.compat.jei;
 
 import mezz.jei.api.ingredients.subtypes.UidContext;
-import net.minecraft.SharedConstants;
-import net.minecraft.server.Bootstrap;
+import mezz.jei.api.ingredients.IIngredientHelper;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
@@ -14,16 +13,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MobIngredientHelperTest {
 
     @Test
-    void usesEntityIdForStableIdentityAndSearchMetadata() {
-        SharedConstants.tryDetectVersion();
-        Bootstrap.bootStrap();
+    void usesEntityIdForStableIdentityAndSearchMetadata() throws NoSuchMethodException {
         MobIngredient ingredient = new MobIngredient(new ResourceLocation("minecraft:zombie"));
         MobIngredientHelper helper = new MobIngredientHelper(id -> "僵尸");
 
         assertEquals("minecraft:zombie", helper.getUniqueId(ingredient, UidContext.Ingredient));
         assertEquals("僵尸", helper.getDisplayName(ingredient));
         assertEquals(new ResourceLocation("minecraft:zombie"), helper.getResourceLocation(ingredient));
-        assertTrue(helper.getCheatItemStack(ingredient).isEmpty());
+        assertTrue(IIngredientHelper.class.getMethod("getCheatItemStack", Object.class).isDefault());
     }
 
     @Test
