@@ -186,13 +186,17 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
         static PreviewLayout calculate(int size, float width, float height, long animationMillis) {
             float safeWidth = Math.max(0.01F, width);
             float safeHeight = Math.max(0.01F, height);
-            float usable = Math.max(1.0F, size - 6.0F);
-            float scale = Math.min(usable / safeWidth, usable / safeHeight);
-            scale = Math.min(scale, size <= 16 ? 8.0F : 22.0F);
-            float scaledHeight = safeHeight * scale;
-            double phase = animationMillis * 0.0015D;
-            float yaw = 145.0F + (float) Math.sin(phase) * 20.0F;
-            return new PreviewLayout(scale, size * 0.5F, (size + scaledHeight) * 0.5F, yaw);
+            boolean compact = size <= 16;
+            float usable = compact ? 12.0F : 40.0F;
+            float maxScale = compact ? 6.0F : 20.0F;
+            float horizontalEnvelope = safeWidth * (float) (Math.sqrt(2.0D) * 1.1D);
+            float verticalEnvelope = safeHeight
+                    + safeWidth * (float) (Math.sqrt(2.0D) * Math.sin(Math.toRadians(10.0D)));
+            float scale = Math.min(usable / horizontalEnvelope, usable / verticalEnvelope);
+            scale = Math.min(scale, maxScale);
+            long cycleMillis = Math.floorMod(animationMillis, 12_000L);
+            float yaw = cycleMillis * 360.0F / 12_000.0F;
+            return new PreviewLayout(scale, size * 0.5F, compact ? 15.0F : 45.0F, yaw);
         }
     }
 

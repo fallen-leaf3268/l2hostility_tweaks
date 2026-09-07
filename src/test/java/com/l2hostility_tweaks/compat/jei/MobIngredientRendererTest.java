@@ -18,35 +18,52 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MobIngredientRendererTest {
 
     @Test
-    void previewLayoutFitsTinyNormalWideTallAndHugeEntities() {
-        for (float[] box : List.of(
-                new float[]{0.2F, 0.3F}, new float[]{0.6F, 1.8F},
-                new float[]{4.0F, 1.0F}, new float[]{0.8F, 6.0F},
-                new float[]{80.0F, 40.0F})) {
-            var layout = MobIngredientRenderer.PreviewLayout.calculate(48, box[0], box[1], 0L);
-            assertTrue(Float.isFinite(layout.scale()));
-            assertTrue(layout.scale() > 0.0F);
-            assertTrue(box[0] * layout.scale() <= 42.01F);
-            assertTrue(box[1] * layout.scale() <= 42.01F);
+    void previewLayoutUsesConservativeProjectionEnvelopeAndFixedFootAnchors() {
+        List<float[]> boxes = List.of(
+                new float[]{0.6F, 1.8F},
+                new float[]{1.95F, 2.2F},
+                new float[]{2.0F, 2.0F},
+                new float[]{0.8F, 6.0F},
+                new float[]{80.0F, 40.0F});
+
+        for (int size : List.of(48, 16)) {
+            float usable = size == 48 ? 40.0F : 12.0F;
+            float maxScale = size == 48 ? 20.0F : 6.0F;
+            float anchorY = size == 48 ? 45.0F : 15.0F;
+            for (float[] box : boxes) {
+                var layout = MobIngredientRenderer.PreviewLayout.calculate(size, box[0], box[1], 0L);
+                float horizontalEnvelope = box[0] * (float) (Math.sqrt(2.0D) * 1.1D);
+                float verticalEnvelope = box[1]
+                        + box[0] * (float) (Math.sqrt(2.0D) * Math.sin(Math.toRadians(10.0D)));
+
+                assertTrue(Float.isFinite(layout.scale()));
+                assertTrue(layout.scale() > 0.0F);
+                assertTrue(layout.scale() <= maxScale);
+                assertTrue(horizontalEnvelope * layout.scale() <= usable + 0.001F);
+                assertTrue(verticalEnvelope * layout.scale() <= usable + 0.001F);
+            }
+            assertEquals(size * 0.5F, MobIngredientRenderer.PreviewLayout.calculate(size, 1.0F, 2.0F, 0L).anchorX());
+            assertEquals(anchorY, MobIngredientRenderer.PreviewLayout.calculate(size, 1.0F, 2.0F, 0L).anchorY());
         }
     }
 
     @Test
-    void previewLayoutUsesThreeQuarterViewWithBoundedMotion() {
-        for (long millis : List.of(0L, 500L, 1000L, 5000L, 10000L)) {
-            float yaw = MobIngredientRenderer.PreviewLayout.calculate(48, 1.0F, 2.0F, millis).yawDegrees();
-            assertTrue(yaw >= 125.0F && yaw <= 165.0F);
-        }
+    void previewLayoutRotatesThroughAFullTurnEveryTwelveSeconds() {
+        assertEquals(0.0F, MobIngredientRenderer.PreviewLayout.calculate(48, 1.0F, 2.0F, 0L).yawDegrees());
+        assertEquals(90.0F, MobIngredientRenderer.PreviewLayout.calculate(48, 1.0F, 2.0F, 3000L).yawDegrees());
+        assertEquals(180.0F, MobIngredientRenderer.PreviewLayout.calculate(48, 1.0F, 2.0F, 6000L).yawDegrees());
+        assertEquals(270.0F, MobIngredientRenderer.PreviewLayout.calculate(48, 1.0F, 2.0F, 9000L).yawDegrees());
+        assertEquals(0.0F, MobIngredientRenderer.PreviewLayout.calculate(48, 1.0F, 2.0F, 12000L).yawDegrees());
     }
 
     @Test
-    void previewLayoutKeepsAnimatingAtRealWorldTimestamps() {
+    void previewLayoutUsesModuloBeforeConvertingLargeAnimationTimestamps() {
         long now = 1_800_000_000_000L;
         float first = MobIngredientRenderer.PreviewLayout.calculate(48, 1.0F, 2.0F, now).yawDegrees();
-        float next = MobIngredientRenderer.PreviewLayout.calculate(48, 1.0F, 2.0F, now + 50L).yawDegrees();
+        float next = MobIngredientRenderer.PreviewLayout.calculate(48, 1.0F, 2.0F, now + 3000L).yawDegrees();
 
-        assertTrue(Math.abs(next - first) > 0.0001F);
-        assertTrue(Math.abs(next - first) < 2.0F);
+        assertEquals(0.0F, first);
+        assertEquals(90.0F, next);
     }
 
     @Test
