@@ -34,15 +34,19 @@ import java.util.function.Consumer;
 
 public final class MobIngredientRenderer implements IIngredientRenderer<MobIngredient>, AutoCloseable {
 
-    private static final Field RENDER_SHADOW = ObfuscationReflectionHelper.findField(
-            EntityRenderDispatcher.class, "f_114368_");
-    private final int size;
+    private final int width;
+    private final int height;
     private final MobIngredientHelper helper = new MobIngredientHelper();
     private final EntityCache<Level, LivingEntity> entities = new EntityCache<>(Entity::discard);
 
     public MobIngredientRenderer(int size) {
-        if (size < 1) throw new IllegalArgumentException("size must be positive");
-        this.size = size;
+        this(size, size);
+    }
+
+    public MobIngredientRenderer(int width, int height) {
+        if (width < 1 || height < 1) throw new IllegalArgumentException("width and height must be positive");
+        this.width = width;
+        this.height = height;
     }
 
     @Override
@@ -61,9 +65,9 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
                 renderFallback(guiGraphics, ingredient);
                 return;
             }
-            PreviewLayout layout = PreviewLayout.calculate(size, entity.getBbWidth(), entity.getBbHeight(),
+            PreviewLayout layout = PreviewLayout.calculate(width, height, entity.getBbWidth(), entity.getBbHeight(),
                     Util.getMillis());
-            ScissorBounds scissor = ScissorBounds.calculate(guiGraphics.pose().last().pose(), size);
+            ScissorBounds scissor = ScissorBounds.calculate(guiGraphics.pose().last().pose(), width, height);
             ScopedState.use(
                     () -> guiGraphics.enableScissor(scissor.left(), scissor.top(), scissor.right(), scissor.bottom()),
                     guiGraphics::disableScissor,
@@ -84,12 +88,12 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
 
     @Override
     public int getWidth() {
-        return size;
+        return width;
     }
 
     @Override
     public int getHeight() {
-        return size;
+        return height;
     }
 
     public void clear() {
@@ -167,44 +171,52 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
 
     private static boolean renderShadowEnabled(EntityRenderDispatcher dispatcher) {
         try {
-            return RENDER_SHADOW.getBoolean(dispatcher);
+            return RenderShadowField.INSTANCE.getBoolean(dispatcher);
         } catch (IllegalAccessException exception) {
             throw new IllegalStateException("Unable to read entity shadow state", exception);
         }
     }
 
+    private static final class RenderShadowField {
+
+        private static final Field INSTANCE = ObfuscationReflectionHelper.findField(
+                EntityRenderDispatcher.class, "f_114368_");
+    }
+
     private void renderFallback(GuiGraphics guiGraphics, MobIngredient ingredient) {
-        guiGraphics.renderItem(new ItemStack(Items.BARRIER), Math.max(0, (size - 16) / 2), 0);
-        if (size > 16) {
+        guiGraphics.renderItem(new ItemStack(Items.BARRIER), Math.max(0, (width - 16) / 2), 0);
+        if (height > 16) {
             String id = ingredient.entityId().toString();
-            guiGraphics.drawString(Minecraft.getInstance().font, id, 1, size - 9, 0xFFFFFFFF, true);
+            guiGraphics.drawString(Minecraft.getInstance().font, id, 1, height - 9, 0xFFFFFFFF, true);
         }
     }
 
     static record PreviewLayout(float scale, float anchorX, float anchorY, float yawDegrees) {
 
-        static PreviewLayout calculate(int size, float width, float height, long animationMillis) {
+        static PreviewLayout calculate(int viewportWidth, int viewportHeight, float width, float height,
+                                       long animationMillis) {
             float safeWidth = Math.max(0.01F, width);
             float safeHeight = Math.max(0.01F, height);
-            boolean compact = size <= 16;
-            float usable = compact ? 12.0F : 40.0F;
+            boolean compact = viewportWidth <= 16 && viewportHeight <= 16;
+            float usableWidth = compact ? 12.0F : viewportWidth - 8.0F;
+            float usableHeight = compact ? 12.0F : viewportHeight - 8.0F;
             float maxScale = compact ? 6.0F : 20.0F;
             float horizontalEnvelope = safeWidth * (float) (Math.sqrt(2.0D) * 1.1D);
             float verticalEnvelope = safeHeight
                     + safeWidth * (float) (Math.sqrt(2.0D) * Math.sin(Math.toRadians(10.0D)));
-            float scale = Math.min(usable / horizontalEnvelope, usable / verticalEnvelope);
+            float scale = Math.min(usableWidth / horizontalEnvelope, usableHeight / verticalEnvelope);
             scale = Math.min(scale, maxScale);
             long cycleMillis = Math.floorMod(animationMillis, 12_000L);
             float yaw = cycleMillis * 360.0F / 12_000.0F;
-            return new PreviewLayout(scale, size * 0.5F, compact ? 15.0F : 45.0F, yaw);
+            return new PreviewLayout(scale, viewportWidth * 0.5F, viewportHeight - (compact ? 1.0F : 3.0F), yaw);
         }
     }
 
     private record ScissorBounds(int left, int top, int right, int bottom) {
 
-        private static ScissorBounds calculate(Matrix4f pose, int size) {
+        private static ScissorBounds calculate(Matrix4f pose, int width, int height) {
             Vector3f topLeft = pose.transformPosition(0.0F, 0.0F, 0.0F, new Vector3f());
-            Vector3f bottomRight = pose.transformPosition(size, size, 0.0F, new Vector3f());
+            Vector3f bottomRight = pose.transformPosition(width, height, 0.0F, new Vector3f());
             int left = (int) Math.floor(Math.min(topLeft.x(), bottomRight.x()));
             int top = (int) Math.floor(Math.min(topLeft.y(), bottomRight.y()));
             int right = (int) Math.ceil(Math.max(topLeft.x(), bottomRight.x()));
