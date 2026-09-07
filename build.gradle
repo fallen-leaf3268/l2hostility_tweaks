@@ -106,7 +106,10 @@ tasks.register('validateProjectResources') {
     def mixinSources = fileTree('src/main/java/com/l2hostility_tweaks/mixin') {
         include '*.java'
     }
-    inputs.files(resourceFiles, mixinSources)
+    def jeiSources = fileTree('src/main/java/com/l2hostility_tweaks/compat/jei') {
+        include '*.java'
+    }
+    inputs.files(resourceFiles, mixinSources, jeiSources)
 
     doLast {
         resourceFiles.files.sort().each { jsonFile ->
@@ -135,7 +138,7 @@ tasks.register('validateProjectResources') {
                             "unregistered sources: ${unregisteredSources.sort()}")
         }
 
-        def tooltipKeys = [
+        def requiredTranslationKeys = [
                 'enchantment.l2hostility_tweaks.reprint_counter.desc',
                 'enchantment.l2hostility_tweaks.reprint_counter.desc_any',
                 'enchantment.l2hostility_tweaks.reprint_counter.desc_armor',
@@ -148,11 +151,30 @@ tasks.register('validateProjectResources') {
                 'tooltip.l2hostility_tweaks.essence_use',
                 'trait.l2hostility_tweaks.dispell.immunity',
                 'trait.l2hostility_tweaks.dementor.immunity'
-        ]
+        ] as Set
+        jeiSources.files.each { source ->
+            def matcher = source.getText('UTF-8') =~ /jei\.l2hostility_tweaks\.[a-z0-9_]+(?:\.[a-z0-9_]+)*/
+            matcher.each { requiredTranslationKeys.add(it as String) }
+        }
+        requiredTranslationKeys.addAll([
+                'jei.l2hostility_tweaks.condition.level',
+                'jei.l2hostility_tweaks.condition.advancement',
+                'jei.l2hostility_tweaks.condition.raw',
+                'jei.l2hostility_tweaks.dynamic.budget',
+                'jei.l2hostility_tweaks.dynamic.legendary_limit',
+                'jei.l2hostility_tweaks.dynamic.level_cap',
+                'jei.l2hostility_tweaks.dynamic.exclusion',
+                'jei.l2hostility_tweaks.dynamic.runtime_allow',
+                'jei.l2hostility_tweaks.dynamic.suppression',
+                'jei.l2hostility_tweaks.dynamic.condition',
+                'jei.l2hostility_tweaks.dynamic.condition_level',
+                'jei.l2hostility_tweaks.dynamic.advancement',
+                'jei.l2hostility_tweaks.render_fallback'
+        ])
         ['en_us', 'zh_cn'].each { locale ->
             def langFile = file("src/main/resources/assets/l2hostility_tweaks/lang/${locale}.json")
             def translations = new JsonSlurper().parse(langFile, 'UTF-8') as Map
-            def missingKeys = tooltipKeys.findAll { !translations.containsKey(it) }
+            def missingKeys = requiredTranslationKeys.findAll { !translations.containsKey(it) }
             if (!missingKeys.isEmpty()) {
                 throw new GradleException("Missing ${locale} tooltip keys: ${missingKeys}")
             }

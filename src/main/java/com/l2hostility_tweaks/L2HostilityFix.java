@@ -9,6 +9,7 @@ import com.l2hostility_tweaks.content.RingDamageListener;
 import dev.xkmc.l2damagetracker.contents.attack.AttackEventHandler;
 import com.l2hostility_tweaks.init.L2HFEnchantments;
 import com.l2hostility_tweaks.init.L2HFItems;
+import com.l2hostility_tweaks.generation.TraitSpawnIndexService;
 
 import com.l2hostility_tweaks.network.NetworkHandler;
 import dev.xkmc.l2complements.content.feature.CurioFeaturePredicate;
@@ -105,6 +106,7 @@ public class L2HostilityFix {
     private void onConfigReload(ModConfigEvent.Reloading event) {
         ConfigCacheReloadHandler.invalidate(event.getConfig().getSpec());
         if (event.getConfig().getSpec() == L2HConfig.SPEC) {
+            TraitSpawnIndexService.INSTANCE.requestRebuild();
             NetworkHandler.broadcastDisplayConfig();
         }
     }
@@ -144,11 +146,13 @@ public class L2HostilityFix {
         deathMeta.clear();
         pendingTraitSync.clear();
         lastUpstreamDisplayConfig = null;
+        TraitSpawnIndexService.INSTANCE.reset();
     }
 
     @SubscribeEvent
     public void onTagsUpdated(TagsUpdatedEvent event) {
         ImmunityHelper.invalidateTagCaches();
+        TraitSpawnIndexService.INSTANCE.requestRebuild();
     }
 
     @SubscribeEvent
@@ -169,6 +173,11 @@ public class L2HostilityFix {
                 lastUpstreamDisplayConfig = L2HConfig.getUpstreamDisplayConfig();
             }
             NetworkHandler.sendDisplayConfigToPlayer(sp);
+            if (!TraitSpawnIndexService.INSTANCE.isInitialized()) {
+                TraitSpawnIndexService.INSTANCE.requestRebuild();
+                TraitSpawnIndexService.INSTANCE.rebuildIfRequested(sp.getServer());
+            }
+            NetworkHandler.sendTraitSpawnIndexToPlayer(sp, TraitSpawnIndexService.INSTANCE.current());
             if (MobTraitCap.HOLDER.isProper(sp)) {
                 MobTraitCap cap = MobTraitCap.HOLDER.get(sp);
                 if (cap.isInitialized()) {
@@ -190,6 +199,7 @@ public class L2HostilityFix {
     @SubscribeEvent
     public void onServerTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        TraitSpawnIndexService.INSTANCE.rebuildIfRequested(event.getServer());
         if (event.getServer().getTickCount() % 100 == 0) {
             L2HConfig.UpstreamDisplayConfig current = L2HConfig.getUpstreamDisplayConfig();
             if (lastUpstreamDisplayConfig != null && !lastUpstreamDisplayConfig.equals(current)) {

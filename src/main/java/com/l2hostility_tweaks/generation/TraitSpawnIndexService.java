@@ -1,6 +1,7 @@
 package com.l2hostility_tweaks.generation;
 
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
+import com.l2hostility_tweaks.network.NetworkHandler;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 public final class TraitSpawnIndexService {
+
+    public static final TraitSpawnIndexService INSTANCE = new TraitSpawnIndexService(
+            server -> TraitSpawnIndexBuilder.build(0, MinecraftTraitSpawnIndexSource.capture(server)),
+            NetworkHandler::broadcastTraitSpawnIndex);
 
     private static final Logger LOGGER = LoggerFactory.getLogger("l2htweaks:trait_spawn_index");
 
@@ -26,7 +31,7 @@ public final class TraitSpawnIndexService {
 
     public TraitSpawnIndexService() {
         this(server -> TraitSpawnIndexBuilder.build(0, MinecraftTraitSpawnIndexSource.capture(server)),
-                ignored -> {});
+                NetworkHandler::broadcastTraitSpawnIndex);
     }
 
     public void requestRebuild() {
@@ -58,6 +63,15 @@ public final class TraitSpawnIndexService {
 
     public TraitSpawnIndexSnapshot current() {
         return current;
+    }
+
+    public boolean isInitialized() {
+        return current.revision() > 0;
+    }
+
+    public synchronized void reset() {
+        rebuildRequested.set(false);
+        current = new TraitSpawnIndexSnapshot(0, List.of(), 0);
     }
 
     @FunctionalInterface
