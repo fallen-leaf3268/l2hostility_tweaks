@@ -27,6 +27,12 @@ mixin {
 repositories {
     maven { url "https://cursemaven.com" }
     maven { url "https://api.modrinth.com/maven" }
+    maven {
+        url "https://maven.blamejared.com"
+        content {
+            includeGroup "mezz.jei"
+        }
+    }
 }
 
 dependencies {
@@ -43,12 +49,17 @@ dependencies {
     compileOnly files("libs/l2damagetracker-0.4.3.jar")
     compileOnly files("libs/Registrate-MC1.20-1.3.11.jar")
     compileOnly files("libs/l2complements-2.6.1.jar")
+    compileOnly fg.deobf("mezz.jei:jei-${jei_minecraft_version}-common-api:${jei_version}")
+    compileOnly fg.deobf("mezz.jei:jei-${jei_minecraft_version}-forge-api:${jei_version}")
+    runtimeOnly fg.deobf("mezz.jei:jei-${jei_minecraft_version}-forge:${jei_version}")
 
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation files("libs/kubejs-forge-2001.6.5-build.26.jar")
     testImplementation files("libs/[犀牛] rhino-forge-2001.2.3-build.10.jar")
     testImplementation files("libs/architectury-9.2.14-forge.jar")
+    testImplementation fg.deobf("mezz.jei:jei-${jei_minecraft_version}-common-api:${jei_version}")
+    testImplementation fg.deobf("mezz.jei:jei-${jei_minecraft_version}-forge-api:${jei_version}")
 }
 
 tasks.named('processResources', ProcessResources).configure {
