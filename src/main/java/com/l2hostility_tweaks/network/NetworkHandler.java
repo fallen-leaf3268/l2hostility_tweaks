@@ -4,6 +4,7 @@ import com.l2hostility_tweaks.L2HostilityFix;
 import com.l2hostility_tweaks.content.DimensionBreakerItem;
 import com.l2hostility_tweaks.content.TraitUnloaderWand;
 import com.l2hostility_tweaks.config.L2HConfig;
+import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
 import com.l2hostility_tweaks.util.ImmunityHelper;
 import com.l2hostility_tweaks.util.TraitCostHelper;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
@@ -35,7 +36,7 @@ import java.util.function.Supplier;
 
 public class NetworkHandler {
 
-	private static final String PROTOCOL_VERSION = "4";
+	private static final String PROTOCOL_VERSION = "5";
 	public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
 			new ResourceLocation("l2hostility_tweaks", "toggle_glow"),
 			() -> PROTOCOL_VERSION,
@@ -81,6 +82,11 @@ public class NetworkHandler {
 				DisplayConfigSyncPacket::decode,
 				DisplayConfigSyncPacket::handle,
 				Optional.of(NetworkDirection.PLAY_TO_CLIENT));
+		CHANNEL.registerMessage(7, TraitSpawnIndexSyncPacket.class,
+				TraitSpawnIndexSyncPacket::encode,
+				TraitSpawnIndexSyncPacket::decode,
+				TraitSpawnIndexSyncPacket::handle,
+				Optional.of(NetworkDirection.PLAY_TO_CLIENT));
 	}
 
 	public static void sendToggleToServer(int containerId, int slotIndex) {
@@ -120,6 +126,18 @@ public class NetworkHandler {
 		if (server == null) return;
 		CHANNEL.send(PacketDistributor.ALL.noArg(),
 				new DisplayConfigSyncPacket(L2HConfig.createDisplaySnapshot()));
+	}
+
+	public static void sendTraitSpawnIndexToPlayer(ServerPlayer player, TraitSpawnIndexSnapshot snapshot) {
+		CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
+				new TraitSpawnIndexSyncPacket(TraitSpawnIndexCodec.encode(snapshot)));
+	}
+
+	public static void broadcastTraitSpawnIndex(TraitSpawnIndexSnapshot snapshot) {
+		var server = ServerLifecycleHooks.getCurrentServer();
+		if (server == null) return;
+		CHANNEL.send(PacketDistributor.ALL.noArg(),
+				new TraitSpawnIndexSyncPacket(TraitSpawnIndexCodec.encode(snapshot)));
 	}
 
 	public record SealStateRequestPacket() {
@@ -169,6 +187,37 @@ public class NetworkHandler {
 				Supplier<NetworkEvent.Context> ctxSupplier) {
 			NetworkEvent.Context ctx = ctxSupplier.get();
 			ctx.enqueueWork(() -> L2HConfig.installDisplaySnapshot(msg.values()));
+			ctx.setPacketHandled(true);
+		}
+	}
+
+	public record TraitSpawnIndexSyncPacket(CompoundTag values) {
+
+		public TraitSpawnIndexSyncPacket {
+			if (values == null) throw new IllegalArgumentException("Trait spawn index snapshot must not be null");
+			TraitSpawnIndexCodec.decode(values);
+			values = values.copy();
+		}
+
+		@Override
+		public CompoundTag values() {
+			return values.copy();
+		}
+
+		public static void encode(TraitSpawnIndexSyncPacket msg, FriendlyByteBuf buf) {
+			buf.writeNbt(msg.values);
+		}
+
+		public static TraitSpawnIndexSyncPacket decode(FriendlyByteBuf buf) {
+			CompoundTag values = buf.readNbt();
+			if (values == null) throw new IllegalArgumentException("Missing trait spawn index snapshot");
+			return new TraitSpawnIndexSyncPacket(values);
+		}
+
+		public static void handle(TraitSpawnIndexSyncPacket msg,
+				Supplier<NetworkEvent.Context> ctxSupplier) {
+			NetworkEvent.Context ctx = ctxSupplier.get();
+			ctx.enqueueWork(() -> L2HostilityFix.PROXY.receiveTraitSpawnIndex(TraitSpawnIndexCodec.decode(msg.values())));
 			ctx.setPacketHandled(true);
 		}
 	}
