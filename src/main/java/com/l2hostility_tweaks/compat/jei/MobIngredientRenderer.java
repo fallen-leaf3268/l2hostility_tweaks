@@ -1,10 +1,13 @@
 package com.l2hostility_tweaks.compat.jei;
 
+import com.mojang.blaze3d.platform.Lighting;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import mezz.jei.api.ingredients.IIngredientRenderer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -14,20 +17,22 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 
-public final class MobIngredientRenderer implements IIngredientRenderer<MobIngredient> {
+public final class MobIngredientRenderer implements IIngredientRenderer<MobIngredient>, AutoCloseable {
 
     private final int size;
     private final MobIngredientHelper helper = new MobIngredientHelper();
-    private final Map<ResourceLocation, LivingEntity> entities = new HashMap<>();
-    private final Set<ResourceLocation> failures = new HashSet<>();
-    private Level cachedLevel;
+    private final EntityCache<Level, LivingEntity> entities = new EntityCache<>(Entity::discard);
 
     public MobIngredientRenderer(int size) {
         if (size < 1) throw new IllegalArgumentException("size must be positive");
@@ -37,29 +42,24 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
     @Override
     public void render(GuiGraphics guiGraphics, MobIngredient ingredient) {
         ResourceLocation entityId = ingredient.entityId();
-        if (failures.contains(entityId)) {
-            renderFallback(guiGraphics, ingredient);
-            return;
-        }
         Level level = Minecraft.getInstance().level;
-        if (level == null) {
+        entities.updateLevel(level);
+        if (level == null || entities.hasFailed(entityId)) {
             renderFallback(guiGraphics, ingredient);
             return;
         }
         try {
             LivingEntity entity = getOrCreate(entityId, level);
             if (entity == null) {
-                failures.add(entityId);
+                entities.fail(entityId);
                 renderFallback(guiGraphics, ingredient);
                 return;
             }
             float extent = Math.max(entity.getBbWidth(), entity.getBbHeight());
             int scale = Math.max(1, Math.round((size - 2) / Math.max(0.25F, extent)));
-            InventoryScreen.renderEntityInInventoryFollowsAngle(
-                    guiGraphics, size / 2, size - 1, scale, 0.0F, 0.0F, entity);
+            renderEntity(guiGraphics, size / 2, size - 1, scale, entity);
         } catch (RuntimeException | LinkageError exception) {
-            failures.add(entityId);
-            entities.remove(entityId);
+            entities.fail(entityId);
             renderFallback(guiGraphics, ingredient);
         }
     }
@@ -82,19 +82,75 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
         return size;
     }
 
+    public void clear() {
+        entities.clear();
+    }
+
+    @Override
+    public void close() {
+        clear();
+    }
+
     private LivingEntity getOrCreate(ResourceLocation entityId, Level level) {
-        if (cachedLevel != level) {
-            entities.clear();
-            cachedLevel = level;
-        }
         LivingEntity cached = entities.get(entityId);
         if (cached != null) return cached;
         Entity entity = BuiltInRegistries.ENTITY_TYPE.getOptional(entityId)
                 .map(type -> type.create(level))
                 .orElse(null);
-        if (!(entity instanceof LivingEntity livingEntity)) return null;
+        if (!(entity instanceof LivingEntity livingEntity)) {
+            if (entity != null) entity.discard();
+            return null;
+        }
         entities.put(entityId, livingEntity);
         return livingEntity;
+    }
+
+    private static void renderEntity(GuiGraphics guiGraphics, int x, int y, int scale,
+                                     LivingEntity entity) {
+        Quaternionf rotation = new Quaternionf().rotateZ((float) Math.PI);
+        Quaternionf cameraTilt = new Quaternionf().rotateX(0.0F);
+        rotation.mul(cameraTilt);
+        LivingRotation original = LivingRotation.capture(entity);
+        ScopedState.use(
+                () -> {
+                    entity.yBodyRot = 180.0F;
+                    entity.setYRot(180.0F);
+                    entity.setXRot(0.0F);
+                    entity.yHeadRot = entity.getYRot();
+                    entity.yHeadRotO = entity.getYRot();
+                },
+                () -> original.restore(entity),
+                () -> renderEntityInInventory(guiGraphics, x, y, scale, rotation, cameraTilt, entity));
+    }
+
+    private static void renderEntityInInventory(GuiGraphics guiGraphics, int x, int y, int scale,
+                                                Quaternionf rotation, Quaternionf cameraTilt,
+                                                LivingEntity entity) {
+        PoseStack pose = guiGraphics.pose();
+        ScopedState.use(pose::pushPose, pose::popPose, () -> {
+            pose.translate(x, y, 50.0D);
+            pose.mulPoseMatrix(new Matrix4f().scaling(scale, scale, -scale));
+            pose.mulPose(rotation);
+            ScopedState.use(Lighting::setupForEntityInInventory, Lighting::setupFor3DItems, () -> {
+                EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
+                Quaternionf originalCamera = new Quaternionf(dispatcher.cameraOrientation());
+                ScopedState.use(
+                        () -> dispatcher.overrideCameraOrientation(new Quaternionf(cameraTilt).conjugate()),
+                        () -> dispatcher.overrideCameraOrientation(originalCamera),
+                        () -> ScopedState.use(
+                                () -> dispatcher.setRenderShadow(false),
+                                () -> dispatcher.setRenderShadow(true),
+                                () -> {
+                                    try {
+                                        RenderSystem.runAsFancy(() -> dispatcher.render(entity, 0.0D, 0.0D,
+                                                0.0D, 0.0F, 1.0F, pose,
+                                                guiGraphics.bufferSource(), 0xF000F0));
+                                    } finally {
+                                        guiGraphics.flush();
+                                    }
+                                }));
+            });
+        });
     }
 
     private void renderFallback(GuiGraphics guiGraphics, MobIngredient ingredient) {
@@ -102,6 +158,92 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
         if (size > 16) {
             String id = ingredient.entityId().toString();
             guiGraphics.drawString(Minecraft.getInstance().font, id, 1, size - 9, 0xFFFFFFFF, true);
+        }
+    }
+
+    private record LivingRotation(float body, float y, float x, float head, float previousHead) {
+
+        private static LivingRotation capture(LivingEntity entity) {
+            return new LivingRotation(entity.yBodyRot, entity.getYRot(), entity.getXRot(),
+                    entity.yHeadRot, entity.yHeadRotO);
+        }
+
+        private void restore(LivingEntity entity) {
+            entity.yBodyRot = body;
+            entity.setYRot(y);
+            entity.setXRot(x);
+            entity.yHeadRot = head;
+            entity.yHeadRotO = previousHead;
+        }
+    }
+
+    static final class ScopedState {
+
+        private ScopedState() {
+        }
+
+        static void use(Runnable acquire, Runnable release, Runnable action) {
+            acquire.run();
+            try {
+                action.run();
+            } finally {
+                release.run();
+            }
+        }
+    }
+
+    static final class EntityCache<L, E> implements AutoCloseable {
+
+        private final Consumer<E> discard;
+        private final Map<ResourceLocation, E> entities = new HashMap<>();
+        private final Set<ResourceLocation> failures = new HashSet<>();
+        private L level;
+
+        EntityCache(Consumer<E> discard) {
+            this.discard = Objects.requireNonNull(discard, "discard");
+        }
+
+        void updateLevel(L currentLevel) {
+            if (currentLevel == null || level != currentLevel) {
+                discardEntities();
+                failures.clear();
+                level = currentLevel;
+            }
+        }
+
+        boolean hasFailed(ResourceLocation entityId) {
+            return failures.contains(entityId);
+        }
+
+        E get(ResourceLocation entityId) {
+            return entities.get(entityId);
+        }
+
+        void put(ResourceLocation entityId, E entity) {
+            E previous = entities.put(entityId, entity);
+            if (previous != null && previous != entity) discard.accept(previous);
+        }
+
+        void fail(ResourceLocation entityId) {
+            E entity = entities.remove(entityId);
+            if (entity != null) discard.accept(entity);
+            failures.add(entityId);
+        }
+
+        void clear() {
+            discardEntities();
+            failures.clear();
+            level = null;
+        }
+
+        @Override
+        public void close() {
+            clear();
+        }
+
+        private void discardEntities() {
+            entities.values().forEach(discard);
+            entities.clear();
         }
     }
 }
