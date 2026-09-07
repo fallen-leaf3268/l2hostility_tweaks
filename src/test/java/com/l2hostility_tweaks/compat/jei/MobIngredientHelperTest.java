@@ -1,6 +1,8 @@
 package com.l2hostility_tweaks.compat.jei;
 
 import mezz.jei.api.ingredients.subtypes.UidContext;
+import net.minecraft.SharedConstants;
+import net.minecraft.server.Bootstrap;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
@@ -13,6 +15,8 @@ class MobIngredientHelperTest {
 
     @Test
     void usesEntityIdForStableIdentityAndSearchMetadata() {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
         MobIngredient ingredient = new MobIngredient(new ResourceLocation("minecraft:zombie"));
         MobIngredientHelper helper = new MobIngredientHelper(id -> "僵尸");
 
