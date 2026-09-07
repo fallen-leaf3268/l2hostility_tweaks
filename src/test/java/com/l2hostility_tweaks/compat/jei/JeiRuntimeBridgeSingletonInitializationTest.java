@@ -27,5 +27,9 @@ class JeiRuntimeBridgeSingletonInitializationTest {
         @Override
         public void addPages(java.util.List<com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.MobTraitOverview> pages) {
         }
+
+        @Override
+        public void unhidePages(java.util.Collection<com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.MobTraitOverview> pages) {
+        }
     }
 }

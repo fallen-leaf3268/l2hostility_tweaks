@@ -77,7 +77,10 @@ public final class JeiRuntimeBridge {
 
         if (!appliedPages.isEmpty()) access.hidePages(appliedPages);
         List<TraitSpawnIndexSnapshot.MobTraitOverview> currentPages = List.copyOf(latest.mobs());
-        if (!currentPages.isEmpty()) access.addPages(currentPages);
+        if (!currentPages.isEmpty()) {
+            access.addPages(currentPages);
+            access.unhidePages(currentPages);
+        }
 
         LOGGER.info("JEI_TRAIT_INDEX jei-applied revision={} mobIngredients={} pages={} addedIngredients={} removedIngredients={}",
                 latest.revision(), currentIngredients.size(), currentPages.size(), added.size(), removed.size());
@@ -106,6 +109,11 @@ public final class JeiRuntimeBridge {
         @Override
         public void addPages(List<TraitSpawnIndexSnapshot.MobTraitOverview> pages) {
             runtime.getRecipeManager().addRecipes(PAGE_TYPE, pages);
+        }
+
+        @Override
+        public void unhidePages(Collection<TraitSpawnIndexSnapshot.MobTraitOverview> pages) {
+            runtime.getRecipeManager().unhideRecipes(PAGE_TYPE, pages);
         }
     }
 }

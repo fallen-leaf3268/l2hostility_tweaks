@@ -14,4 +14,6 @@ interface JeiRuntimeAccess {
     void hidePages(Collection<TraitSpawnIndexSnapshot.MobTraitOverview> pages);
 
     void addPages(List<TraitSpawnIndexSnapshot.MobTraitOverview> pages);
+
+    void unhidePages(Collection<TraitSpawnIndexSnapshot.MobTraitOverview> pages);
 }
