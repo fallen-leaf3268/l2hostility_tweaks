@@ -115,7 +115,7 @@ public final class TraitSpawnIndexCodec {
             putProbability(tag, "suppression", config.suppression());
             putNonnegative(tag, "minSpawnLevel", config.minSpawnLevel());
             putNonnegative(tag, "maxLevel", config.maxLevel());
-            putNonnegative(tag, "maxTraitCount", config.maxTraitCount());
+            putMaxTraitCount(tag, config.maxTraitCount());
             tag.putBoolean("presetTraitsOnly", config.presetTraitsOnly());
             tags.add(tag);
         }
@@ -132,7 +132,7 @@ public final class TraitSpawnIndexCodec {
                     requiredFinite(tag, "variation"), requiredFinite(tag, "scale"),
                     requiredProbability(tag, "applyChance"), requiredProbability(tag, "traitChance"),
                     requiredProbability(tag, "suppression"), requiredNonnegative(tag, "minSpawnLevel"),
-                    requiredNonnegative(tag, "maxLevel"), requiredNonnegative(tag, "maxTraitCount"),
+                    requiredNonnegative(tag, "maxLevel"), requiredMaxTraitCount(tag),
                     requiredBoolean(tag, "presetTraitsOnly")));
         }
         return configs;
@@ -388,6 +388,20 @@ public final class TraitSpawnIndexCodec {
     private static void putNonnegative(CompoundTag owner, String key, int value) {
         validateNonnegative(value, key);
         owner.putInt(key, value);
+    }
+
+    private static void putMaxTraitCount(CompoundTag owner, int value) {
+        if (value < -1) throw new IllegalArgumentException("maxTraitCount must be at least -1");
+        owner.putInt("maxTraitCount", value);
+    }
+
+    private static int requiredMaxTraitCount(CompoundTag owner) {
+        if (!owner.contains("maxTraitCount", Tag.TAG_INT)) {
+            throw new IllegalArgumentException("Missing integer: maxTraitCount");
+        }
+        int value = owner.getInt("maxTraitCount");
+        if (value < -1) throw new IllegalArgumentException("maxTraitCount must be at least -1");
+        return value;
     }
 
     private static void validateNonnegative(int value, String name) {

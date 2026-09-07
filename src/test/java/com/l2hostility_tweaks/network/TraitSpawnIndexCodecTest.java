@@ -53,6 +53,29 @@ public class TraitSpawnIndexCodecTest {
                 () -> TraitSpawnIndexCodec.parseId("bad id"));
     }
 
+    @Test
+    void roundTripsUpstreamDefaultMaxTraitCountSentinel() {
+        TraitSpawnIndexSnapshot expected = withMaxTraitCount(completeSnapshot(10), -1);
+
+        assertEquals(expected, TraitSpawnIndexCodec.decode(TraitSpawnIndexCodec.encode(expected)));
+        assertThrows(IllegalArgumentException.class,
+                () -> TraitSpawnIndexCodec.encode(withMaxTraitCount(completeSnapshot(11), -2)));
+    }
+
+    private static TraitSpawnIndexSnapshot withMaxTraitCount(TraitSpawnIndexSnapshot original, int maxTraitCount) {
+        TraitSpawnIndexSnapshot.MobTraitOverview mob = original.mobs().get(0);
+        TraitSpawnIndexSnapshot.EntityConfigView config = mob.configs().get(0);
+        TraitSpawnIndexSnapshot.EntityConfigView sentinelConfig = new TraitSpawnIndexSnapshot.EntityConfigView(
+                config.sourceId(), config.conditionJson(), config.minDifficulty(), config.baseDifficulty(),
+                config.variation(), config.scale(), config.applyChance(), config.traitChance(),
+                config.suppression(), config.minSpawnLevel(), config.maxLevel(), maxTraitCount,
+                config.presetTraitsOnly());
+        return new TraitSpawnIndexSnapshot(original.revision(), List.of(
+                new TraitSpawnIndexSnapshot.MobTraitOverview(mob.entityId(), List.of(sentinelConfig),
+                        mob.presets(), mob.pool(), mob.blocked(), mob.dynamicConstraints())),
+                original.warningCount());
+    }
+
     public static TraitSpawnIndexSnapshot completeSnapshot(long revision) {
         TraitDynamicConstraint constraint = new TraitDynamicConstraint("attribute", List.of("health", "100"));
         TraitSpawnIndexSnapshot.EntityConfigView config = new TraitSpawnIndexSnapshot.EntityConfigView(
