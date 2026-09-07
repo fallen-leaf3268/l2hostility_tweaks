@@ -14,13 +14,13 @@ import java.util.Objects;
 
 public final class JeiRuntimeBridge {
 
+    private static final TraitSpawnIndexSnapshot EMPTY =
+            new TraitSpawnIndexSnapshot(Long.MIN_VALUE, List.of(), 0);
+
     public static final JeiRuntimeBridge INSTANCE = new JeiRuntimeBridge();
 
     static final RecipeType<TraitSpawnIndexSnapshot.MobTraitOverview> PAGE_TYPE = RecipeType.create(
             "l2hostility_tweaks", "mob_traits", TraitSpawnIndexSnapshot.MobTraitOverview.class);
-
-    private static final TraitSpawnIndexSnapshot EMPTY =
-            new TraitSpawnIndexSnapshot(Long.MIN_VALUE, List.of(), 0);
 
     private TraitSpawnIndexSnapshot latest = EMPTY;
     private JeiRuntimeAccess access;
