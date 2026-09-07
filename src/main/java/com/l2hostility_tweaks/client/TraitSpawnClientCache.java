@@ -12,10 +12,10 @@ import org.slf4j.LoggerFactory;
 
 public final class TraitSpawnClientCache {
 
-    public static final TraitSpawnClientCache INSTANCE = new TraitSpawnClientCache();
-
     private static final Logger LOGGER = LoggerFactory.getLogger(TraitSpawnClientCache.class);
     private static final TraitSpawnIndexSnapshot DISCONNECTED = new TraitSpawnIndexSnapshot(Long.MIN_VALUE, List.of(), 0);
+
+    public static final TraitSpawnClientCache INSTANCE = new TraitSpawnClientCache();
 
     private final List<Consumer<TraitSpawnIndexSnapshot>> listeners = new CopyOnWriteArrayList<>();
     private final ArrayDeque<Notification> notifications = new ArrayDeque<>();
@@ -28,6 +28,8 @@ public final class TraitSpawnClientCache {
         synchronized (this) {
             if (snapshot.revision() <= current.revision()) return false;
             current = snapshot;
+            LOGGER.info("JEI_TRAIT_INDEX client-cache-installed revision={} mobs={} listeners={}",
+                    snapshot.revision(), snapshot.mobs().size(), listeners.size());
             drain = enqueue(snapshot);
         }
         if (drain) drainNotifications();

@@ -53,6 +53,8 @@ public final class TraitSpawnIndexService {
         TraitSpawnIndexSnapshot replacement = new TraitSpawnIndexSnapshot(
                 nextRevision, captured.mobs(), captured.warningCount());
         current = replacement;
+        LOGGER.info("JEI_TRAIT_INDEX server-built revision={} mobs={} warnings={}",
+                nextRevision, replacement.mobs().size(), replacement.warningCount());
         try {
             broadcaster.accept(replacement);
         } catch (Exception exception) {

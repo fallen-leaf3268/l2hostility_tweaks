@@ -4,6 +4,8 @@ import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.resources.ResourceLocation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -14,6 +16,7 @@ import java.util.Objects;
 
 public final class JeiRuntimeBridge {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger("l2htweaks:jei");
     private static final TraitSpawnIndexSnapshot EMPTY =
             new TraitSpawnIndexSnapshot(Long.MIN_VALUE, List.of(), 0);
 
@@ -75,6 +78,9 @@ public final class JeiRuntimeBridge {
         if (!appliedPages.isEmpty()) access.hidePages(appliedPages);
         List<TraitSpawnIndexSnapshot.MobTraitOverview> currentPages = List.copyOf(latest.mobs());
         if (!currentPages.isEmpty()) access.addPages(currentPages);
+
+        LOGGER.info("JEI_TRAIT_INDEX jei-applied revision={} mobIngredients={} pages={} addedIngredients={} removedIngredients={}",
+                latest.revision(), currentIngredients.size(), currentPages.size(), added.size(), removed.size());
 
         appliedIngredients = Collections.unmodifiableMap(new LinkedHashMap<>(currentIngredients));
         appliedPages = currentPages;

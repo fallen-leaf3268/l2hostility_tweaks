@@ -7,6 +7,8 @@ import mezz.jei.api.registration.IModIngredientRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.runtime.IJeiRuntime;
 import net.minecraft.resources.ResourceLocation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -14,6 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @JeiPlugin
 public final class L2HTweaksJeiPlugin implements IModPlugin {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger("l2htweaks:jei");
     public static final ResourceLocation ID = new ResourceLocation("l2hostility_tweaks", "mob_traits");
     private static final AtomicBoolean LISTENER_ATTACHED = new AtomicBoolean();
 
@@ -35,6 +38,9 @@ public final class L2HTweaksJeiPlugin implements IModPlugin {
 
     @Override
     public void onRuntimeAvailable(IJeiRuntime runtime) {
+        LOGGER.info("JEI_TRAIT_INDEX jei-runtime-available cachedRevision={} cachedMobs={}",
+                TraitSpawnClientCache.INSTANCE.current().revision(),
+                TraitSpawnClientCache.INSTANCE.current().mobs().size());
         JeiRuntimeBridge.INSTANCE.runtimeAvailable(runtime);
         if (LISTENER_ATTACHED.compareAndSet(false, true)) {
             TraitSpawnClientCache.INSTANCE.addListener(JeiRuntimeBridge.INSTANCE::refresh);

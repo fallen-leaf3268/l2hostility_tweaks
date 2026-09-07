@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -133,7 +134,10 @@ public class NetworkHandler {
 	}
 
 	public static void sendTraitSpawnIndexToPlayer(ServerPlayer player, TraitSpawnIndexSnapshot snapshot) {
-		for (TraitSpawnIndexPart part : TraitSpawnIndexTransport.encode(snapshot)) {
+		List<TraitSpawnIndexPart> parts = TraitSpawnIndexTransport.encode(snapshot);
+		LOGGER.info("JEI_TRAIT_INDEX server-send player={} revision={} mobs={} parts={}",
+				player.getName().getString(), snapshot.revision(), snapshot.mobs().size(), parts.size());
+		for (TraitSpawnIndexPart part : parts) {
 			CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
 					new TraitSpawnIndexSyncPacket(part));
 		}
@@ -142,7 +146,10 @@ public class NetworkHandler {
 	public static void broadcastTraitSpawnIndex(TraitSpawnIndexSnapshot snapshot) {
 		var server = ServerLifecycleHooks.getCurrentServer();
 		if (server == null) return;
-		for (TraitSpawnIndexPart part : TraitSpawnIndexTransport.encode(snapshot)) {
+		List<TraitSpawnIndexPart> parts = TraitSpawnIndexTransport.encode(snapshot);
+		LOGGER.info("JEI_TRAIT_INDEX server-broadcast revision={} mobs={} parts={}",
+				snapshot.revision(), snapshot.mobs().size(), parts.size());
+		for (TraitSpawnIndexPart part : parts) {
 			CHANNEL.send(PacketDistributor.ALL.noArg(), new TraitSpawnIndexSyncPacket(part));
 		}
 	}
@@ -230,6 +237,8 @@ public class NetworkHandler {
 					TRAIT_INDEX_REASSEMBLER.accept(msg.part()).ifPresent(completed -> {
 						TraitSpawnIndexSnapshot snapshot = TraitSpawnIndexTransport.decode(completed);
 						if (TRAIT_INDEX_REASSEMBLER.commit(completed)) {
+							LOGGER.info("JEI_TRAIT_INDEX client-received revision={} mobs={} parts={}",
+									snapshot.revision(), snapshot.mobs().size(), msg.part().partCount());
 							L2HostilityFix.PROXY.receiveTraitSpawnIndex(snapshot);
 						}
 					});
