@@ -71,6 +71,7 @@ class ConfigCacheReloadHandlerTest {
         assertTrue(mod.contains("NetworkHandler.broadcastDisplayConfig()"));
         assertTrue(client.contains("ClientPlayerNetworkEvent.LoggingOut"));
         assertTrue(client.contains("L2HConfig.clearDisplaySnapshot()"));
+        assertTrue(client.contains("L2HostilityFix.PROXY.clearTraitSpawnIndex()"));
 
         for (String key : new String[]{
                 "antiReprintReduction", "ragnarokCountArray", "ragnarokTimeArray",

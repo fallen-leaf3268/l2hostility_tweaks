@@ -227,9 +227,12 @@ public class NetworkHandler {
 			NetworkEvent.Context ctx = ctxSupplier.get();
 			ctx.enqueueWork(() -> {
 				try {
-					TRAIT_INDEX_REASSEMBLER.accept(msg.part()).ifPresent(compressed ->
-							L2HostilityFix.PROXY.receiveTraitSpawnIndex(
-									TraitSpawnIndexTransport.decode(compressed)));
+					TRAIT_INDEX_REASSEMBLER.accept(msg.part()).ifPresent(completed -> {
+						TraitSpawnIndexSnapshot snapshot = TraitSpawnIndexTransport.decode(completed);
+						if (TRAIT_INDEX_REASSEMBLER.commit(completed)) {
+							L2HostilityFix.PROXY.receiveTraitSpawnIndex(snapshot);
+						}
+					});
 				} catch (IllegalArgumentException exception) {
 					LOGGER.warn("Rejected trait spawn index part", exception);
 				}

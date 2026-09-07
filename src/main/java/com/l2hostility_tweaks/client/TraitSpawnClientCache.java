@@ -2,6 +2,7 @@ package com.l2hostility_tweaks.client;
 
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
 
+import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -17,27 +18,29 @@ public final class TraitSpawnClientCache {
     private static final TraitSpawnIndexSnapshot DISCONNECTED = new TraitSpawnIndexSnapshot(Long.MIN_VALUE, List.of(), 0);
 
     private final List<Consumer<TraitSpawnIndexSnapshot>> listeners = new CopyOnWriteArrayList<>();
+    private final ArrayDeque<Notification> notifications = new ArrayDeque<>();
     private volatile TraitSpawnIndexSnapshot current = DISCONNECTED;
+    private boolean publishing;
 
     public boolean install(TraitSpawnIndexSnapshot snapshot) {
         Objects.requireNonNull(snapshot, "snapshot");
-        List<Consumer<TraitSpawnIndexSnapshot>> snapshotListeners;
+        boolean drain;
         synchronized (this) {
             if (snapshot.revision() <= current.revision()) return false;
             current = snapshot;
-            snapshotListeners = List.copyOf(listeners);
+            drain = enqueue(snapshot);
         }
-        publish(snapshot, snapshotListeners);
+        if (drain) drainNotifications();
         return true;
     }
 
     public void clear() {
-        List<Consumer<TraitSpawnIndexSnapshot>> snapshotListeners;
+        boolean drain;
         synchronized (this) {
             current = DISCONNECTED;
-            snapshotListeners = List.copyOf(listeners);
+            drain = enqueue(DISCONNECTED);
         }
-        publish(DISCONNECTED, snapshotListeners);
+        if (drain) drainNotifications();
     }
 
     public TraitSpawnIndexSnapshot current() {
@@ -48,14 +51,38 @@ public final class TraitSpawnClientCache {
         listeners.add(Objects.requireNonNull(listener, "listener"));
     }
 
-    private void publish(TraitSpawnIndexSnapshot snapshot,
-                         List<Consumer<TraitSpawnIndexSnapshot>> snapshotListeners) {
-        for (Consumer<TraitSpawnIndexSnapshot> listener : snapshotListeners) {
+    private boolean enqueue(TraitSpawnIndexSnapshot snapshot) {
+        notifications.addLast(new Notification(snapshot, List.copyOf(listeners)));
+        if (publishing) return false;
+        publishing = true;
+        return true;
+    }
+
+    private void drainNotifications() {
+        while (true) {
+            Notification notification;
+            synchronized (this) {
+                notification = notifications.pollFirst();
+                if (notification == null) {
+                    publishing = false;
+                    return;
+                }
+            }
+            publish(notification);
+        }
+    }
+
+    private void publish(Notification notification) {
+        for (Consumer<TraitSpawnIndexSnapshot> listener : notification.listeners()) {
             try {
-                listener.accept(snapshot);
+                listener.accept(notification.snapshot());
             } catch (RuntimeException exception) {
                 LOGGER.warn("Trait spawn index listener failed", exception);
             }
         }
+    }
+
+    private record Notification(TraitSpawnIndexSnapshot snapshot,
+                                List<Consumer<TraitSpawnIndexSnapshot>> listeners) {
     }
 }

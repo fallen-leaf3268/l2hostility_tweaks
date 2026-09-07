@@ -8,6 +8,7 @@ import net.minecraft.nbt.NbtIo;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -29,13 +30,19 @@ public final class TraitSpawnIndexTransport {
     public static List<TraitSpawnIndexPart> encode(TraitSpawnIndexSnapshot snapshot) {
         Objects.requireNonNull(snapshot, "snapshot");
         CompoundTag values = TraitSpawnIndexCodec.encode(snapshot);
+        validateUncompressedSize(values);
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         try {
             NbtIo.writeCompressed(values, new LimitedOutputStream(output, MAX_COMPRESSED_BYTES));
         } catch (IOException exception) {
             throw new IllegalArgumentException("Unable to compress trait spawn index", exception);
         }
-        return split(snapshot.revision(), output.toByteArray());
+        byte[] compressed = output.toByteArray();
+        TraitSpawnIndexSnapshot decoded = decode(compressed);
+        if (decoded.revision() != snapshot.revision()) {
+            throw new IllegalArgumentException("Encoded trait index revision changed");
+        }
+        return split(snapshot.revision(), compressed);
     }
 
     static List<TraitSpawnIndexPart> split(long revision, byte[] compressed) {
@@ -73,6 +80,28 @@ public final class TraitSpawnIndexTransport {
             return TraitSpawnIndexCodec.decode(values);
         } catch (IOException | RuntimeException exception) {
             throw new IllegalArgumentException("Unable to decode trait spawn index", exception);
+        }
+    }
+
+    public static TraitSpawnIndexSnapshot decode(TraitSpawnIndexReassembler.Completed completed) {
+        Objects.requireNonNull(completed, "completed");
+        TraitSpawnIndexSnapshot snapshot = decode(completed.compressed());
+        if (snapshot.revision() != completed.revision()) {
+            throw new IllegalArgumentException("Trait index revision does not match transport envelope");
+        }
+        return snapshot;
+    }
+
+    static OutputStream uncompressedBudget(OutputStream delegate) {
+        return new LimitedOutputStream(delegate, MAX_UNCOMPRESSED_NBT_BYTES);
+    }
+
+    private static void validateUncompressedSize(CompoundTag values) {
+        try (DataOutputStream output = new DataOutputStream(
+                uncompressedBudget(OutputStream.nullOutputStream()))) {
+            NbtIo.write(values, output);
+        } catch (IOException exception) {
+            throw new IllegalArgumentException("Uncompressed trait spawn index exceeds limit", exception);
         }
     }
 

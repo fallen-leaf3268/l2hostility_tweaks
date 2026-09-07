@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.network;
 
+import java.util.Arrays;
 import java.util.Optional;
 
 public final class TraitSpawnIndexReassembler {
@@ -7,7 +8,7 @@ public final class TraitSpawnIndexReassembler {
     private long latestRevision = Long.MIN_VALUE;
     private Pending pending;
 
-    public synchronized Optional<byte[]> accept(TraitSpawnIndexPart part) {
+    public synchronized Optional<Completed> accept(TraitSpawnIndexPart part) {
         if (part == null) throw new IllegalArgumentException("Missing trait index part");
         if (part.revision() <= latestRevision) {
             throw new IllegalArgumentException("Old or completed trait index revision: " + part.revision());
@@ -22,15 +23,35 @@ public final class TraitSpawnIndexReassembler {
         pending.add(part);
         if (!pending.complete()) return Optional.empty();
 
-        byte[] result = pending.join();
-        latestRevision = pending.revision;
+        Completed result = new Completed(pending.revision, pending.join());
         pending = null;
         return Optional.of(result);
+    }
+
+    public synchronized boolean commit(Completed completed) {
+        if (completed == null) throw new IllegalArgumentException("Missing completed trait index");
+        if (completed.revision() <= latestRevision) return false;
+        latestRevision = completed.revision();
+        if (pending != null && pending.revision <= latestRevision) pending = null;
+        return true;
     }
 
     public synchronized void reset() {
         latestRevision = Long.MIN_VALUE;
         pending = null;
+    }
+
+    public record Completed(long revision, byte[] compressed) {
+
+        public Completed {
+            if (compressed == null) throw new IllegalArgumentException("Missing compressed trait index");
+            compressed = Arrays.copyOf(compressed, compressed.length);
+        }
+
+        @Override
+        public byte[] compressed() {
+            return Arrays.copyOf(compressed, compressed.length);
+        }
     }
 
     private static final class Pending {

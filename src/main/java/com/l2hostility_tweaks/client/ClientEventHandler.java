@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.client;
 
+import com.l2hostility_tweaks.L2HostilityFix;
 import com.l2hostility_tweaks.content.TraitUnloaderWand;
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.network.NetworkHandler;
@@ -69,6 +70,7 @@ public class ClientEventHandler {
 		@SubscribeEvent
 		public static void onLogout(ClientPlayerNetworkEvent.LoggingOut event) {
 			L2HConfig.clearDisplaySnapshot();
+			L2HostilityFix.PROXY.clearTraitSpawnIndex();
 		}
 
 	}
