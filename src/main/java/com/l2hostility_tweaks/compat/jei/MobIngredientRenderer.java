@@ -5,6 +5,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import mezz.jei.api.ingredients.IIngredientRenderer;
 import net.minecraft.ChatFormatting;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
@@ -17,9 +18,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +34,8 @@ import java.util.function.Consumer;
 
 public final class MobIngredientRenderer implements IIngredientRenderer<MobIngredient>, AutoCloseable {
 
+    private static final Field RENDER_SHADOW = ObfuscationReflectionHelper.findField(
+            EntityRenderDispatcher.class, "f_114368_");
     private final int size;
     private final MobIngredientHelper helper = new MobIngredientHelper();
     private final EntityCache<Level, LivingEntity> entities = new EntityCache<>(Entity::discard);
@@ -55,9 +61,13 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
                 renderFallback(guiGraphics, ingredient);
                 return;
             }
-            float extent = Math.max(entity.getBbWidth(), entity.getBbHeight());
-            int scale = Math.max(1, Math.round((size - 2) / Math.max(0.25F, extent)));
-            renderEntity(guiGraphics, size / 2, size - 1, scale, entity);
+            PreviewLayout layout = PreviewLayout.calculate(size, entity.getBbWidth(), entity.getBbHeight(),
+                    Util.getMillis());
+            ScissorBounds scissor = ScissorBounds.calculate(guiGraphics.pose().last().pose(), size);
+            ScopedState.use(
+                    () -> guiGraphics.enableScissor(scissor.left(), scissor.top(), scissor.right(), scissor.bottom()),
+                    guiGraphics::disableScissor,
+                    () -> renderEntity(guiGraphics, layout, entity));
         } catch (RuntimeException | LinkageError exception) {
             entities.fail(entityId);
             renderFallback(guiGraphics, ingredient);
@@ -105,31 +115,30 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
         return livingEntity;
     }
 
-    private static void renderEntity(GuiGraphics guiGraphics, int x, int y, int scale,
-                                     LivingEntity entity) {
+    private static void renderEntity(GuiGraphics guiGraphics, PreviewLayout layout, LivingEntity entity) {
         Quaternionf rotation = new Quaternionf().rotateZ((float) Math.PI);
-        Quaternionf cameraTilt = new Quaternionf().rotateX(0.0F);
+        Quaternionf cameraTilt = new Quaternionf().rotateX((float) Math.toRadians(10.0D));
         rotation.mul(cameraTilt);
         LivingRotation original = LivingRotation.capture(entity);
         ScopedState.use(
                 () -> {
-                    entity.yBodyRot = 180.0F;
-                    entity.setYRot(180.0F);
+                    entity.yBodyRot = layout.yawDegrees();
+                    entity.setYRot(layout.yawDegrees());
                     entity.setXRot(0.0F);
                     entity.yHeadRot = entity.getYRot();
                     entity.yHeadRotO = entity.getYRot();
                 },
                 () -> original.restore(entity),
-                () -> renderEntityInInventory(guiGraphics, x, y, scale, rotation, cameraTilt, entity));
+                () -> renderEntityInInventory(guiGraphics, layout, rotation, cameraTilt, entity));
     }
 
-    private static void renderEntityInInventory(GuiGraphics guiGraphics, int x, int y, int scale,
+    private static void renderEntityInInventory(GuiGraphics guiGraphics, PreviewLayout layout,
                                                 Quaternionf rotation, Quaternionf cameraTilt,
                                                 LivingEntity entity) {
         PoseStack pose = guiGraphics.pose();
         ScopedState.use(pose::pushPose, pose::popPose, () -> {
-            pose.translate(x, y, 50.0D);
-            pose.mulPoseMatrix(new Matrix4f().scaling(scale, scale, -scale));
+            pose.translate(layout.anchorX(), layout.anchorY(), 50.0D);
+            pose.mulPoseMatrix(new Matrix4f().scaling(layout.scale(), layout.scale(), -layout.scale()));
             pose.mulPose(rotation);
             ScopedState.use(Lighting::setupForEntityInInventory, Lighting::setupFor3DItems, () -> {
                 EntityRenderDispatcher dispatcher = Minecraft.getInstance().getEntityRenderDispatcher();
@@ -137,20 +146,31 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
                 ScopedState.use(
                         () -> dispatcher.overrideCameraOrientation(new Quaternionf(cameraTilt).conjugate()),
                         () -> dispatcher.overrideCameraOrientation(originalCamera),
-                        () -> ScopedState.use(
-                                () -> dispatcher.setRenderShadow(false),
-                                () -> dispatcher.setRenderShadow(true),
-                                () -> {
-                                    try {
-                                        RenderSystem.runAsFancy(() -> dispatcher.render(entity, 0.0D, 0.0D,
-                                                0.0D, 0.0F, 1.0F, pose,
-                                                guiGraphics.bufferSource(), 0xF000F0));
-                                    } finally {
-                                        guiGraphics.flush();
-                                    }
-                                }));
+                        () -> {
+                            boolean originalShadow = renderShadowEnabled(dispatcher);
+                            ScopedState.use(
+                                    () -> dispatcher.setRenderShadow(false),
+                                    () -> dispatcher.setRenderShadow(originalShadow),
+                                    () -> {
+                                        try {
+                                            RenderSystem.runAsFancy(() -> dispatcher.render(entity, 0.0D, 0.0D,
+                                                    0.0D, 0.0F, 1.0F, pose,
+                                                    guiGraphics.bufferSource(), 0xF000F0));
+                                        } finally {
+                                            guiGraphics.flush();
+                                        }
+                                    });
+                        });
             });
         });
+    }
+
+    private static boolean renderShadowEnabled(EntityRenderDispatcher dispatcher) {
+        try {
+            return RENDER_SHADOW.getBoolean(dispatcher);
+        } catch (IllegalAccessException exception) {
+            throw new IllegalStateException("Unable to read entity shadow state", exception);
+        }
     }
 
     private void renderFallback(GuiGraphics guiGraphics, MobIngredient ingredient) {
@@ -158,6 +178,34 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
         if (size > 16) {
             String id = ingredient.entityId().toString();
             guiGraphics.drawString(Minecraft.getInstance().font, id, 1, size - 9, 0xFFFFFFFF, true);
+        }
+    }
+
+    static record PreviewLayout(float scale, float anchorX, float anchorY, float yawDegrees) {
+
+        static PreviewLayout calculate(int size, float width, float height, long animationMillis) {
+            float safeWidth = Math.max(0.01F, width);
+            float safeHeight = Math.max(0.01F, height);
+            float usable = Math.max(1.0F, size - 6.0F);
+            float scale = Math.min(usable / safeWidth, usable / safeHeight);
+            scale = Math.min(scale, size <= 16 ? 8.0F : 22.0F);
+            float scaledHeight = safeHeight * scale;
+            double phase = animationMillis * 0.0015D;
+            float yaw = 145.0F + (float) Math.sin(phase) * 20.0F;
+            return new PreviewLayout(scale, size * 0.5F, (size + scaledHeight) * 0.5F, yaw);
+        }
+    }
+
+    private record ScissorBounds(int left, int top, int right, int bottom) {
+
+        private static ScissorBounds calculate(Matrix4f pose, int size) {
+            Vector3f topLeft = pose.transformPosition(0.0F, 0.0F, 0.0F, new Vector3f());
+            Vector3f bottomRight = pose.transformPosition(size, size, 0.0F, new Vector3f());
+            int left = (int) Math.floor(Math.min(topLeft.x(), bottomRight.x()));
+            int top = (int) Math.floor(Math.min(topLeft.y(), bottomRight.y()));
+            int right = (int) Math.ceil(Math.max(topLeft.x(), bottomRight.x()));
+            int bottom = (int) Math.ceil(Math.max(topLeft.y(), bottomRight.y()));
+            return new ScissorBounds(left, top, right, bottom);
         }
     }
 

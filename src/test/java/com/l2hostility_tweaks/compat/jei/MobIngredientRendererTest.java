@@ -18,6 +18,38 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MobIngredientRendererTest {
 
     @Test
+    void previewLayoutFitsTinyNormalWideTallAndHugeEntities() {
+        for (float[] box : List.of(
+                new float[]{0.2F, 0.3F}, new float[]{0.6F, 1.8F},
+                new float[]{4.0F, 1.0F}, new float[]{0.8F, 6.0F},
+                new float[]{80.0F, 40.0F})) {
+            var layout = MobIngredientRenderer.PreviewLayout.calculate(48, box[0], box[1], 0L);
+            assertTrue(Float.isFinite(layout.scale()));
+            assertTrue(layout.scale() > 0.0F);
+            assertTrue(box[0] * layout.scale() <= 42.01F);
+            assertTrue(box[1] * layout.scale() <= 42.01F);
+        }
+    }
+
+    @Test
+    void previewLayoutUsesThreeQuarterViewWithBoundedMotion() {
+        for (long millis : List.of(0L, 500L, 1000L, 5000L, 10000L)) {
+            float yaw = MobIngredientRenderer.PreviewLayout.calculate(48, 1.0F, 2.0F, millis).yawDegrees();
+            assertTrue(yaw >= 125.0F && yaw <= 165.0F);
+        }
+    }
+
+    @Test
+    void previewLayoutKeepsAnimatingAtRealWorldTimestamps() {
+        long now = 1_800_000_000_000L;
+        float first = MobIngredientRenderer.PreviewLayout.calculate(48, 1.0F, 2.0F, now).yawDegrees();
+        float next = MobIngredientRenderer.PreviewLayout.calculate(48, 1.0F, 2.0F, now + 50L).yawDegrees();
+
+        assertTrue(Math.abs(next - first) > 0.0001F);
+        assertTrue(Math.abs(next - first) < 2.0F);
+    }
+
+    @Test
     void scopedStateRestoresNestedGuiStateBeforeRenderFailureEscapes() {
         List<String> events = new ArrayList<>();
 
@@ -105,6 +137,15 @@ class MobIngredientRendererTest {
 
         assertFalse(source.contains("InventoryScreen"));
         assertFalse(source.contains("renderEntityInInventoryFollowsAngle"));
+    }
+
+    @Test
+    void rendererRestoresThePreviousShadowSetting() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/compat/jei/MobIngredientRenderer.java"));
+
+        assertTrue(source.contains("dispatcher.setRenderShadow(originalShadow)"));
+        assertFalse(source.contains("() -> dispatcher.setRenderShadow(true)"));
     }
 
     private static final class FakeEntity {
