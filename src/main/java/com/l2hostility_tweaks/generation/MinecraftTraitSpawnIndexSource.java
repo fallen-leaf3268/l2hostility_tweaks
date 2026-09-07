@@ -14,6 +14,7 @@ import com.l2hostility_tweaks.util.EntityConfigDisplayData;
 import com.l2hostility_tweaks.util.EntityConfigNbtData;
 import dev.xkmc.l2hostility.content.config.EntityConfig;
 import dev.xkmc.l2hostility.content.config.TraitConfig;
+import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import dev.xkmc.l2hostility.init.L2Hostility;
 import dev.xkmc.l2hostility.init.data.LHTagGen;
@@ -148,7 +149,10 @@ public final class MinecraftTraitSpawnIndexSource {
             }
             if (temporary == null) continue;
             try {
-                if (!(temporary instanceof LivingEntity) || temporary instanceof Player) continue;
+                if (!(temporary instanceof LivingEntity living)) continue;
+                boolean player = living instanceof Player;
+                boolean traitCapabilityApplies = !player && MobTraitCap.HOLDER.isProper(living);
+                if (!shouldIncludeEntity(true, player, traitCapabilityApplies)) continue;
                 entities.add(new EntityInput(
                         entry.getKey(), entry.getValue().is(LHTagGen.NO_TRAIT),
                         configs.base().getOrDefault(entry.getKey(), List.of()),
@@ -158,6 +162,10 @@ public final class MinecraftTraitSpawnIndexSource {
             }
         }
         return List.copyOf(entities);
+    }
+
+    static boolean shouldIncludeEntity(boolean living, boolean player, boolean traitCapabilityApplies) {
+        return living && !player && traitCapabilityApplies;
     }
 
     private static List<TraitInput> captureTraits() {
