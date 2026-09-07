@@ -173,11 +173,14 @@ public class L2HostilityFix {
                 lastUpstreamDisplayConfig = L2HConfig.getUpstreamDisplayConfig();
             }
             NetworkHandler.sendDisplayConfigToPlayer(sp);
+            boolean rebuiltForLogin = false;
             if (!TraitSpawnIndexService.INSTANCE.isInitialized()) {
                 TraitSpawnIndexService.INSTANCE.requestRebuild();
-                TraitSpawnIndexService.INSTANCE.rebuildIfRequested(sp.getServer());
+                rebuiltForLogin = TraitSpawnIndexService.INSTANCE.rebuildIfRequested(sp.getServer());
             }
-            NetworkHandler.sendTraitSpawnIndexToPlayer(sp, TraitSpawnIndexService.INSTANCE.current());
+            if (!rebuiltForLogin) {
+                NetworkHandler.sendTraitSpawnIndexToPlayer(sp, TraitSpawnIndexService.INSTANCE.current());
+            }
             if (MobTraitCap.HOLDER.isProper(sp)) {
                 MobTraitCap cap = MobTraitCap.HOLDER.get(sp);
                 if (cap.isInitialized()) {
