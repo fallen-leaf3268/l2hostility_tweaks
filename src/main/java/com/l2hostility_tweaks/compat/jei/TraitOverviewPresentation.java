@@ -69,6 +69,10 @@ public final class TraitOverviewPresentation {
         return compact.toString();
     }
 
+    public static String formatNullableId(ResourceLocation id) {
+        return id == null ? "-" : id.toString();
+    }
+
     public static List<String> presetTooltipKeys(TraitSpawnIndexSnapshot.PresetTraitView preset) {
         LinkedHashSet<String> keys = new LinkedHashSet<>();
         keys.add("jei.l2hostility_tweaks.preset_chance");

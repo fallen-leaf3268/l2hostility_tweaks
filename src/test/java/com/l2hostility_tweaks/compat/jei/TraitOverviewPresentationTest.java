@@ -83,6 +83,8 @@ class TraitOverviewPresentationTest {
                 TraitOverviewPresentation.blockReasonKey(TraitBlockReason.PRESET_ONLY));
         assertEquals("jei.l2hostility_tweaks.dynamic.dimension",
                 TraitOverviewPresentation.dynamicConstraintKey(new TraitDynamicConstraint("dimension", List.of("minecraft:nether"))));
+        assertEquals("-", TraitOverviewPresentation.formatNullableId(null));
+        assertEquals("minecraft:zombie", TraitOverviewPresentation.formatNullableId(id("minecraft:zombie")));
     }
 
     @Test

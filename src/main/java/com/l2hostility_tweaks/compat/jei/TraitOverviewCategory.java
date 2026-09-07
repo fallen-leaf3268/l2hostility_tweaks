@@ -118,7 +118,8 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
         tooltip.add(Component.translatable("jei.l2hostility_tweaks.blocked_trait", blocked.traitId().toString())
                 .withStyle(ChatFormatting.RED));
         blocked.contexts().forEach(context -> {
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.source", context.sourceId().toString())
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.source",
+                            TraitOverviewPresentation.formatNullableId(context.sourceId()))
                     .withStyle(ChatFormatting.GRAY));
             context.reasons().forEach(reason -> tooltip.add(Component.translatable(
                     TraitOverviewPresentation.blockReasonKey(reason)).withStyle(ChatFormatting.DARK_RED)));
@@ -135,7 +136,8 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
     private static void addConfigTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe, List<Component> tooltip) {
         tooltip.add(Component.literal(recipe.entityId().toString()).withStyle(ChatFormatting.DARK_GRAY));
         for (TraitSpawnIndexSnapshot.EntityConfigView config : recipe.configs()) {
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.source", config.sourceId().toString())
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.source",
+                            TraitOverviewPresentation.formatNullableId(config.sourceId()))
                     .withStyle(ChatFormatting.GOLD));
             tooltip.add(Component.translatable("jei.l2hostility_tweaks.difficulty",
                     config.minDifficulty(), config.baseDifficulty()));
@@ -172,8 +174,9 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                     tooltip.add(Component.translatable("jei.l2hostility_tweaks.cap", preset.cap()));
                     tooltip.add(Component.translatable("jei.l2hostility_tweaks.condition_level", preset.conditionLevel()));
                     tooltip.add(Component.translatable("jei.l2hostility_tweaks.advancement",
-                            String.valueOf(preset.advancementId())));
-                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.source", preset.sourceId().toString())
+                            TraitOverviewPresentation.formatNullableId(preset.advancementId())));
+                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.source",
+                                    TraitOverviewPresentation.formatNullableId(preset.sourceId()))
                             .withStyle(ChatFormatting.GRAY));
                     String condition = TraitOverviewPresentation.compactConditionJson(preset.conditionJson());
                     if (!condition.isEmpty()) tooltip.add(Component.translatable("jei.l2hostility_tweaks.condition", condition));
