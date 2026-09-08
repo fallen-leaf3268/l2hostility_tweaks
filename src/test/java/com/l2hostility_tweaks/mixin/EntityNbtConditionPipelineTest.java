@@ -145,6 +145,17 @@ class EntityNbtConditionPipelineTest {
         assertTrue(mixins.contains("\"MobTraitCapConfigMixin\""));
     }
 
+    @Test
+    void nbtPresetGenerationEmitsBoundaryDiagnosticsWithoutChangingRules() throws IOException {
+        String postRoll = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/TraitPostRollMixin.java"));
+
+        assertTrue(postRoll.contains("NBT_PRESET_TRACE allow"));
+        assertTrue(postRoll.contains("NBT_PRESET_TRACE applied"));
+        assertTrue(postRoll.contains("NBT_PRESET_TRACE final"));
+        assertTrue(postRoll.contains("TraitGenerationHelper.selectActiveNbtConfig(entity)"));
+    }
+
     private static ArrayList<Pair<SpecialConfigCondition<?>, EntityConfig.Config>> pairs(
             EntityConfig.Config... configs) {
         ArrayList<Pair<SpecialConfigCondition<?>, EntityConfig.Config>> result = new ArrayList<>();
