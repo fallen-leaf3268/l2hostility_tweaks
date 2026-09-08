@@ -39,6 +39,16 @@ class MinecraftTraitSpawnIndexSourceTest {
     }
 
     @Test
+    void clampsConfiguredProbabilitiesToTheirEffectiveRuntimeRange() {
+        assertEquals(0.0, MinecraftTraitSpawnIndexSource.effectiveProbability(-1.0));
+        assertEquals(0.0, MinecraftTraitSpawnIndexSource.effectiveProbability(0.0));
+        assertEquals(0.25, MinecraftTraitSpawnIndexSource.effectiveProbability(0.25));
+        assertEquals(1.0, MinecraftTraitSpawnIndexSource.effectiveProbability(1.0));
+        assertEquals(1.0, MinecraftTraitSpawnIndexSource.effectiveProbability(100.0));
+        assertEquals(Double.NaN, MinecraftTraitSpawnIndexSource.effectiveProbability(Double.NaN));
+    }
+
+    @Test
     void capturePreservesRawMaximumTraitCountSentinel() throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/generation/MinecraftTraitSpawnIndexSource.java"));

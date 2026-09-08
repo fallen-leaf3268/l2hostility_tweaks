@@ -82,8 +82,9 @@ public final class MinecraftTraitSpawnIndexSource {
         var difficulty = config.difficulty();
         EntityConfigView view = new EntityConfigView(
                 sourceId, conditionJson, difficulty.min(), difficulty.base(), difficulty.variation(),
-                difficulty.scale(), difficulty.apply_chance(), difficulty.trait_chance(),
-                difficulty.suppression(), config.minSpawnLevel,
+                difficulty.scale(), effectiveProbability(difficulty.apply_chance()),
+                effectiveProbability(difficulty.trait_chance()),
+                effectiveProbability(difficulty.suppression()), config.minSpawnLevel,
                 effectiveMaxLevel(config.maxLevel, LHConfig.COMMON.maxMobLevel.get()),
                 config.maxTraitCount, presetTraitsOnly(config));
         Set<ResourceLocation> blacklist = new LinkedHashSet<>();
@@ -100,7 +101,7 @@ public final class MinecraftTraitSpawnIndexSource {
             EntityConfig.TraitCondition condition = preset.condition();
             presets.add(new PresetInput(
                     traitId, preset.free(), preset.min(), presetCap(preset),
-                    condition == null ? 1.0 : condition.chance(),
+                    condition == null ? 1.0 : effectiveProbability(condition.chance()),
                     condition == null ? 0 : condition.lv(),
                     condition == null ? null : condition.id()));
         }
@@ -196,6 +197,11 @@ public final class MinecraftTraitSpawnIndexSource {
 
     static int effectiveMaxLevel(int entityMaxLevel, int globalMaxLevel) {
         return entityMaxLevel > 0 ? Math.min(entityMaxLevel, globalMaxLevel) : globalMaxLevel;
+    }
+
+    static double effectiveProbability(double value) {
+        if (!Double.isFinite(value)) return value;
+        return Math.max(0.0D, Math.min(1.0D, value));
     }
 
     private static List<TraitInput> captureTraits() {
