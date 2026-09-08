@@ -54,10 +54,12 @@ class JeiPluginBoundaryTest {
         String source = read(Path.of(
                 "src/main/java/com/l2hostility_tweaks/compat/jei/TraitOverviewCategory.java"));
 
-        assertTrue(source.contains("addSlot(RecipeIngredientRole.INPUT, 8, 8)"));
-        assertTrue(source.contains("addSlot(RecipeIngredientRole.OUTPUT, 72, 62)"));
-        assertTrue(source.contains("addSlot(RecipeIngredientRole.OUTPUT, 112, 62)"));
-        assertTrue(source.contains("guiGraphics.renderItem(blockedStack, 148, 62)"));
+        assertTrue(source.contains("addSlot(RecipeIngredientRole.INPUT, MOB_SLOT_X, MOB_SLOT_Y)"));
+        assertTrue(source.contains("addSlot(RecipeIngredientRole.OUTPUT, POOL_SLOT_X, POOL_SLOT_Y)"));
+        assertTrue(source.contains("addSlot(RecipeIngredientRole.OUTPUT, PRESET_SLOT_X, PRESET_SLOT_Y)"));
+        assertTrue(source.contains("if (shouldRenderPresets(recipe))"));
+        assertTrue(source.contains("guiGraphics.renderItem(blockedStack, BLOCKED_SLOT_X, BLOCKED_SLOT_Y)"));
+        assertFalse(source.contains("setSlotName(\"blocked\")"));
         assertFalse(source.contains("addItemStacks(resolveBlocked"));
     }
 
