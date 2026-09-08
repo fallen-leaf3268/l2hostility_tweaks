@@ -76,7 +76,7 @@ class JeiResourcesTest {
         assertTrue(category.contains("TraitListTooltip.textMarker"));
         assertTrue(category.contains("Component.translatable(\"jei.l2hostility_tweaks.guaranteed_traits\")"));
         assertTrue(category.contains("addConfigTooltip(recipe, tooltip)"));
-        assertTrue(category.contains("addTooltipCallback((slot, tooltip) -> addPresetTooltip(recipe, slot, tooltip))"));
+        assertTrue(category.contains("addPresetTooltip(recipe, slot, tooltip);"));
         assertFalse(category.contains("drawCenteredString"));
         assertFalse(category.contains("addPoolTooltip"));
         assertTrue(category.contains("isInsideMobPreview"));
@@ -111,6 +111,27 @@ class JeiResourcesTest {
         assertFalse(configTooltip.contains("jei.l2hostility_tweaks.min_spawn_level"));
         assertFalse(configTooltip.contains("jei.l2hostility_tweaks.max_level"));
         assertFalse(configTooltip.contains("jei.l2hostility_tweaks.condition"));
+    }
+
+    @Test
+    void presetAndBlockedTooltipsContainOnlyApplicationDetails() throws IOException {
+        String category = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/compat/jei/TraitOverviewCategory.java"));
+        String setRecipe = category.substring(category.indexOf("public void setRecipe"),
+                category.indexOf("public void draw"));
+        String blockedTooltip = category.substring(category.indexOf("public List<Component> getTooltipStrings"),
+                category.indexOf("public ResourceLocation getRegistryName"));
+        String presetTooltip = category.substring(category.indexOf("private static void addPresetTooltip"),
+                category.indexOf("private static List<ItemStack> resolveStacks"));
+
+        int presetSlot = setRecipe.indexOf("setSlotName(\"presets\")");
+        int presetClear = setRecipe.indexOf("tooltip.clear()", presetSlot);
+        int presetDetails = setRecipe.indexOf("addPresetTooltip(recipe, slot, tooltip)", presetSlot);
+        assertTrue(presetSlot >= 0 && presetClear > presetSlot && presetDetails > presetClear);
+        assertFalse(blockedTooltip.contains("jei.l2hostility_tweaks.source"));
+        assertTrue(blockedTooltip.contains("TraitOverviewPresentation.blockedReasonKeys(blocked)"));
+        assertFalse(presetTooltip.contains("jei.l2hostility_tweaks.source"));
+        assertFalse(presetTooltip.contains("dynamicConstraintKey"));
     }
 
     private static void assertAppearsInOrder(String source, List<String> fragments) {

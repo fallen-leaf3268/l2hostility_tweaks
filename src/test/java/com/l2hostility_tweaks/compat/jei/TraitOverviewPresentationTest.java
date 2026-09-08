@@ -117,12 +117,14 @@ class TraitOverviewPresentationTest {
     void presetTooltipLabelsChanceAsDatapackProbability() {
         List<String> keys = TraitOverviewPresentation.presetTooltipKeys(presetAtHalfChance());
 
-        assertTrue(keys.contains("jei.l2hostility_tweaks.preset_chance"));
-        assertTrue(keys.contains("jei.l2hostility_tweaks.source"));
-        assertTrue(keys.contains("jei.l2hostility_tweaks.condition"));
-        assertTrue(keys.contains("jei.l2hostility_tweaks.dynamic.level"));
-        assertTrue(keys.contains("jei.l2hostility_tweaks.free_rank"));
-        assertTrue(keys.contains("jei.l2hostility_tweaks.advancement"));
+        assertEquals(List.of(
+                "jei.l2hostility_tweaks.preset_chance",
+                "jei.l2hostility_tweaks.free_rank",
+                "jei.l2hostility_tweaks.min_rank",
+                "jei.l2hostility_tweaks.cap",
+                "jei.l2hostility_tweaks.condition_level",
+                "jei.l2hostility_tweaks.advancement",
+                "jei.l2hostility_tweaks.condition"), keys);
         assertFalse(keys.contains("jei.l2hostility_tweaks.final_chance"));
     }
 
@@ -173,6 +175,34 @@ class TraitOverviewPresentationTest {
         assertEquals(10, range.minimum());
         assertEquals(100, range.maximum());
         assertEquals(20, range.base());
+    }
+
+    @Test
+    void maximumTraitCountDistinguishesDatapackOverrideFromGlobalFallback() {
+        TraitSpawnIndexSnapshot.EntityConfigView inherited = new TraitSpawnIndexSnapshot.EntityConfigView(
+                id("example:inherited"), "", 0, 0, 0, 0, 1, 1,
+                0, 0, 100, -1, false);
+        TraitSpawnIndexSnapshot.EntityConfigView overridden = new TraitSpawnIndexSnapshot.EntityConfigView(
+                id("example:overridden"), "", 0, 0, 0, 0, 1, 1,
+                0, 0, 100, 4, false);
+
+        assertTrue(TraitOverviewPresentation.usesGlobalMaxTraitCount(inherited));
+        assertFalse(TraitOverviewPresentation.usesGlobalMaxTraitCount(overridden));
+    }
+
+    @Test
+    void blockedReasonsAreDistinctAfterSourcesAreHidden() {
+        TraitSpawnIndexSnapshot.BlockedTraitView blocked = new TraitSpawnIndexSnapshot.BlockedTraitView(
+                id("l2hostility:growth"), id("l2hostility:growth"), List.of(
+                new TraitSpawnIndexSnapshot.BlockedContextView(id("example:first"),
+                        List.of(TraitBlockReason.PRESET_ONLY, TraitBlockReason.ENTITY_NO_TRAIT)),
+                new TraitSpawnIndexSnapshot.BlockedContextView(id("example:second"),
+                        List.of(TraitBlockReason.PRESET_ONLY))));
+
+        assertEquals(List.of(
+                        "jei.l2hostility_tweaks.block.preset_only",
+                        "jei.l2hostility_tweaks.block.no_trait"),
+                TraitOverviewPresentation.blockedReasonKeys(blocked));
     }
 
     @Test

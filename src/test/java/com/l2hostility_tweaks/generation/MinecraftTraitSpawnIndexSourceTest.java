@@ -39,10 +39,12 @@ class MinecraftTraitSpawnIndexSourceTest {
     }
 
     @Test
-    void effectiveMaximumTraitCountUsesPositiveEntityOverride() {
-        assertEquals(9, MinecraftTraitSpawnIndexSource.effectiveMaxTraitCount(-1, 9));
-        assertEquals(9, MinecraftTraitSpawnIndexSource.effectiveMaxTraitCount(0, 9));
-        assertEquals(4, MinecraftTraitSpawnIndexSource.effectiveMaxTraitCount(4, 9));
+    void capturePreservesRawMaximumTraitCountSentinel() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/generation/MinecraftTraitSpawnIndexSource.java"));
+
+        assertTrue(source.contains("config.maxTraitCount, presetTraitsOnly(config)"));
+        assertFalse(source.contains("effectiveMaxTraitCount(config.maxTraitCount"));
     }
 
     @Test

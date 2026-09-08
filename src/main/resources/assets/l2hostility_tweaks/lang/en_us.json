@@ -131,6 +131,7 @@
   "jei.l2hostility_tweaks.min_spawn_level": "Minimum spawn level: %s",
   "jei.l2hostility_tweaks.max_level": "Maximum level: %s",
   "jei.l2hostility_tweaks.max_trait_count": "Maximum trait count: %s",
+  "jei.l2hostility_tweaks.max_trait_count_global": "Maximum trait count: use global config",
   "jei.l2hostility_tweaks.preset_only": "Preset traits only: %s",
   "jei.l2hostility_tweaks.preset": "Preset traits (%s)",
   "jei.l2hostility_tweaks.guaranteed_traits": "Guaranteed minimum traits:",

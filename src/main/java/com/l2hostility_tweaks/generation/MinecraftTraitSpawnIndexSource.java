@@ -85,8 +85,7 @@ public final class MinecraftTraitSpawnIndexSource {
                 difficulty.scale(), difficulty.apply_chance(), difficulty.trait_chance(),
                 difficulty.suppression(), config.minSpawnLevel,
                 effectiveMaxLevel(config.maxLevel, LHConfig.COMMON.maxMobLevel.get()),
-                effectiveMaxTraitCount(config.maxTraitCount, LHConfig.COMMON.maxTraitCount.get()),
-                presetTraitsOnly(config));
+                config.maxTraitCount, presetTraitsOnly(config));
         Set<ResourceLocation> blacklist = new LinkedHashSet<>();
         for (MobTrait trait : config.blacklist()) {
             ResourceLocation id = LHTraits.TRAITS.get().getKey(trait);
@@ -173,10 +172,6 @@ public final class MinecraftTraitSpawnIndexSource {
 
     static int effectiveMaxLevel(int entityMaxLevel, int globalMaxLevel) {
         return entityMaxLevel > 0 ? Math.min(entityMaxLevel, globalMaxLevel) : globalMaxLevel;
-    }
-
-    static int effectiveMaxTraitCount(int entityMaxTraitCount, int globalMaxTraitCount) {
-        return entityMaxTraitCount > 0 ? entityMaxTraitCount : globalMaxTraitCount;
     }
 
     private static List<TraitInput> captureTraits() {

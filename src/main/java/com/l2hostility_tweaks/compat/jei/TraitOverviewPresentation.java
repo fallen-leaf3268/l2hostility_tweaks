@@ -133,6 +133,10 @@ public final class TraitOverviewPresentation {
         return new DifficultyRange(Math.min(config.minDifficulty(), maximum), maximum, config.baseDifficulty());
     }
 
+    public static boolean usesGlobalMaxTraitCount(TraitSpawnIndexSnapshot.EntityConfigView config) {
+        return config.maxTraitCount() <= 0;
+    }
+
     public static List<String> presetTooltipKeys(TraitSpawnIndexSnapshot.PresetTraitView preset) {
         LinkedHashSet<String> keys = new LinkedHashSet<>();
         keys.add("jei.l2hostility_tweaks.preset_chance");
@@ -141,11 +145,7 @@ public final class TraitOverviewPresentation {
         keys.add("jei.l2hostility_tweaks.cap");
         keys.add("jei.l2hostility_tweaks.condition_level");
         keys.add("jei.l2hostility_tweaks.advancement");
-        keys.add("jei.l2hostility_tweaks.source");
         keys.add("jei.l2hostility_tweaks.condition");
-        for (TraitDynamicConstraint constraint : preset.dynamicConstraints()) {
-            keys.add(dynamicConstraintKey(constraint));
-        }
         return List.copyOf(keys);
     }
 
@@ -180,6 +180,13 @@ public final class TraitOverviewPresentation {
             case TWEAKS_DISABLE_ALL -> "jei.l2hostility_tweaks.block.disable_all";
             case TWEAKS_DISABLE_MOB_LEVEL -> "jei.l2hostility_tweaks.block.disable_mob_level";
         };
+    }
+
+    public static List<String> blockedReasonKeys(TraitSpawnIndexSnapshot.BlockedTraitView blocked) {
+        LinkedHashSet<String> keys = new LinkedHashSet<>();
+        blocked.contexts().forEach(context -> context.reasons().stream()
+                .map(TraitOverviewPresentation::blockReasonKey).forEach(keys::add));
+        return List.copyOf(keys);
     }
 
     public static String dynamicConstraintKey(TraitDynamicConstraint constraint) {

@@ -1,7 +1,6 @@
 package com.l2hostility_tweaks.compat.jei;
 
 import com.l2hostility_tweaks.client.TraitListTooltip;
-import com.l2hostility_tweaks.generation.view.TraitDynamicConstraint;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
@@ -101,7 +100,10 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                     .addItemStacks(resolveStacks(recipe.presets().stream()
                             .map(TraitSpawnIndexSnapshot.PresetTraitView::itemId).distinct().toList()))
                     .setSlotName("presets")
-                    .addTooltipCallback((slot, tooltip) -> addPresetTooltip(recipe, slot, tooltip));
+                    .addTooltipCallback((slot, tooltip) -> {
+                        tooltip.clear();
+                        addPresetTooltip(recipe, slot, tooltip);
+                    });
         }
 
         builder.addSlot(RecipeIngredientRole.OUTPUT, POOL_SLOT_X, POOL_SLOT_Y)
@@ -160,13 +162,8 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
             List<Component> tooltip = new ArrayList<>();
             tooltip.add(TraitListTooltip.marker(TraitOverviewPresentation.blockedTraitIds(recipe)));
             tooltip.add(traitDescription(blocked.traitId(), null));
-            blocked.contexts().forEach(context -> {
-                tooltip.add(Component.translatable("jei.l2hostility_tweaks.source",
-                                TraitOverviewPresentation.formatNullableId(context.sourceId()))
-                        .withStyle(ChatFormatting.GRAY));
-                context.reasons().forEach(reason -> tooltip.add(Component.translatable(
-                        TraitOverviewPresentation.blockReasonKey(reason)).withStyle(ChatFormatting.DARK_RED)));
-            });
+            TraitOverviewPresentation.blockedReasonKeys(blocked).forEach(key -> tooltip.add(
+                    Component.translatable(key).withStyle(ChatFormatting.DARK_RED)));
             return tooltip;
         }
         if (isInsideMobPreview(mouseX, mouseY)) return mobTooltip(recipe);
@@ -210,7 +207,11 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                     range.minimum(), range.maximum(), range.base()));
             tooltip.add(Component.translatable("jei.l2hostility_tweaks.variation", config.variation()));
             tooltip.add(Component.translatable("jei.l2hostility_tweaks.scale", config.scale()));
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.max_trait_count", config.maxTraitCount()));
+            if (TraitOverviewPresentation.usesGlobalMaxTraitCount(config)) {
+                tooltip.add(Component.translatable("jei.l2hostility_tweaks.max_trait_count_global"));
+            } else {
+                tooltip.add(Component.translatable("jei.l2hostility_tweaks.max_trait_count", config.maxTraitCount()));
+            }
             tooltip.add(Component.translatable("jei.l2hostility_tweaks.apply_chance",
                     TraitOverviewPresentation.formatPercent(config.applyChance())));
             tooltip.add(Component.translatable("jei.l2hostility_tweaks.preset_only", config.presetTraitsOnly()));
@@ -230,14 +231,8 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                     tooltip.add(Component.translatable("jei.l2hostility_tweaks.condition_level", preset.conditionLevel()));
                     tooltip.add(Component.translatable("jei.l2hostility_tweaks.advancement",
                             TraitOverviewPresentation.formatNullableId(preset.advancementId())));
-                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.source",
-                                    TraitOverviewPresentation.formatNullableId(preset.sourceId()))
-                            .withStyle(ChatFormatting.GRAY));
                     String condition = TraitOverviewPresentation.compactConditionJson(preset.conditionJson());
                     if (!condition.isEmpty()) tooltip.add(Component.translatable("jei.l2hostility_tweaks.condition", condition));
-                    preset.dynamicConstraints().forEach(constraint -> tooltip.add(Component.translatable(
-                            TraitOverviewPresentation.dynamicConstraintKey(constraint),
-                            String.join(", ", constraint.arguments())).withStyle(ChatFormatting.YELLOW)));
                 }));
     }
 
