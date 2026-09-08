@@ -184,9 +184,11 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
     }
 
     private void renderFallback(GuiGraphics guiGraphics, MobIngredient ingredient) {
-        guiGraphics.renderItem(new ItemStack(Items.BARRIER), Math.max(0, (width - 16) / 2), 0);
+        guiGraphics.renderItem(new ItemStack(Items.BARRIER), Math.max(0, (width - 16) / 2),
+                Math.max(0, (height - 16) / 2));
         if (height > 16) {
-            String id = ingredient.entityId().toString();
+            String id = Minecraft.getInstance().font.plainSubstrByWidth(ingredient.entityId().toString(),
+                    Math.max(0, width - 2));
             guiGraphics.drawString(Minecraft.getInstance().font, id, 1, height - 9, 0xFFFFFFFF, true);
         }
     }
@@ -206,6 +208,11 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
                     + safeWidth * (float) (Math.sqrt(2.0D) * Math.sin(Math.toRadians(10.0D)));
             float scale = Math.min(usableWidth / horizontalEnvelope, usableHeight / verticalEnvelope);
             scale = Math.min(scale, maxScale);
+            if (viewportHeight > viewportWidth) {
+                float downwardProjection = safeWidth
+                        * (float) (Math.sqrt(2.0D) * Math.sin(Math.toRadians(10.0D))) * 0.5F;
+                scale = Math.min(scale, (compact ? 1.0F : 3.0F) / downwardProjection);
+            }
             long cycleMillis = Math.floorMod(animationMillis, 12_000L);
             float yaw = cycleMillis * 360.0F / 12_000.0F;
             return new PreviewLayout(scale, viewportWidth * 0.5F, viewportHeight - (compact ? 1.0F : 3.0F), yaw);

@@ -78,6 +78,16 @@ class MobIngredientRendererTest {
     }
 
     @Test
+    void tallRectangularPreviewLayoutKeepsWorstCaseFootProjectionInsideTheViewport() {
+        float entityWidth = 10.0F;
+        var layout = MobIngredientRenderer.PreviewLayout.calculate(56, 72, entityWidth, 2.0F, 0L);
+        float downwardProjection = entityWidth * (float) (Math.sqrt(2.0D) * Math.sin(Math.toRadians(10.0D)))
+                * layout.scale() * 0.5F;
+
+        assertTrue(downwardProjection <= 72.0F - layout.anchorY() + 0.001F);
+    }
+
+    @Test
     void previewLayoutKeepsScaleFiniteAndNonNegativeForEveryPositiveViewportDimension() {
         for (int[] viewport : List.of(
                 new int[]{1, 72},
@@ -209,6 +219,16 @@ class MobIngredientRendererTest {
 
         assertTrue(source.contains("dispatcher.setRenderShadow(originalShadow)"));
         assertFalse(source.contains("() -> dispatcher.setRenderShadow(true)"));
+    }
+
+    @Test
+    void fallbackCentersTheBarrierAndLimitsTheIdToTheViewportWidth() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/compat/jei/MobIngredientRenderer.java"));
+
+        assertTrue(source.contains("Math.max(0, (height - 16) / 2)"));
+        assertTrue(source.contains("plainSubstrByWidth"));
+        assertTrue(source.contains("Math.max(0, width - 2)"));
     }
 
     private static final class FakeEntity {
