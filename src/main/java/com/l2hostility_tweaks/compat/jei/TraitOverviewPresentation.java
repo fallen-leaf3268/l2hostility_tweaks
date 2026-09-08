@@ -37,8 +37,21 @@ public final class TraitOverviewPresentation {
                 new LinkedHashMap<>();
         overview.presets().stream().filter(TraitOverviewPresentation::isGuaranteedPreset)
                 .forEach(preset -> guaranteed.merge(preset.traitId(), preset,
-                        (first, second) -> first.freeRank() >= second.freeRank() ? first : second));
+                        TraitOverviewPresentation::strongerGuaranteedPreset));
         return List.copyOf(guaranteed.values());
+    }
+
+    public static int guaranteedPresetRank(TraitSpawnIndexSnapshot.PresetTraitView preset) {
+        return Math.max(preset.freeRank(), preset.minRank());
+    }
+
+    private static TraitSpawnIndexSnapshot.PresetTraitView strongerGuaranteedPreset(
+            TraitSpawnIndexSnapshot.PresetTraitView first,
+            TraitSpawnIndexSnapshot.PresetTraitView second) {
+        int firstRank = guaranteedPresetRank(first);
+        int secondRank = guaranteedPresetRank(second);
+        if (firstRank != secondRank) return firstRank > secondRank ? first : second;
+        return first.freeRank() >= second.freeRank() ? first : second;
     }
 
     public static List<ResourceLocation> poolTraitIds(TraitSpawnIndexSnapshot.MobTraitOverview overview) {
@@ -50,7 +63,7 @@ public final class TraitOverviewPresentation {
     }
 
     private static boolean isGuaranteedPreset(TraitSpawnIndexSnapshot.PresetTraitView preset) {
-        return preset.freeRank() > 0
+        return guaranteedPresetRank(preset) > 0
                 && preset.chance() >= 1.0D
                 && preset.conditionLevel() <= 0
                 && preset.advancementId() == null

@@ -71,6 +71,7 @@ class JeiResourcesTest {
         assertTrue(category.contains("TraitListTooltip.exclusiveMarker(TraitOverviewPresentation.poolTraitIds(recipe))"));
         assertTrue(category.contains("TraitListTooltip.marker(TraitOverviewPresentation.blockedTraitIds(recipe))"));
         assertTrue(category.contains("TraitOverviewPresentation.guaranteedPresets(recipe)"));
+        assertTrue(category.contains("TraitOverviewPresentation.guaranteedPresetRank(preset)"));
         assertTrue(category.contains("TraitListTooltip.textMarker"));
         assertFalse(category.contains("drawCenteredString"));
         assertFalse(category.contains("addConfigTooltip"));

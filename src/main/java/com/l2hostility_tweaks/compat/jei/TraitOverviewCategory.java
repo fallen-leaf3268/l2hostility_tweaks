@@ -182,7 +182,8 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
     private static void addGuaranteedPresetTooltip(
             TraitSpawnIndexSnapshot.MobTraitOverview recipe, List<Component> tooltip) {
         List<TraitListTooltip.Entry> entries = TraitOverviewPresentation.guaranteedPresets(recipe).stream()
-                .map(preset -> new TraitListTooltip.Entry(preset.traitId(), preset.freeRank()))
+                .map(preset -> new TraitListTooltip.Entry(preset.traitId(),
+                        TraitOverviewPresentation.guaranteedPresetRank(preset)))
                 .toList();
         if (!entries.isEmpty()) tooltip.add(TraitListTooltip.textMarker(entries));
     }
