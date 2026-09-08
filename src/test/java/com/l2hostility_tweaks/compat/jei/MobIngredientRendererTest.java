@@ -111,11 +111,11 @@ class MobIngredientRendererTest {
         var above = MobIngredientRenderer.LookRotation.calculate(0.0, -40.0);
         var below = MobIngredientRenderer.LookRotation.calculate(0.0, 40.0);
 
-        assertEquals(0.0F, neutral.bodyYawDegrees(), 0.0001F);
-        assertEquals(0.0F, neutral.headYawDegrees(), 0.0001F);
+        assertEquals(180.0F, neutral.bodyYawDegrees(), 0.0001F);
+        assertEquals(180.0F, neutral.headYawDegrees(), 0.0001F);
         assertEquals(0.0F, neutral.pitchDegrees(), 0.0001F);
-        assertTrue(left.headYawDegrees() > 0.0F);
-        assertTrue(right.headYawDegrees() < 0.0F);
+        assertTrue(left.headYawDegrees() > 180.0F);
+        assertTrue(right.headYawDegrees() < 180.0F);
         assertTrue(above.pitchDegrees() < 0.0F);
         assertTrue(below.pitchDegrees() > 0.0F);
     }
@@ -127,8 +127,8 @@ class MobIngredientRendererTest {
         assertTrue(Float.isFinite(rotation.bodyYawDegrees()));
         assertTrue(Float.isFinite(rotation.headYawDegrees()));
         assertTrue(Float.isFinite(rotation.pitchDegrees()));
-        assertTrue(Math.abs(rotation.bodyYawDegrees()) <= 32.0F);
-        assertTrue(Math.abs(rotation.headYawDegrees()) <= 63.0F);
+        assertTrue(rotation.bodyYawDegrees() >= 148.0F && rotation.bodyYawDegrees() <= 212.0F);
+        assertTrue(rotation.headYawDegrees() >= 117.0F && rotation.headYawDegrees() <= 243.0F);
         assertTrue(Math.abs(rotation.pitchDegrees()) <= 32.0F);
     }
 

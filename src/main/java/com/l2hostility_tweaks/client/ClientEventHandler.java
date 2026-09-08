@@ -88,7 +88,13 @@ public class ClientEventHandler {
 				var text = elements.get(index).left();
 				if (text.isEmpty()) continue;
 				var tooltip = TraitListTooltip.fromMarker(text.get().getString());
-				if (tooltip.isPresent()) elements.set(index, Either.right(tooltip.get()));
+				if (tooltip.isEmpty()) continue;
+				if (tooltip.get().replaceTooltip()) {
+					elements.clear();
+					elements.add(Either.right(tooltip.get()));
+					return;
+				}
+				elements.set(index, Either.right(tooltip.get()));
 			}
 		}
 

@@ -225,7 +225,8 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
         static LookRotation calculate(double pointerOffsetX, double pointerOffsetY) {
             float horizontal = (float) Math.atan(pointerOffsetX / 40.0D);
             float vertical = (float) Math.atan(pointerOffsetY / 40.0D);
-            return new LookRotation(-horizontal * 20.0F, -horizontal * 40.0F, vertical * 20.0F);
+            return new LookRotation(180.0F - horizontal * 20.0F,
+                    180.0F - horizontal * 40.0F, vertical * 20.0F);
         }
     }
 

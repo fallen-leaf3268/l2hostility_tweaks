@@ -68,14 +68,18 @@ class JeiResourcesTest {
         String clientEvents = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/client/ClientEventHandler.java"));
 
-        assertTrue(category.contains("TraitListTooltip.marker(TraitOverviewPresentation.poolTraitIds(recipe))"));
+        assertTrue(category.contains("TraitListTooltip.exclusiveMarker(TraitOverviewPresentation.poolTraitIds(recipe))"));
         assertTrue(category.contains("TraitListTooltip.marker(TraitOverviewPresentation.blockedTraitIds(recipe))"));
         assertTrue(category.contains("TraitOverviewPresentation.guaranteedPresets(recipe)"));
         assertTrue(category.contains("TraitListTooltip.textMarker"));
         assertFalse(category.contains("drawCenteredString"));
         assertFalse(category.contains("addConfigTooltip"));
+        assertFalse(category.contains("addPoolTooltip"));
+        assertTrue(category.contains("isInsideMobPreview"));
         assertFalse(playerScreen.contains("drawCenteredString"));
         assertTrue(clientEvents.contains("event.register(TraitListTooltip.class, TraitListTooltipRenderer::new)"));
         assertTrue(clientEvents.contains("TraitListTooltip.fromMarker"));
+        assertTrue(clientEvents.contains("replaceTooltip()"));
+        assertTrue(clientEvents.contains("elements.clear()"));
     }
 }

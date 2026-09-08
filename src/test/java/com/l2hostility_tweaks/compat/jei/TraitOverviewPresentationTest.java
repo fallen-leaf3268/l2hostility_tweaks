@@ -94,7 +94,20 @@ class TraitOverviewPresentationTest {
                 TraitListTooltip.textMarker(entries).getString()).orElseThrow();
 
         assertFalse(parsed.showIcons());
+        assertFalse(parsed.replaceTooltip());
         assertEquals(entries, parsed.entries());
+    }
+
+    @Test
+    void exclusiveTraitListMarkerReplacesTheOriginalItemTooltip() {
+        List<ResourceLocation> traits = List.of(id("l2hostility:speedy"), id("l2hostility:tank"));
+
+        TraitListTooltip parsed = TraitListTooltip.fromMarker(
+                TraitListTooltip.exclusiveMarker(traits).getString()).orElseThrow();
+
+        assertTrue(parsed.showIcons());
+        assertTrue(parsed.replaceTooltip());
+        assertEquals(traits, parsed.entries().stream().map(TraitListTooltip.Entry::traitId).toList());
     }
 
     @Test
@@ -186,6 +199,15 @@ class TraitOverviewPresentationTest {
 
         assertTrue(TraitOverviewCategory.shouldRenderPresets(withPreset));
         assertFalse(TraitOverviewCategory.shouldRenderPresets(withoutPreset));
+    }
+
+    @Test
+    void mobPreviewHoverAreaCoversTheWholeCustomRendererAndExcludesItsEdges() {
+        assertTrue(TraitOverviewCategory.isInsideMobPreview(4.0, 12.0));
+        assertTrue(TraitOverviewCategory.isInsideMobPreview(59.999, 83.999));
+        assertFalse(TraitOverviewCategory.isInsideMobPreview(3.999, 12.0));
+        assertFalse(TraitOverviewCategory.isInsideMobPreview(60.0, 12.0));
+        assertFalse(TraitOverviewCategory.isInsideMobPreview(4.0, 84.0));
     }
 
     @Test
