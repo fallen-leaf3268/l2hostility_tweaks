@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -28,6 +29,20 @@ class MinecraftTraitSpawnIndexSourceTest {
         assertFalse(MinecraftTraitSpawnIndexSource.shouldIncludeEntity(true, false, false));
         assertFalse(MinecraftTraitSpawnIndexSource.shouldIncludeEntity(true, true, false));
         assertFalse(MinecraftTraitSpawnIndexSource.shouldIncludeEntity(true, true, true));
+    }
+
+    @Test
+    void effectiveMaximumUsesEntityCapOrFallsBackToGlobalCap() {
+        assertEquals(3000, MinecraftTraitSpawnIndexSource.effectiveMaxLevel(0, 3000));
+        assertEquals(120, MinecraftTraitSpawnIndexSource.effectiveMaxLevel(120, 3000));
+        assertEquals(3000, MinecraftTraitSpawnIndexSource.effectiveMaxLevel(5000, 3000));
+    }
+
+    @Test
+    void effectiveMaximumTraitCountUsesPositiveEntityOverride() {
+        assertEquals(9, MinecraftTraitSpawnIndexSource.effectiveMaxTraitCount(-1, 9));
+        assertEquals(9, MinecraftTraitSpawnIndexSource.effectiveMaxTraitCount(0, 9));
+        assertEquals(4, MinecraftTraitSpawnIndexSource.effectiveMaxTraitCount(4, 9));
     }
 
     @Test

@@ -18,6 +18,7 @@ import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import dev.xkmc.l2hostility.init.L2Hostility;
 import dev.xkmc.l2hostility.init.data.LHTagGen;
+import dev.xkmc.l2hostility.init.data.LHConfig;
 import dev.xkmc.l2hostility.init.registrate.LHTraits;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -82,8 +83,10 @@ public final class MinecraftTraitSpawnIndexSource {
         EntityConfigView view = new EntityConfigView(
                 sourceId, conditionJson, difficulty.min(), difficulty.base(), difficulty.variation(),
                 difficulty.scale(), difficulty.apply_chance(), difficulty.trait_chance(),
-                difficulty.suppression(), config.minSpawnLevel, config.maxLevel,
-                config.maxTraitCount, presetTraitsOnly(config));
+                difficulty.suppression(), config.minSpawnLevel,
+                effectiveMaxLevel(config.maxLevel, LHConfig.COMMON.maxMobLevel.get()),
+                effectiveMaxTraitCount(config.maxTraitCount, LHConfig.COMMON.maxTraitCount.get()),
+                presetTraitsOnly(config));
         Set<ResourceLocation> blacklist = new LinkedHashSet<>();
         for (MobTrait trait : config.blacklist()) {
             ResourceLocation id = LHTraits.TRAITS.get().getKey(trait);
@@ -166,6 +169,14 @@ public final class MinecraftTraitSpawnIndexSource {
 
     static boolean shouldIncludeEntity(boolean living, boolean player, boolean traitCapabilityApplies) {
         return living && !player && traitCapabilityApplies;
+    }
+
+    static int effectiveMaxLevel(int entityMaxLevel, int globalMaxLevel) {
+        return entityMaxLevel > 0 ? Math.min(entityMaxLevel, globalMaxLevel) : globalMaxLevel;
+    }
+
+    static int effectiveMaxTraitCount(int entityMaxTraitCount, int globalMaxTraitCount) {
+        return entityMaxTraitCount > 0 ? entityMaxTraitCount : globalMaxTraitCount;
     }
 
     private static List<TraitInput> captureTraits() {

@@ -122,6 +122,7 @@
   "jei.l2hostility_tweaks.config_source": "配置来源：%s",
   "jei.l2hostility_tweaks.source": "来源：%s",
   "jei.l2hostility_tweaks.difficulty": "难度范围：%s / 基础 %s",
+  "jei.l2hostility_tweaks.difficulty_range": "难度范围：%s ～ %s（基础值：%s）",
   "jei.l2hostility_tweaks.variation": "难度波动：%s",
   "jei.l2hostility_tweaks.scale": "难度缩放：%s",
   "jei.l2hostility_tweaks.apply_chance": "数据包阶段应用概率：%s",

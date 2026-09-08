@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -84,5 +85,40 @@ class JeiResourcesTest {
         assertTrue(clientEvents.contains("TraitListTooltip.fromMarker"));
         assertTrue(clientEvents.contains("replaceTooltip()"));
         assertTrue(clientEvents.contains("elements.clear()"));
+    }
+
+    @Test
+    void mobTooltipUsesRequestedConfigOrderAndEndsWithGuaranteedTraits() throws IOException {
+        String category = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/compat/jei/TraitOverviewCategory.java"));
+        String mobTooltip = category.substring(category.indexOf("private List<Component> mobTooltip"),
+                category.indexOf("private static void addConfigTooltip"));
+        String configTooltip = category.substring(category.indexOf("private static void addConfigTooltip"),
+                category.indexOf("private static void addPresetTooltip"));
+
+        assertTrue(mobTooltip.indexOf("addConfigTooltip(recipe, tooltip)")
+                < mobTooltip.indexOf("addGuaranteedPresetTooltip(recipe, tooltip)"));
+        assertAppearsInOrder(configTooltip, List.of(
+                "formatEntityConfigPath(config.sourceId())",
+                "jei.l2hostility_tweaks.difficulty_range",
+                "jei.l2hostility_tweaks.variation",
+                "jei.l2hostility_tweaks.scale",
+                "jei.l2hostility_tweaks.max_trait_count",
+                "jei.l2hostility_tweaks.apply_chance",
+                "jei.l2hostility_tweaks.preset_only"));
+        assertFalse(configTooltip.contains("jei.l2hostility_tweaks.trait_chance"));
+        assertFalse(configTooltip.contains("jei.l2hostility_tweaks.suppression"));
+        assertFalse(configTooltip.contains("jei.l2hostility_tweaks.min_spawn_level"));
+        assertFalse(configTooltip.contains("jei.l2hostility_tweaks.max_level"));
+        assertFalse(configTooltip.contains("jei.l2hostility_tweaks.condition"));
+    }
+
+    private static void assertAppearsInOrder(String source, List<String> fragments) {
+        int previous = -1;
+        for (String fragment : fragments) {
+            int current = source.indexOf(fragment);
+            assertTrue(current > previous, fragment + " is missing or out of order");
+            previous = current;
+        }
     }
 }

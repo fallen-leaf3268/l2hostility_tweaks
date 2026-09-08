@@ -134,11 +134,14 @@ class TraitOverviewPresentationTest {
 
         List<String> keys = TraitOverviewPresentation.entityConfigTooltipKeys(config);
 
-        assertTrue(keys.containsAll(List.of(
-                "jei.l2hostility_tweaks.difficulty", "jei.l2hostility_tweaks.variation",
-                "jei.l2hostility_tweaks.scale", "jei.l2hostility_tweaks.suppression",
-                "jei.l2hostility_tweaks.min_spawn_level", "jei.l2hostility_tweaks.max_level",
-                "jei.l2hostility_tweaks.max_trait_count", "jei.l2hostility_tweaks.preset_only")));
+        assertEquals(List.of(
+                "jei.l2hostility_tweaks.source",
+                "jei.l2hostility_tweaks.difficulty_range",
+                "jei.l2hostility_tweaks.variation",
+                "jei.l2hostility_tweaks.scale",
+                "jei.l2hostility_tweaks.max_trait_count",
+                "jei.l2hostility_tweaks.apply_chance",
+                "jei.l2hostility_tweaks.preset_only"), keys);
     }
 
     @Test
@@ -149,6 +152,27 @@ class TraitOverviewPresentationTest {
                 TraitOverviewPresentation.poolTooltipKeys(pool()).get(0));
         assertFalse(TraitOverviewPresentation.poolTooltipKeys(pool()).contains(
                 "jei.l2hostility_tweaks.final_chance"));
+    }
+
+    @Test
+    void formatsEntityConfigLogicalPathInsideDataDirectory() {
+        assertEquals("data/example/l2hostility_config/entity/hostile/zombies.json",
+                TraitOverviewPresentation.formatEntityConfigPath(id("example:hostile/zombies")));
+        assertEquals("-", TraitOverviewPresentation.formatEntityConfigPath(null));
+    }
+
+    @Test
+    void difficultyRangeUsesMinimumAsClampInsteadOfAddingBase() {
+        TraitSpawnIndexSnapshot.EntityConfigView config = new TraitSpawnIndexSnapshot.EntityConfigView(
+                id("example:zombies"), "", 10, 20, 0.2, 1.5, 0.8, 0.6,
+                0.1, 5, 100, 4, true);
+
+        TraitOverviewPresentation.DifficultyRange range =
+                TraitOverviewPresentation.difficultyRange(config);
+
+        assertEquals(10, range.minimum());
+        assertEquals(100, range.maximum());
+        assertEquals(20, range.base());
     }
 
     @Test

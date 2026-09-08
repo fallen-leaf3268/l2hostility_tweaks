@@ -123,6 +123,16 @@ public final class TraitOverviewPresentation {
         return id == null ? "-" : id.toString();
     }
 
+    public static String formatEntityConfigPath(ResourceLocation id) {
+        if (id == null) return "-";
+        return "data/" + id.getNamespace() + "/l2hostility_config/entity/" + id.getPath() + ".json";
+    }
+
+    public static DifficultyRange difficultyRange(TraitSpawnIndexSnapshot.EntityConfigView config) {
+        int maximum = config.maxLevel();
+        return new DifficultyRange(Math.min(config.minDifficulty(), maximum), maximum, config.baseDifficulty());
+    }
+
     public static List<String> presetTooltipKeys(TraitSpawnIndexSnapshot.PresetTraitView preset) {
         LinkedHashSet<String> keys = new LinkedHashSet<>();
         keys.add("jei.l2hostility_tweaks.preset_chance");
@@ -150,17 +160,12 @@ public final class TraitOverviewPresentation {
     public static List<String> entityConfigTooltipKeys(TraitSpawnIndexSnapshot.EntityConfigView config) {
         return List.of(
                 "jei.l2hostility_tweaks.source",
-                "jei.l2hostility_tweaks.difficulty",
+                "jei.l2hostility_tweaks.difficulty_range",
                 "jei.l2hostility_tweaks.variation",
                 "jei.l2hostility_tweaks.scale",
-                "jei.l2hostility_tweaks.apply_chance",
-                "jei.l2hostility_tweaks.trait_chance",
-                "jei.l2hostility_tweaks.suppression",
-                "jei.l2hostility_tweaks.min_spawn_level",
-                "jei.l2hostility_tweaks.max_level",
                 "jei.l2hostility_tweaks.max_trait_count",
-                "jei.l2hostility_tweaks.preset_only",
-                "jei.l2hostility_tweaks.condition");
+                "jei.l2hostility_tweaks.apply_chance",
+                "jei.l2hostility_tweaks.preset_only");
     }
 
     public static String blockReasonKey(TraitBlockReason reason) {
@@ -182,6 +187,9 @@ public final class TraitOverviewPresentation {
     }
 
     public record Counts(int configs, int presets, int pool, int blocked, int dynamicConstraints) {
+    }
+
+    public record DifficultyRange(int minimum, int maximum, int base) {
     }
 
     private TraitOverviewPresentation() {

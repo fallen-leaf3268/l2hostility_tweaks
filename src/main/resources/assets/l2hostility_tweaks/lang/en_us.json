@@ -122,6 +122,7 @@
   "jei.l2hostility_tweaks.config_source": "Config sources: %s",
   "jei.l2hostility_tweaks.source": "Source: %s",
   "jei.l2hostility_tweaks.difficulty": "Difficulty: %s / base %s",
+  "jei.l2hostility_tweaks.difficulty_range": "Difficulty range: %s - %s (base: %s)",
   "jei.l2hostility_tweaks.variation": "Difficulty variation: %s",
   "jei.l2hostility_tweaks.scale": "Difficulty scale: %s",
   "jei.l2hostility_tweaks.apply_chance": "Datapack stage apply chance: %s",
