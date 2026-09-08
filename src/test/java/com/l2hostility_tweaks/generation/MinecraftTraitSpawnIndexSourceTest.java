@@ -59,4 +59,16 @@ class MinecraftTraitSpawnIndexSourceTest {
         assertTrue(playerGuard >= 0);
         assertTrue(capabilityGate > playerGuard);
     }
+
+    @Test
+    void captureEvaluatesOverriddenRuntimeRulesAgainstEachLivingEntity() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/generation/MinecraftTraitSpawnIndexSource.java"));
+
+        assertTrue(source.contains("runtimeRejectedTraits(living)"));
+        assertTrue(source.contains("if (!overridesRuntimeAllow(trait)) continue;"));
+        assertTrue(source.contains("if (!baseAllowsRuntimeProbe(living, trait)) continue;"));
+        assertTrue(source.contains("if (!trait.allow(living)) rejected.add(traitId);"));
+        assertTrue(source.contains("Unable to evaluate runtime trait rule"));
+    }
 }

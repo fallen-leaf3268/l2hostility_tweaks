@@ -172,6 +172,7 @@
   "jei.l2hostility_tweaks.block.whitelist_miss": "此生物不在词条白名单中",
   "jei.l2hostility_tweaks.block.globally_disabled": "该词条已全局禁用",
   "jei.l2hostility_tweaks.block.no_trait": "此生物配置禁止生成词条",
+  "jei.l2hostility_tweaks.block.runtime_rejected": "此生物不满足该词条的运行时生成条件",
   "jei.l2hostility_tweaks.block.preset_only": "此生物仅生成预设词条",
   "jei.l2hostility_tweaks.block.disable_random": "随机词条生成已禁用",
   "jei.l2hostility_tweaks.block.disable_all": "全部词条生成已禁用",

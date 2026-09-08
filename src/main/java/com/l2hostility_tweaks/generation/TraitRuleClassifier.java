@@ -12,11 +12,22 @@ public final class TraitRuleClassifier {
             boolean traitWhitelistMiss,
             boolean traitGloballyDisabled,
             boolean entityNoTrait,
+            boolean traitRuntimeRejected,
             boolean preset,
             boolean presetTraitsOnly,
             boolean tweaksDisableRandom,
             boolean tweaksDisableAll,
-            boolean tweaksDisableMobLevel) {}
+            boolean tweaksDisableMobLevel) {
+        public Context(boolean entityConfigBlacklist, boolean traitEntityBlacklist,
+                       boolean traitWhitelistMiss, boolean traitGloballyDisabled,
+                       boolean entityNoTrait, boolean preset, boolean presetTraitsOnly,
+                       boolean tweaksDisableRandom, boolean tweaksDisableAll,
+                       boolean tweaksDisableMobLevel) {
+            this(entityConfigBlacklist, traitEntityBlacklist, traitWhitelistMiss,
+                    traitGloballyDisabled, entityNoTrait, false, preset, presetTraitsOnly,
+                    tweaksDisableRandom, tweaksDisableAll, tweaksDisableMobLevel);
+        }
+    }
 
     public static List<TraitBlockReason> classify(Context context) {
         LinkedHashSet<TraitBlockReason> reasons = new LinkedHashSet<>();
@@ -25,6 +36,7 @@ public final class TraitRuleClassifier {
         if (context.traitWhitelistMiss()) reasons.add(TraitBlockReason.TRAIT_WHITELIST_MISS);
         if (context.traitGloballyDisabled()) reasons.add(TraitBlockReason.TRAIT_GLOBALLY_DISABLED);
         if (context.entityNoTrait()) reasons.add(TraitBlockReason.ENTITY_NO_TRAIT);
+        if (context.traitRuntimeRejected()) reasons.add(TraitBlockReason.TRAIT_RUNTIME_REJECTED);
         if (!context.preset() && context.presetTraitsOnly()) reasons.add(TraitBlockReason.PRESET_ONLY);
         if (!context.preset() && context.tweaksDisableRandom()) reasons.add(TraitBlockReason.TWEAKS_DISABLE_RANDOM);
         if (context.tweaksDisableAll()) reasons.add(TraitBlockReason.TWEAKS_DISABLE_ALL);

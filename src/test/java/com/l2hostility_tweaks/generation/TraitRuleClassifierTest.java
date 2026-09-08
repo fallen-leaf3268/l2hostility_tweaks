@@ -42,4 +42,19 @@ class TraitRuleClassifierTest {
                 TraitBlockReason.TWEAKS_DISABLE_ALL,
                 TraitBlockReason.TWEAKS_DISABLE_MOB_LEVEL), TraitRuleClassifier.classify(context));
     }
+
+    @Test
+    void runtimeEntityRejectionBlocksBothPresetAndRandomEntries() {
+        var random = new TraitRuleClassifier.Context(
+                false, false, false, false, false, true, false,
+                false, false, false, false);
+        var preset = new TraitRuleClassifier.Context(
+                false, false, false, false, false, true, true,
+                false, false, false, false);
+
+        assertEquals(List.of(TraitBlockReason.TRAIT_RUNTIME_REJECTED),
+                TraitRuleClassifier.classify(random));
+        assertEquals(List.of(TraitBlockReason.TRAIT_RUNTIME_REJECTED),
+                TraitRuleClassifier.classify(preset));
+    }
 }

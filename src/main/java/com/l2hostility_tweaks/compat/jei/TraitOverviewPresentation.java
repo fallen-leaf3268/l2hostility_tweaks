@@ -182,6 +182,7 @@ public final class TraitOverviewPresentation {
             case TRAIT_WHITELIST_MISS -> "jei.l2hostility_tweaks.block.whitelist_miss";
             case TRAIT_GLOBALLY_DISABLED -> "jei.l2hostility_tweaks.block.globally_disabled";
             case ENTITY_NO_TRAIT -> "jei.l2hostility_tweaks.block.no_trait";
+            case TRAIT_RUNTIME_REJECTED -> "jei.l2hostility_tweaks.block.runtime_rejected";
             case PRESET_ONLY -> "jei.l2hostility_tweaks.block.preset_only";
             case TWEAKS_DISABLE_RANDOM -> "jei.l2hostility_tweaks.block.disable_random";
             case TWEAKS_DISABLE_ALL -> "jei.l2hostility_tweaks.block.disable_all";

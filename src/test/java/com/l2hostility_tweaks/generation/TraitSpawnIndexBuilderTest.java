@@ -198,6 +198,29 @@ class TraitSpawnIndexBuilderTest {
         assertTrue(page.blocked().isEmpty());
     }
 
+    @Test
+    void runtimeRejectedTraitIsBlockedFromRandomAndPresetPools() {
+        TraitInput master = trait("l2hostility:master", 200, 50, 50, 1,
+                false, Set.of(), Set.of(), true);
+        TraitInput speedy = trait("l2hostility:speedy", 100, 10, 10, 3,
+                false, Set.of(), Set.of(), false);
+        ConfigInput config = config("example:zombie", "", view("example:zombie", "", 1, 1, 0),
+                Set.of(), List.of(preset("l2hostility:master", 1, 1, false, 1, 0, null)));
+        EntityInput zombie = new EntityInput(id("minecraft:zombie"), false,
+                List.of(config), List.of(), Set.of(master.traitId()));
+
+        var page = TraitSpawnIndexBuilder.build(1,
+                inputs(List.of(zombie), List.of(master, speedy),
+                        settings(false, false, false, false, false, List.of())))
+                .mobs().get(0);
+
+        assertEquals(List.of(id("l2hostility:speedy")),
+                page.pool().stream().map(entry -> entry.traitId()).toList());
+        assertTrue(page.presets().isEmpty());
+        assertEquals(List.of(TraitBlockReason.TRAIT_RUNTIME_REJECTED),
+                page.blocked().get(0).contexts().get(0).reasons());
+    }
+
     private static Inputs inputs(List<EntityInput> entities, List<TraitInput> traits, Settings settings) {
         return new Inputs(entities, traits, settings);
     }

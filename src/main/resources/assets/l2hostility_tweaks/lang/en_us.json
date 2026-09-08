@@ -172,6 +172,7 @@
   "jei.l2hostility_tweaks.block.whitelist_miss": "The mob is not on this trait's whitelist",
   "jei.l2hostility_tweaks.block.globally_disabled": "This trait is globally disabled",
   "jei.l2hostility_tweaks.block.no_trait": "This mob configuration disables traits",
+  "jei.l2hostility_tweaks.block.runtime_rejected": "This mob does not satisfy the trait's runtime generation rules",
   "jei.l2hostility_tweaks.block.preset_only": "This mob only generates preset traits",
   "jei.l2hostility_tweaks.block.disable_random": "Random trait generation is disabled",
   "jei.l2hostility_tweaks.block.disable_all": "All trait generation is disabled",

@@ -158,12 +158,36 @@ public final class MinecraftTraitSpawnIndexSource {
                 entities.add(new EntityInput(
                         entry.getKey(), entry.getValue().is(LHTagGen.NO_TRAIT),
                         configs.base().getOrDefault(entry.getKey(), List.of()),
-                        configs.conditional().getOrDefault(entry.getKey(), List.of())));
+                        configs.conditional().getOrDefault(entry.getKey(), List.of()),
+                        runtimeRejectedTraits(living)));
             } finally {
                 temporary.discard();
             }
         }
         return List.copyOf(entities);
+    }
+
+    private static Set<ResourceLocation> runtimeRejectedTraits(LivingEntity living) {
+        LinkedHashSet<ResourceLocation> rejected = new LinkedHashSet<>();
+        for (MobTrait trait : LHTraits.TRAITS.get().getValues()) {
+            if (!overridesRuntimeAllow(trait)) continue;
+            ResourceLocation traitId = LHTraits.TRAITS.get().getKey(trait);
+            if (traitId == null) continue;
+            try {
+                if (!baseAllowsRuntimeProbe(living, trait)) continue;
+                if (!trait.allow(living)) rejected.add(traitId);
+            } catch (RuntimeException exception) {
+                L2Hostility.LOGGER.warn("Unable to evaluate runtime trait rule {} for entity {}",
+                        traitId, living.getType(), exception);
+            }
+        }
+        return Set.copyOf(rejected);
+    }
+
+    private static boolean baseAllowsRuntimeProbe(LivingEntity living, MobTrait trait) {
+        if (trait.isBanned()) return false;
+        if (!EntityConfig.allow(living.getType(), trait)) return false;
+        return trait.getConfig().allows(living.getType());
     }
 
     static boolean shouldIncludeEntity(boolean living, boolean player, boolean traitCapabilityApplies) {

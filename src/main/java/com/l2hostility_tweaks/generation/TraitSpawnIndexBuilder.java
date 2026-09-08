@@ -61,7 +61,8 @@ public final class TraitSpawnIndexBuilder {
                         config != null && config.blacklist().contains(trait.traitId()),
                         trait.entityBlacklist().contains(entity.id()),
                         !trait.entityWhitelist().isEmpty() && !trait.entityWhitelist().contains(entity.id()),
-                        trait.globallyDisabled(), entity.noTrait(), false,
+                        trait.globallyDisabled(), entity.noTrait(),
+                        entity.runtimeRejectedTraits().contains(trait.traitId()), false,
                         config != null && config.view().presetTraitsOnly(),
                         settings.disableRandom(), settings.disableAll(), settings.disableMobLevel()));
                 if (reasons.isEmpty()) {
@@ -94,7 +95,9 @@ public final class TraitSpawnIndexBuilder {
                         config.blacklist().contains(trait.traitId()),
                         trait.entityBlacklist().contains(entity.id()),
                         !trait.entityWhitelist().isEmpty() && !trait.entityWhitelist().contains(entity.id()),
-                        trait.globallyDisabled(), entity.noTrait(), true, config.view().presetTraitsOnly(),
+                        trait.globallyDisabled(), entity.noTrait(),
+                        entity.runtimeRejectedTraits().contains(trait.traitId()), true,
+                        config.view().presetTraitsOnly(),
                         settings.disableRandom(), settings.disableAll(), settings.disableMobLevel()));
                 if (!reasons.isEmpty()) continue;
                 presetSet.add(new PresetTraitView(
@@ -206,11 +209,18 @@ public final class TraitSpawnIndexBuilder {
     }
 
     public record EntityInput(ResourceLocation id, boolean noTrait, List<ConfigInput> baseConfigs,
-                              List<ConfigInput> conditionalConfigs) {
+                              List<ConfigInput> conditionalConfigs,
+                              Set<ResourceLocation> runtimeRejectedTraits) {
         public EntityInput {
             Objects.requireNonNull(id);
             baseConfigs = List.copyOf(baseConfigs);
             conditionalConfigs = List.copyOf(conditionalConfigs);
+            runtimeRejectedTraits = Set.copyOf(runtimeRejectedTraits);
+        }
+
+        public EntityInput(ResourceLocation id, boolean noTrait, List<ConfigInput> baseConfigs,
+                           List<ConfigInput> conditionalConfigs) {
+            this(id, noTrait, baseConfigs, conditionalConfigs, Set.of());
         }
     }
 
