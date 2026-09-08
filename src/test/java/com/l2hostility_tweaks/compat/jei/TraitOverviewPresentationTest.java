@@ -220,6 +220,7 @@ class TraitOverviewPresentationTest {
     @Test
     void categoryUsesTheSharedRecipeTypeAndFixedPageSize() {
         assertEquals(JeiRuntimeBridge.PAGE_TYPE, TraitOverviewCategory.TYPE);
+        assertEquals("l2hostility:teleport", TraitOverviewCategory.ICON_ITEM_ID.toString());
         assertEquals(176, TraitOverviewCategory.WIDTH);
         assertEquals(124, TraitOverviewCategory.HEIGHT);
     }
@@ -239,8 +240,6 @@ class TraitOverviewPresentationTest {
         assertEquals(112, TraitOverviewCategory.PRESET_SLOT_X);
         assertEquals(92, TraitOverviewCategory.PRESET_SLOT_Y);
         assertEquals(4, TraitOverviewCategory.CONFIG_TEXT_X);
-        assertEquals(88, TraitOverviewCategory.CONFIG_TEXT_Y);
-        assertEquals(100, TraitOverviewCategory.DYNAMIC_TEXT_Y);
         assertEquals(112, TraitOverviewCategory.DIFFICULTY_TEXT_Y);
         assertEquals(112, TraitOverviewCategory.BLOCKED_HOVER_X);
         assertEquals(128, TraitOverviewCategory.BLOCKED_HOVER_END_X);

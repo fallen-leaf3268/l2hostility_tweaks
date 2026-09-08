@@ -31,6 +31,7 @@ import java.util.Optional;
 public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIndexSnapshot.MobTraitOverview> {
 
     public static final RecipeType<TraitSpawnIndexSnapshot.MobTraitOverview> TYPE = JeiRuntimeBridge.PAGE_TYPE;
+    static final ResourceLocation ICON_ITEM_ID = new ResourceLocation("l2hostility", "teleport");
     public static final int WIDTH = 176;
     public static final int HEIGHT = 124;
     static final int MOB_CENTER_X = 32;
@@ -46,8 +47,6 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
     static final int PRESET_SLOT_X = 112;
     static final int PRESET_SLOT_Y = 92;
     static final int CONFIG_TEXT_X = 4;
-    static final int CONFIG_TEXT_Y = 88;
-    static final int DYNAMIC_TEXT_Y = 100;
     static final int DIFFICULTY_TEXT_Y = 112;
     static final int BLOCKED_HOVER_X = 112;
     static final int BLOCKED_HOVER_END_X = 128;
@@ -55,12 +54,15 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
     static final int BLOCKED_HOVER_END_Y = 68;
 
     private final IDrawable background;
+    private final IDrawable icon;
     private final MobIngredientRenderer mobRenderer =
             new MobIngredientRenderer(MOB_RENDERER_WIDTH, MOB_RENDERER_HEIGHT);
     private final MobIngredientHelper mobHelper = new MobIngredientHelper();
 
     public TraitOverviewCategory(IJeiHelpers helpers) {
         background = helpers.getGuiHelper().createBlankDrawable(WIDTH, HEIGHT);
+        Item iconItem = BuiltInRegistries.ITEM.get(ICON_ITEM_ID);
+        icon = helpers.getGuiHelper().createDrawableItemStack(new ItemStack(iconItem));
     }
 
     @Override
@@ -80,7 +82,7 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
 
     @Override
     public IDrawable getIcon() {
-        return null;
+        return icon;
     }
 
     @Override
@@ -136,13 +138,12 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                     Component.translatable("jei.l2hostility_tweaks.preset", counts.presets()),
                     RIGHT_COLUMN_CENTER_X, 80, 0xFF555555);
         }
-        guiGraphics.drawString(font, Component.translatable("jei.l2hostility_tweaks.config_source", counts.configs()),
-                CONFIG_TEXT_X, CONFIG_TEXT_Y, 0xFF555555, false);
-        guiGraphics.drawString(font, Component.translatable("jei.l2hostility_tweaks.dynamic", counts.dynamicConstraints()),
-                CONFIG_TEXT_X, DYNAMIC_TEXT_Y, 0xFF777777, false);
-        recipe.configs().stream().findFirst().ifPresent(config -> guiGraphics.drawString(font,
-                Component.translatable("jei.l2hostility_tweaks.difficulty", config.minDifficulty(), config.baseDifficulty()),
-                CONFIG_TEXT_X, DIFFICULTY_TEXT_Y, 0xFF777777, false));
+        recipe.configs().stream().findFirst().ifPresent(config -> {
+            TraitOverviewPresentation.DifficultyRange range = TraitOverviewPresentation.difficultyRange(config);
+            guiGraphics.drawString(font, Component.translatable("jei.l2hostility_tweaks.difficulty_range",
+                            range.minimum(), range.maximum(), range.base()),
+                    CONFIG_TEXT_X, DIFFICULTY_TEXT_Y, 0xFF777777, false);
+        });
 
         TraitSpawnIndexSnapshot.BlockedTraitView blocked = currentBlocked(recipe);
         if (blocked != null) {

@@ -88,6 +88,24 @@ class JeiResourcesTest {
     }
 
     @Test
+    void overviewCardOnlyShowsTheSharedDifficultyRangeAndUsesTeleportIcon() throws IOException {
+        String category = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/compat/jei/TraitOverviewCategory.java"));
+        String constructor = category.substring(category.indexOf("public TraitOverviewCategory"),
+                category.indexOf("public RecipeType"));
+        String draw = category.substring(category.indexOf("public void draw"),
+                category.indexOf("public List<Component> getTooltipStrings"));
+
+        assertFalse(draw.contains("jei.l2hostility_tweaks.config_source"));
+        assertFalse(draw.contains("jei.l2hostility_tweaks.dynamic"));
+        assertTrue(draw.contains("TraitOverviewPresentation.difficultyRange(config)"));
+        assertTrue(draw.contains("jei.l2hostility_tweaks.difficulty_range"));
+        assertTrue(category.contains("new ResourceLocation(\"l2hostility\", \"teleport\")"));
+        assertTrue(constructor.contains("createDrawableItemStack"));
+        assertTrue(category.contains("return icon;"));
+    }
+
+    @Test
     void mobTooltipUsesRequestedConfigOrderAndEndsWithGuaranteedTraits() throws IOException {
         String category = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/compat/jei/TraitOverviewCategory.java"));
