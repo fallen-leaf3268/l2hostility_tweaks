@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.compat.jei;
 
+import com.google.gson.JsonParser;
 import com.l2hostility_tweaks.generation.view.TraitBlockReason;
 import com.l2hostility_tweaks.generation.view.TraitDynamicConstraint;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
@@ -133,6 +134,26 @@ public final class TraitOverviewPresentation {
     public static String formatEntityConfigPath(ResourceLocation id) {
         if (id == null) return "-";
         return "data/" + id.getNamespace() + "/l2hostility_config/entity/" + id.getPath() + ".json";
+    }
+
+    public static String mobVariantTitleKey(TraitSpawnIndexSnapshot.MobTraitOverview overview) {
+        if (overview.variantIndex() == 0) return "";
+        boolean nbtCondition = overview.configs().stream()
+                .map(TraitSpawnIndexSnapshot.EntityConfigView::conditionJson)
+                .filter(json -> json != null && !json.isBlank())
+                .anyMatch(TraitOverviewPresentation::containsNbtCondition);
+        return nbtCondition
+                ? "jei.l2hostility_tweaks.mob_variant.nbt"
+                : "jei.l2hostility_tweaks.mob_variant.condition";
+    }
+
+    private static boolean containsNbtCondition(String json) {
+        try {
+            var parsed = JsonParser.parseString(json);
+            return parsed.isJsonObject() && parsed.getAsJsonObject().has("nbt");
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     public static DifficultyRange difficultyRange(TraitSpawnIndexSnapshot.EntityConfigView config) {

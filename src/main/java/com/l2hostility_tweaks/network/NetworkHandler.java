@@ -39,7 +39,7 @@ import java.util.function.Supplier;
 public class NetworkHandler {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(NetworkHandler.class);
-	private static final String PROTOCOL_VERSION = "6";
+	private static final String PROTOCOL_VERSION = "7";
 	private static final TraitSpawnIndexReassembler TRAIT_INDEX_REASSEMBLER =
 			new TraitSpawnIndexReassembler();
 	public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(

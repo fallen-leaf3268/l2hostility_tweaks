@@ -71,6 +71,17 @@ class MinecraftTraitSpawnIndexSourceTest {
     }
 
     @Test
+    void captureMirrorsLastWinsBaseConfigsAndDeduplicatesEntitySelectors() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/generation/MinecraftTraitSpawnIndexSource.java"));
+
+        assertTrue(source.contains("Map<ResourceLocation, ConfigInput> base"));
+        assertTrue(source.contains("new LinkedHashSet<>(config.entities)"));
+        assertTrue(source.contains("base.put(entityId, input)"));
+        assertFalse(source.contains("base.computeIfAbsent"));
+    }
+
+    @Test
     void captureEvaluatesOverriddenRuntimeRulesAgainstEachLivingEntity() throws IOException {
         String source = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/generation/MinecraftTraitSpawnIndexSource.java"));

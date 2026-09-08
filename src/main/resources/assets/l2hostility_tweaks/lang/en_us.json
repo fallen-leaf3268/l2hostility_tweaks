@@ -177,5 +177,7 @@
   "jei.l2hostility_tweaks.block.disable_random": "Random trait generation is disabled",
   "jei.l2hostility_tweaks.block.disable_all": "All trait generation is disabled",
   "jei.l2hostility_tweaks.block.disable_mob_level": "The mob difficulty system is disabled",
-  "jei.l2hostility_tweaks.render_fallback": "Unable to render mob preview"
+  "jei.l2hostility_tweaks.render_fallback": "Unable to render mob preview",
+  "jei.l2hostility_tweaks.mob_variant.nbt": "%s (NBT)",
+  "jei.l2hostility_tweaks.mob_variant.condition": "%s (conditional)"
 }

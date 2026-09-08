@@ -177,5 +177,7 @@
   "jei.l2hostility_tweaks.block.disable_random": "随机词条生成已禁用",
   "jei.l2hostility_tweaks.block.disable_all": "全部词条生成已禁用",
   "jei.l2hostility_tweaks.block.disable_mob_level": "生物难度等级系统已禁用",
-  "jei.l2hostility_tweaks.render_fallback": "无法渲染生物预览"
+  "jei.l2hostility_tweaks.render_fallback": "无法渲染生物预览",
+  "jei.l2hostility_tweaks.mob_variant.nbt": "%s（NBT条件）",
+  "jei.l2hostility_tweaks.mob_variant.condition": "%s（条件）"
 }

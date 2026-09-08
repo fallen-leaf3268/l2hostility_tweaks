@@ -234,6 +234,26 @@ class TraitOverviewPresentationTest {
     }
 
     @Test
+    void conditionalPagesExposeAStableLocalizedVariantKind() {
+        var base = new TraitSpawnIndexSnapshot.MobTraitOverview(
+                id("goety:apostle"), 0, List.of(), List.of(), List.of(), List.of(), List.of());
+        var nbt = new TraitSpawnIndexSnapshot.MobTraitOverview(
+                id("goety:apostle"), 1,
+                List.of(configWithCondition("{\"nbt\":{\"isApollyon\":1}}")),
+                List.of(), List.of(), List.of(), List.of());
+        var conditional = new TraitSpawnIndexSnapshot.MobTraitOverview(
+                id("goety:apostle"), 2,
+                List.of(configWithCondition("{\"specialConditions\":[\"example:test\"]}")),
+                List.of(), List.of(), List.of(), List.of());
+
+        assertEquals("", TraitOverviewPresentation.mobVariantTitleKey(base));
+        assertEquals("jei.l2hostility_tweaks.mob_variant.nbt",
+                TraitOverviewPresentation.mobVariantTitleKey(nbt));
+        assertEquals("jei.l2hostility_tweaks.mob_variant.condition",
+                TraitOverviewPresentation.mobVariantTitleKey(conditional));
+    }
+
+    @Test
     void categoryUsesTheSharedRecipeTypeAndFixedPageSize() {
         assertEquals(JeiRuntimeBridge.PAGE_TYPE, TraitOverviewCategory.TYPE);
         assertEquals("l2hostility:teleport", TraitOverviewCategory.ICON_ITEM_ID.toString());
@@ -324,6 +344,12 @@ class TraitOverviewPresentationTest {
     private static TraitSpawnIndexSnapshot.PoolTraitView pool() {
         return new TraitSpawnIndexSnapshot.PoolTraitView(
                 id("l2hostility:speedy"), id("l2hostility:speedy"), 37, 10, 2, 5);
+    }
+
+    private static TraitSpawnIndexSnapshot.EntityConfigView configWithCondition(String conditionJson) {
+        return new TraitSpawnIndexSnapshot.EntityConfigView(
+                id("example:apostle"), conditionJson, 0, 20, 0, 0, 1, 1,
+                0, 0, 3000, -1, false);
     }
 
     private static ResourceLocation id(String value) {

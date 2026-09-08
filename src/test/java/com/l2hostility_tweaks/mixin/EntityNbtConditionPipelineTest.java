@@ -57,6 +57,20 @@ class EntityNbtConditionPipelineTest {
     }
 
     @Test
+    void recognizesConfigsAlreadyRegisteredByUpstreamSpecialConditions() {
+        EntityConfig.Config conditional = new EntityConfig.Config();
+        EntityConfig.Config ordinary = new EntityConfig.Config();
+        Map<ResourceLocation, ArrayList<Pair<SpecialConfigCondition<?>, EntityConfig.Config>>> buckets =
+                new LinkedHashMap<>();
+        buckets.put(new ResourceLocation("test", "condition"), pairs(conditional));
+
+        assertTrue(MixinTestInvoker.<Boolean>call(EntityConfigMixin.class,
+                "l2fix$isRegisteredCondition", buckets, conditional));
+        assertFalse(MixinTestInvoker.<Boolean>call(EntityConfigMixin.class,
+                "l2fix$isRegisteredCondition", buckets, ordinary));
+    }
+
+    @Test
     void scansResourcesOnlyForEntityConfigMerges() {
         assertFalse(MixinTestInvoker.<Boolean>call(ConfigMergerMixin.class,
                 "l2fix$containsEntityConfig", List.of(new BaseConfig())));

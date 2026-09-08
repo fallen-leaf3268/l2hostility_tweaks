@@ -63,7 +63,7 @@ class ConfigCacheReloadHandlerTest {
                 "src/main/java/com/l2hostility_tweaks/client/ClientEventHandler.java"));
 
         assertTrue(config.contains("registerConfig(ModConfig.Type.COMMON, SPEC"));
-        assertTrue(network.contains("PROTOCOL_VERSION = \"6\""));
+        assertTrue(network.contains("PROTOCOL_VERSION = \"7\""));
         assertTrue(network.contains("DisplayConfigSyncPacket.class"));
         assertTrue(network.contains("Optional.of(NetworkDirection.PLAY_TO_CLIENT)"));
         assertTrue(network.contains("L2HConfig.installDisplaySnapshot(msg.values())"));

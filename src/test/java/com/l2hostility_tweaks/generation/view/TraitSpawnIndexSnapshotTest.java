@@ -25,6 +25,20 @@ class TraitSpawnIndexSnapshotTest {
     }
 
     @Test
+    void givesConditionalVariantsDistinctPageIdentity() {
+        ResourceLocation entityId = id("goety", "apostle");
+        var base = new TraitSpawnIndexSnapshot.MobTraitOverview(
+                entityId, 0, List.of(), List.of(), List.of(), List.of(), List.of());
+        var conditional = new TraitSpawnIndexSnapshot.MobTraitOverview(
+                entityId, 1, List.of(), List.of(), List.of(), List.of(), List.of());
+
+        assertEquals(entityId, base.pageId());
+        assertEquals(id("goety", "apostle/condition/1"), conditional.pageId());
+        assertThrows(IllegalArgumentException.class, () -> new TraitSpawnIndexSnapshot.MobTraitOverview(
+                entityId, -1, List.of(), List.of(), List.of(), List.of(), List.of()));
+    }
+
+    @Test
     void copiesEveryNestedListDefensively() {
         List<TraitSpawnIndexSnapshot.EntityConfigView> configs = new ArrayList<>(List.of(entityConfig()));
         List<TraitSpawnIndexSnapshot.PresetTraitView> presets = new ArrayList<>(List.of(preset(0.5)));

@@ -125,7 +125,7 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                 mouseY - (MOB_SLOT_Y + MOB_RENDERER_HEIGHT * 0.5D));
         TraitOverviewPresentation.Counts counts = TraitOverviewPresentation.counts(recipe);
         String entityName = mobHelper.getDisplayName(new MobIngredient(recipe.entityId()));
-        Component entityTitle = Component.literal(font.plainSubstrByWidth(entityName, MOB_RENDERER_WIDTH));
+        Component entityTitle = compactMobTitle(font, entityName, recipe);
         drawCenteredNoShadow(guiGraphics, font, entityTitle, MOB_CENTER_X, 0, 0xFF555555);
         drawCenteredNoShadow(guiGraphics, font,
                 Component.translatable("jei.l2hostility_tweaks.pool", counts.pool()),
@@ -173,8 +173,9 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
 
     @Override
     public ResourceLocation getRegistryName(TraitSpawnIndexSnapshot.MobTraitOverview recipe) {
-        return new ResourceLocation("l2hostility_tweaks", "mob_traits/" + recipe.entityId().getNamespace()
-                + "/" + recipe.entityId().getPath());
+        ResourceLocation pageId = recipe.pageId();
+        return new ResourceLocation("l2hostility_tweaks", "mob_traits/" + pageId.getNamespace()
+                + "/" + pageId.getPath());
     }
 
     private static void addGuaranteedPresetTooltip(
@@ -192,10 +193,27 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
 
     private List<Component> mobTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe) {
         List<Component> tooltip = new ArrayList<>();
-        tooltip.add(Component.literal(mobHelper.getDisplayName(new MobIngredient(recipe.entityId()))));
+        tooltip.add(mobTitle(mobHelper.getDisplayName(new MobIngredient(recipe.entityId())), recipe));
         addConfigTooltip(recipe, tooltip);
         addGuaranteedPresetTooltip(recipe, tooltip);
         return tooltip;
+    }
+
+    private static Component compactMobTitle(Font font, String entityName,
+                                             TraitSpawnIndexSnapshot.MobTraitOverview recipe) {
+        String key = TraitOverviewPresentation.mobVariantTitleKey(recipe);
+        if (key.isEmpty()) {
+            return Component.literal(font.plainSubstrByWidth(entityName, MOB_RENDERER_WIDTH));
+        }
+        String suffix = Component.translatable(key, "").getString();
+        int nameWidth = Math.max(0, MOB_RENDERER_WIDTH - font.width(suffix));
+        return Component.literal(font.plainSubstrByWidth(entityName, nameWidth) + suffix);
+    }
+
+    private static Component mobTitle(String entityName,
+                                      TraitSpawnIndexSnapshot.MobTraitOverview recipe) {
+        String key = TraitOverviewPresentation.mobVariantTitleKey(recipe);
+        return key.isEmpty() ? Component.literal(entityName) : Component.translatable(key, entityName);
     }
 
     private static void addConfigTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe, List<Component> tooltip) {

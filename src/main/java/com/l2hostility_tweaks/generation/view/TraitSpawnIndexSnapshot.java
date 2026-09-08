@@ -12,6 +12,7 @@ public record TraitSpawnIndexSnapshot(long revision, List<MobTraitOverview> mobs
 
     public record MobTraitOverview(
             ResourceLocation entityId,
+            int variantIndex,
             List<EntityConfigView> configs,
             List<PresetTraitView> presets,
             List<PoolTraitView> pool,
@@ -19,6 +20,7 @@ public record TraitSpawnIndexSnapshot(long revision, List<MobTraitOverview> mobs
             List<TraitDynamicConstraint> dynamicConstraints) {
         public MobTraitOverview {
             Objects.requireNonNull(entityId);
+            if (variantIndex < 0) throw new IllegalArgumentException("variantIndex must not be negative");
             configs = List.copyOf(configs);
             presets = List.copyOf(presets);
             pool = List.copyOf(pool);
@@ -26,8 +28,17 @@ public record TraitSpawnIndexSnapshot(long revision, List<MobTraitOverview> mobs
             dynamicConstraints = List.copyOf(dynamicConstraints);
         }
 
+        public MobTraitOverview(ResourceLocation entityId, List<EntityConfigView> configs,
+                                List<PresetTraitView> presets, List<PoolTraitView> pool,
+                                List<BlockedTraitView> blocked,
+                                List<TraitDynamicConstraint> dynamicConstraints) {
+            this(entityId, 0, configs, presets, pool, blocked, dynamicConstraints);
+        }
+
         public ResourceLocation pageId() {
-            return entityId;
+            if (variantIndex == 0) return entityId;
+            return new ResourceLocation(entityId.getNamespace(),
+                    entityId.getPath() + "/condition/" + variantIndex);
         }
     }
 

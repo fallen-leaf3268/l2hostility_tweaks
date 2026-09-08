@@ -75,7 +75,7 @@ class PlayerDetectorGlassesCacheMixinTest {
 		assertTrue(network.contains("record ToggleGlowPacket(int containerId, int slotIndex)"));
 		assertTrue(network.contains("record ToggleProtectPacket(int containerId, int slotIndex)"));
 		assertTrue(network.contains("player.containerMenu.containerId == msg.containerId"));
-		assertTrue(network.contains("PROTOCOL_VERSION = \"6\""));
+		assertTrue(network.contains("PROTOCOL_VERSION = \"7\""));
 	}
 
 	@Test

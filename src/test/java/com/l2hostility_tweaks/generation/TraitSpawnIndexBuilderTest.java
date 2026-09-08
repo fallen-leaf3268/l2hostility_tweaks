@@ -45,7 +45,7 @@ class TraitSpawnIndexBuilderTest {
     }
 
     @Test
-    void blocksTraitOnlyWhenEveryApplicableBaseContextBlocksIt() {
+    void activeBaseContextAloneControlsTheRandomPool() {
         TraitInput speedy = trait("l2hostility:speedy", 100, 50, 20, 5,
                 false, Set.of(), Set.of(), false);
         ConfigInput blocked = config("example:blocked", "", view("example:blocked", "", 1, 1, 0),
@@ -63,7 +63,58 @@ class TraitSpawnIndexBuilderTest {
     }
 
     @Test
-    void recordsEveryBaseContextWhenAllOfThemBlock() {
+    void usesOnlyTheLastBaseConfigAppliedByL2Hostility() {
+        TraitInput speedy = trait("l2hostility:speedy", 100, 50, 20, 5,
+                false, Set.of(), Set.of(), false);
+        ConfigInput replaced = config("example:replaced", "", view("example:replaced", "", 1, 1, 0),
+                Set.of(), List.of());
+        ConfigInput active = config("example:active", "", view("example:active", "", 1, 1, 0),
+                Set.of(speedy.traitId()), List.of());
+        Inputs inputs = inputs(
+                List.of(entity("minecraft:zombie", false, List.of(replaced, active), List.of())),
+                List.of(speedy), settings(false, false, false, false, false, List.of()));
+
+        var snapshot = TraitSpawnIndexBuilder.build(1, inputs);
+
+        assertEquals(1, snapshot.mobs().size());
+        assertEquals(List.of(id("example:active")), snapshot.mobs().get(0).configs().stream()
+                .map(EntityConfigView::sourceId).toList());
+        assertTrue(snapshot.mobs().get(0).pool().isEmpty());
+    }
+
+    @Test
+    void createsOneIndependentPageForEachConditionalConfigEntry() {
+        TraitInput adaptive = trait("l2hostility:adaptive", 20, 2, 2, 2,
+                false, Set.of(), Set.of(), false);
+        TraitInput speedy = trait("l2hostility:speedy", 100, 50, 20, 5,
+                false, Set.of(), Set.of(), false);
+        ConfigInput base = config("example:base", "", view("example:base", "", 1, 1, 0),
+                Set.of(), List.of(preset("l2hostility:adaptive", 1, 1, false, 1, 0, null)));
+        String nbt = "{\"nbt\":{\"isApollyon\":1}}";
+        ConfigInput conditional = config("example:nbt", nbt, view("example:nbt", nbt, 1, 1, 0),
+                Set.of(), List.of(preset("l2hostility:speedy", 2, 2, false, 1, 0, null)));
+        Inputs inputs = inputs(
+                List.of(entity("goety:apostle", false, List.of(base),
+                        List.of(conditional, conditional))),
+                List.of(adaptive, speedy), settings(false, false, false, false, false, List.of()));
+
+        var pages = TraitSpawnIndexBuilder.build(1, inputs).mobs();
+
+        assertEquals(3, pages.size());
+        assertEquals(List.of(id("example:base")), pages.get(0).configs().stream()
+                .map(EntityConfigView::sourceId).toList());
+        assertEquals(List.of(id("l2hostility:adaptive")), pages.get(0).presets().stream()
+                .map(entry -> entry.traitId()).toList());
+        assertEquals(List.of(id("example:nbt")), pages.get(1).configs().stream()
+                .map(EntityConfigView::sourceId).toList());
+        assertEquals(List.of(id("l2hostility:speedy")), pages.get(1).presets().stream()
+                .map(entry -> entry.traitId()).toList());
+        assertEquals(1, pages.get(1).variantIndex());
+        assertEquals(2, pages.get(2).variantIndex());
+    }
+
+    @Test
+    void blockedTraitReportsOnlyTheActiveBaseContext() {
         TraitInput speedy = trait("l2hostility:speedy", 100, 50, 20, 5,
                 false, Set.of(), Set.of(), false);
         ConfigInput first = config("example:first", "", view("example:first", "", 1, 1, 0),
@@ -77,11 +128,12 @@ class TraitSpawnIndexBuilderTest {
         var page = TraitSpawnIndexBuilder.build(1, inputs).mobs().get(0);
 
         assertTrue(page.pool().isEmpty());
-        assertEquals(2, page.blocked().get(0).contexts().size());
+        assertEquals(1, page.blocked().get(0).contexts().size());
+        assertEquals(id("example:second"), page.blocked().get(0).contexts().get(0).sourceId());
     }
 
     @Test
-    void keepsSpecialConditionPresetsButDoesNotUseThemAsBasePoolContexts() {
+    void keepsSpecialConditionPresetsOnTheirOwnPage() {
         TraitInput speedy = trait("l2hostility:speedy", 100, 50, 20, 5,
                 false, Set.of(), Set.of(), false);
         ConfigInput base = config("example:base", "", view("example:base", "", 1, 1, 0),
@@ -94,8 +146,10 @@ class TraitSpawnIndexBuilderTest {
                 List.of(entity("minecraft:zombie", false, List.of(base), List.of(conditional))),
                 List.of(speedy), settings(false, false, false, false, false, List.of()));
 
-        var page = TraitSpawnIndexBuilder.build(1, inputs).mobs().get(0);
+        var pages = TraitSpawnIndexBuilder.build(1, inputs).mobs();
+        var page = pages.get(1);
 
+        assertEquals(2, pages.size());
         assertEquals(1, page.presets().size());
         assertEquals(condition, page.presets().get(0).conditionJson());
         assertEquals(1, page.pool().size());
@@ -103,7 +157,7 @@ class TraitSpawnIndexBuilderTest {
     }
 
     @Test
-    void conditionalConfigCannotUnlockAStaticallyBlockedRandomPool() {
+    void conditionalConfigUsesItsOwnRandomPoolContext() {
         TraitInput speedy = trait("l2hostility:speedy", 100, 50, 20, 5,
                 false, Set.of(), Set.of(), false);
         ConfigInput blockedBase = config("example:base", "", view("example:base", "", 1, 1, 0),
@@ -115,10 +169,14 @@ class TraitSpawnIndexBuilderTest {
                         List.of(blockedBase), List.of(allowingConditional))),
                 List.of(speedy), settings(false, false, false, false, false, List.of()));
 
-        var page = TraitSpawnIndexBuilder.build(1, inputs).mobs().get(0);
+        var pages = TraitSpawnIndexBuilder.build(1, inputs).mobs();
+        var basePage = pages.get(0);
+        var conditionalPage = pages.get(1);
 
-        assertTrue(page.pool().isEmpty());
-        assertEquals(id("l2hostility:speedy"), page.blocked().get(0).traitId());
+        assertTrue(basePage.pool().isEmpty());
+        assertEquals(id("l2hostility:speedy"), basePage.blocked().get(0).traitId());
+        assertEquals(List.of(id("l2hostility:speedy")), conditionalPage.pool().stream()
+                .map(entry -> entry.traitId()).toList());
     }
 
     @Test
@@ -131,12 +189,10 @@ class TraitSpawnIndexBuilderTest {
         PresetInput distinctTuple = preset("l2hostility:adaptive", 2, 2, false, 1, 0, null);
         ConfigInput config = config("example:source", "", view("example:source", "", 1, 1, 0),
                 Set.of(), List.of(first, first, distinctTuple));
-        ConfigInput otherSource = config("example:other", "", view("example:other", "", 1, 1, 0),
-                Set.of(), List.of(first));
         Inputs inputs = inputs(
                 List.of(
-                        entity("minecraft:zombie", false, List.of(config, otherSource), List.of()),
-                        entity("minecraft:allay", false, List.of(config, otherSource), List.of())),
+                        entity("minecraft:zombie", false, List.of(config), List.of()),
+                        entity("minecraft:allay", false, List.of(config), List.of())),
                 List.of(speedy, adaptive), settings(false, false, false, false, false, List.of()));
 
         var snapshot = TraitSpawnIndexBuilder.build(7, inputs);
@@ -145,7 +201,7 @@ class TraitSpawnIndexBuilderTest {
                 snapshot.mobs().stream().map(page -> page.entityId()).toList());
         assertEquals(List.of(id("l2hostility:adaptive"), id("l2hostility:speedy")),
                 snapshot.mobs().get(0).pool().stream().map(entry -> entry.traitId()).toList());
-        assertEquals(List.of(1, 1, 2), snapshot.mobs().get(0).presets().stream()
+        assertEquals(List.of(1, 2), snapshot.mobs().get(0).presets().stream()
                 .map(entry -> entry.freeRank()).toList());
     }
 

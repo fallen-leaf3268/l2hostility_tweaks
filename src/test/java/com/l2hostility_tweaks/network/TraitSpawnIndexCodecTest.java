@@ -24,6 +24,21 @@ public class TraitSpawnIndexCodecTest {
     }
 
     @Test
+    void roundTripsConditionalPageVariantIndex() {
+        TraitSpawnIndexSnapshot original = completeSnapshot(12);
+        TraitSpawnIndexSnapshot.MobTraitOverview page = original.mobs().get(0);
+        TraitSpawnIndexSnapshot expected = new TraitSpawnIndexSnapshot(12, List.of(
+                new TraitSpawnIndexSnapshot.MobTraitOverview(
+                        page.entityId(), 2, page.configs(), page.presets(), page.pool(), page.blocked(),
+                        page.dynamicConstraints())), original.warningCount());
+
+        TraitSpawnIndexSnapshot decoded = TraitSpawnIndexCodec.decode(TraitSpawnIndexCodec.encode(expected));
+
+        assertEquals(2, decoded.mobs().get(0).variantIndex());
+        assertEquals(expected, decoded);
+    }
+
+    @Test
     void rejectsOversizedMobListBeforeAllocation() {
         CompoundTag root = new CompoundTag();
         root.putLong("revision", 1);

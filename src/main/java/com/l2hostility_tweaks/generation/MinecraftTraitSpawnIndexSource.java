@@ -51,7 +51,7 @@ public final class MinecraftTraitSpawnIndexSource {
     }
 
     private static ConfigGroups captureConfigs() {
-        Map<ResourceLocation, List<ConfigInput>> base = new HashMap<>();
+        Map<ResourceLocation, ConfigInput> base = new HashMap<>();
         Map<ResourceLocation, List<ConfigInput>> conditional = new HashMap<>();
         EntityConfig merged = L2Hostility.ENTITY.getMerged();
         for (EntityConfig.Config config : merged.list) {
@@ -59,12 +59,15 @@ public final class MinecraftTraitSpawnIndexSource {
                     ? data.l2fix$getNbtConditionState() : EntityConfigNbtData.State.NONE;
             if (!shouldIncludeConfig(nbtState)) continue;
             ConfigInput input = configInput(config);
-            Map<ResourceLocation, List<ConfigInput>> destination = isConditional(config)
-                    ? conditional : base;
-            for (EntityType<?> type : config.entities) {
+            boolean conditionalConfig = isConditional(config);
+            for (EntityType<?> type : new LinkedHashSet<>(config.entities)) {
                 ResourceLocation entityId = ForgeRegistries.ENTITY_TYPES.getKey(type);
                 if (entityId != null) {
-                    destination.computeIfAbsent(entityId, ignored -> new ArrayList<>()).add(input);
+                    if (conditionalConfig) {
+                        conditional.computeIfAbsent(entityId, ignored -> new ArrayList<>()).add(input);
+                    } else {
+                        base.put(entityId, input);
+                    }
                 }
             }
         }
@@ -158,7 +161,8 @@ public final class MinecraftTraitSpawnIndexSource {
                 if (!shouldIncludeEntity(true, player, traitCapabilityApplies)) continue;
                 entities.add(new EntityInput(
                         entry.getKey(), entry.getValue().is(LHTagGen.NO_TRAIT),
-                        configs.base().getOrDefault(entry.getKey(), List.of()),
+                        configs.base().containsKey(entry.getKey())
+                                ? List.of(configs.base().get(entry.getKey())) : List.of(),
                         configs.conditional().getOrDefault(entry.getKey(), List.of()),
                         runtimeRejectedTraits(living)));
             } finally {
@@ -281,7 +285,7 @@ public final class MinecraftTraitSpawnIndexSource {
                 L2HConfig.COMMON.levelCapEnabled.get(), exclusions);
     }
 
-    private record ConfigGroups(Map<ResourceLocation, List<ConfigInput>> base,
+    private record ConfigGroups(Map<ResourceLocation, ConfigInput> base,
                                 Map<ResourceLocation, List<ConfigInput>> conditional) {}
 
     private MinecraftTraitSpawnIndexSource() {}

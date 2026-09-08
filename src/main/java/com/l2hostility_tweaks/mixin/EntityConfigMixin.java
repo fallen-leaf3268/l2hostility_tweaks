@@ -48,13 +48,22 @@ public class EntityConfigMixin {
         }
     }
 
+    @Unique
+    private static boolean l2fix$isRegisteredCondition(
+            Map<ResourceLocation, ArrayList<Pair<SpecialConfigCondition<?>, EntityConfig.Config>>> buckets,
+            EntityConfig.Config config) {
+        return buckets.values().stream().flatMap(Collection::stream)
+                .anyMatch(pair -> pair.getSecond() == config);
+    }
+
     @Inject(method = "postMerge", at = @At("TAIL"))
     private void l2fix$onPostMerge(CallbackInfo ci) {
         // Collect non-NBT defaults per entity type (for restoration)
         Map<EntityType<?>, EntityConfig.Config> defaultConfigs = new LinkedHashMap<>();
         for (EntityConfig.Config config : list) {
             EntityConfigNbtData data = (EntityConfigNbtData) (Object) config;
-            if (data.l2fix$getNbtConditionState() == EntityConfigNbtData.State.NONE) {
+            if (data.l2fix$getNbtConditionState() == EntityConfigNbtData.State.NONE
+                    && !l2fix$isRegisteredCondition(conditions, config)) {
                 for (EntityType<?> type : config.entities) {
                     defaultConfigs.put(type, config);
                 }
