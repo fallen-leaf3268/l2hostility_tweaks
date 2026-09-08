@@ -78,6 +78,22 @@ class MobIngredientRendererTest {
     }
 
     @Test
+    void previewLayoutKeepsScaleFiniteAndNonNegativeForEveryPositiveViewportDimension() {
+        for (int[] viewport : List.of(
+                new int[]{1, 72},
+                new int[]{72, 1},
+                new int[]{1, 1},
+                new int[]{8, 72},
+                new int[]{72, 8})) {
+            var layout = MobIngredientRenderer.PreviewLayout.calculate(
+                    viewport[0], viewport[1], 1.0F, 2.0F, 0L);
+
+            assertTrue(Float.isFinite(layout.scale()));
+            assertTrue(layout.scale() >= 0.0F);
+        }
+    }
+
+    @Test
     void previewLayoutRotatesThroughAFullTurnEveryTwelveSeconds() {
         assertEquals(0.0F, MobIngredientRenderer.PreviewLayout.calculate(48, 48, 1.0F, 2.0F, 0L).yawDegrees());
         assertEquals(90.0F, MobIngredientRenderer.PreviewLayout.calculate(48, 48, 1.0F, 2.0F, 3000L).yawDegrees());

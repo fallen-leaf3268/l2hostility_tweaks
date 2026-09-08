@@ -198,8 +198,8 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
             float safeWidth = Math.max(0.01F, width);
             float safeHeight = Math.max(0.01F, height);
             boolean compact = viewportWidth <= 16 && viewportHeight <= 16;
-            float usableWidth = compact ? 12.0F : viewportWidth - 8.0F;
-            float usableHeight = compact ? 12.0F : viewportHeight - 8.0F;
+            float usableWidth = compact ? 12.0F : Math.max(0.0F, viewportWidth - 8.0F);
+            float usableHeight = compact ? 12.0F : Math.max(0.0F, viewportHeight - 8.0F);
             float maxScale = compact ? 6.0F : 20.0F;
             float horizontalEnvelope = safeWidth * (float) (Math.sqrt(2.0D) * 1.1D);
             float verticalEnvelope = safeHeight
