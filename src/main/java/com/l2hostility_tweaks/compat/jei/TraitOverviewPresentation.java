@@ -44,7 +44,7 @@ public final class TraitOverviewPresentation {
     }
 
     public static int guaranteedPresetRank(TraitSpawnIndexSnapshot.PresetTraitView preset) {
-        return preset.freeRank();
+        return preset.guaranteedRank();
     }
 
     public static List<TraitSpawnIndexSnapshot.PresetTraitView> presetsForItem(
@@ -77,13 +77,10 @@ public final class TraitOverviewPresentation {
                 && overview.configs().stream().anyMatch(config ->
                 Objects.equals(config.conditionJson(), preset.conditionJson()));
         return guaranteedPresetRank(preset) > 0
-                && preset.chance() >= 1.0D
-                && preset.conditionLevel() <= 0
-                && preset.advancementId() == null
                 && (preset.conditionJson() == null || preset.conditionJson().isBlank()
                 || pageConditionSatisfied)
-                && preset.dynamicConstraints().stream()
-                .noneMatch(constraint -> constraint.type().equals("runtime_allow"));
+                && (pageConditionSatisfied || preset.dynamicConstraints().stream()
+                .noneMatch(constraint -> constraint.type().equals("runtime_allow")));
     }
 
     private static <T> List<ResourceLocation> distinctIds(

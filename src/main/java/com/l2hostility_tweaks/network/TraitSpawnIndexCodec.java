@@ -156,6 +156,7 @@ public final class TraitSpawnIndexCodec {
             putOptionalId(tag, "advancementId", preset.advancementId());
             putOptionalId(tag, "sourceId", preset.sourceId());
             tag.putString("conditionJson", checkedString(preset.conditionJson(), "conditionJson"));
+            putNonnegative(tag, "guaranteedRank", preset.guaranteedRank());
             tag.put("dynamicConstraints", writeConstraints(preset.dynamicConstraints(), counter));
             tag.putInt("constraintCount", preset.dynamicConstraints().size());
             tags.add(tag);
@@ -174,7 +175,7 @@ public final class TraitSpawnIndexCodec {
                     requiredNonnegative(tag, "freeRank"), requiredNonnegative(tag, "minRank"),
                     requiredBoolean(tag, "cap"), requiredProbability(tag, "chance"),
                     requiredNonnegative(tag, "conditionLevel"), optionalId(tag, "advancementId"), optionalId(tag, "sourceId"),
-                    requiredString(tag, "conditionJson"), constraints));
+                    requiredString(tag, "conditionJson"), requiredNonnegative(tag, "guaranteedRank"), constraints));
         }
         return presets;
     }

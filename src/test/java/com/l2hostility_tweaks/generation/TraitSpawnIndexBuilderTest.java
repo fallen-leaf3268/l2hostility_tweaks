@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -157,7 +158,7 @@ class TraitSpawnIndexBuilderTest {
     }
 
     @Test
-    void conditionalConfigUsesItsOwnRandomPoolContext() {
+    void conditionalConfigSharesBaseEntityBlacklist() {
         TraitInput speedy = trait("l2hostility:speedy", 100, 50, 20, 5,
                 false, Set.of(), Set.of(), false);
         ConfigInput blockedBase = config("example:base", "", view("example:base", "", 1, 1, 0),
@@ -175,8 +176,8 @@ class TraitSpawnIndexBuilderTest {
 
         assertTrue(basePage.pool().isEmpty());
         assertEquals(id("l2hostility:speedy"), basePage.blocked().get(0).traitId());
-        assertEquals(List.of(id("l2hostility:speedy")), conditionalPage.pool().stream()
-                .map(entry -> entry.traitId()).toList());
+        assertTrue(conditionalPage.pool().isEmpty());
+        assertEquals(id("l2hostility:speedy"), conditionalPage.blocked().get(0).traitId());
     }
 
     @Test
@@ -294,6 +295,38 @@ class TraitSpawnIndexBuilderTest {
 
         assertEquals(List.of(id("l2hostility:undying")),
                 conditionalPage.presets().stream().map(entry -> entry.traitId()).toList());
+    }
+
+    @Test
+    void conditionalPageSimulatesGuaranteedPresetRanksWithSharedBaseBlacklist() {
+        TraitInput undying = trait("l2hostility:undying", 100, 150, 150, 1,
+                false, Set.of(), Set.of(), true);
+        TraitInput ragnarok = trait("l2hostility:ragnarok", 100, 600, 300, 3,
+                false, Set.of(), Set.of(), true);
+        TraitInput evolution = trait("kubejs:evolution", 1, 3000, 5000, 5,
+                false, Set.of(), Set.of(), false);
+        EntityConfigView baseView = new EntityConfigView(id("goety:apostle"), "",
+                3000, 0, 20, 0, 1, 1, 0, 0, 3000, -1, false);
+        ConfigInput base = config("goety:apostle", "", baseView,
+                Set.of(ragnarok.traitId()), List.of());
+        String nbt = "{\"nbt\":{\"isApollyon\":1}}";
+        EntityConfigView conditionalView = new EntityConfigView(id("goety:apo"), nbt,
+                8000, 0, 20, 0, 1, 1, 0, 0, 3000, -1, true);
+        ConfigInput conditional = config("goety:apo", nbt, conditionalView, Set.of(), List.of(
+                preset("l2hostility:undying", 0, 1, false, 1, 0, null),
+                preset("l2hostility:ragnarok", 0, 1, false, 1, 0, null),
+                preset("kubejs:evolution", 2, 2, false, 1, 0, null)));
+        EntityInput apostle = entity("goety:apostle", false, List.of(base), List.of(conditional));
+
+        var page = TraitSpawnIndexBuilder.build(1, inputs(
+                List.of(apostle), List.of(undying, ragnarok, evolution),
+                settings(false, false, false, false, false, List.of()))).mobs().get(1);
+
+        assertEquals(List.of(id("kubejs:evolution"), id("l2hostility:undying")),
+                page.presets().stream().map(entry -> entry.traitId()).toList());
+        assertEquals(Map.of(id("kubejs:evolution"), 2, id("l2hostility:undying"), 1),
+                page.presets().stream().collect(java.util.stream.Collectors.toMap(
+                        entry -> entry.traitId(), entry -> entry.guaranteedRank())));
     }
 
     private static Inputs inputs(List<EntityInput> entities, List<TraitInput> traits, Settings settings) {

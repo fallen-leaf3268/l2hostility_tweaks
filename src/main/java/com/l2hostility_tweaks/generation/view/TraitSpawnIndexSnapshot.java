@@ -68,12 +68,16 @@ public record TraitSpawnIndexSnapshot(long revision, List<MobTraitOverview> mobs
             ResourceLocation advancementId,
             ResourceLocation sourceId,
             String conditionJson,
+            int guaranteedRank,
             List<TraitDynamicConstraint> dynamicConstraints) {
         public PresetTraitView {
             Objects.requireNonNull(traitId);
             Objects.requireNonNull(itemId);
             if (!Double.isFinite(chance) || chance < 0 || chance > 1) {
                 throw new IllegalArgumentException("chance must be finite and between 0 and 1");
+            }
+            if (guaranteedRank < 0) {
+                throw new IllegalArgumentException("guaranteedRank must not be negative");
             }
             dynamicConstraints = List.copyOf(dynamicConstraints);
         }

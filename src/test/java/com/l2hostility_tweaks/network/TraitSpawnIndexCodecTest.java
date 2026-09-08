@@ -98,7 +98,7 @@ public class TraitSpawnIndexCodecTest {
                 0.75, 0.5, 0.1, 3, 50, 4, false);
         TraitSpawnIndexSnapshot.PresetTraitView preset = new TraitSpawnIndexSnapshot.PresetTraitView(
                 id("l2hostility:adaptive"), id("l2hostility:adaptive"), 1, 2, false, 0.75,
-                20, id("minecraft:adventure/root"), id("example:preset"), "{}", List.of(constraint));
+                20, id("minecraft:adventure/root"), id("example:preset"), "{}", 1, List.of(constraint));
         TraitSpawnIndexSnapshot.PoolTraitView pool = new TraitSpawnIndexSnapshot.PoolTraitView(
                 id("l2hostility:speedy"), id("l2hostility:speedy"), 100, 5, 10, 3);
         TraitSpawnIndexSnapshot.BlockedTraitView blocked = new TraitSpawnIndexSnapshot.BlockedTraitView(

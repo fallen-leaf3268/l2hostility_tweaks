@@ -41,12 +41,12 @@ public final class TraitSpawnIndexBuilder {
                     ? null : entity.baseConfigs().get(entity.baseConfigs().size() - 1);
             int variantIndex = 0;
             BuildResult result = buildEntity(
-                    entity, baseConfig, variantIndex, traits, traitsById, inputs.settings());
+                    entity, baseConfig, baseConfig, variantIndex, traits, traitsById, inputs.settings());
             mobs.add(result.overview());
             warnings += result.warningCount();
             for (ConfigInput conditional : entity.conditionalConfigs()) {
                 result = buildEntity(
-                        entity, conditional, ++variantIndex, traits, traitsById, inputs.settings());
+                        entity, conditional, baseConfig, ++variantIndex, traits, traitsById, inputs.settings());
                 mobs.add(result.overview());
                 warnings += result.warningCount();
             }
@@ -54,17 +54,20 @@ public final class TraitSpawnIndexBuilder {
         return new TraitSpawnIndexSnapshot(revision, mobs, warnings);
     }
 
-    private static BuildResult buildEntity(EntityInput entity, ConfigInput config, int variantIndex,
+    private static BuildResult buildEntity(EntityInput entity, ConfigInput config,
+                                           ConfigInput entityAllowConfig, int variantIndex,
                                            List<TraitInput> traits,
                                            Map<ResourceLocation, TraitInput> traitsById,
                                            Settings settings) {
         List<PoolTraitView> pool = new ArrayList<>();
         List<BlockedTraitView> blocked = new ArrayList<>();
+        Set<ResourceLocation> entityConfigBlacklist = entityAllowConfig == null
+                ? Set.of() : entityAllowConfig.blacklist();
 
         for (TraitInput trait : traits) {
             List<BlockedContextView> contexts = new ArrayList<>();
             List<TraitBlockReason> reasons = TraitRuleClassifier.classify(new TraitRuleClassifier.Context(
-                    config != null && config.blacklist().contains(trait.traitId()),
+                    entityConfigBlacklist.contains(trait.traitId()),
                     trait.entityBlacklist().contains(entity.id()),
                     !trait.entityWhitelist().isEmpty() && !trait.entityWhitelist().contains(entity.id()),
                     trait.globallyDisabled(), entity.noTrait(),
@@ -81,6 +84,9 @@ public final class TraitSpawnIndexBuilder {
         }
 
         LinkedHashSet<PresetTraitView> presetSet = new LinkedHashSet<>();
+        Map<ResourceLocation, Integer> guaranteedRanks = new HashMap<>();
+        int guaranteedBudget = config == null ? 0
+                : Math.min(config.view().minDifficulty(), config.view().maxLevel());
         int warnings = 0;
         if (config != null) {
             for (PresetInput preset : config.presets()) {
@@ -90,7 +96,7 @@ public final class TraitSpawnIndexBuilder {
                     continue;
                 }
                 List<TraitBlockReason> reasons = TraitRuleClassifier.classify(new TraitRuleClassifier.Context(
-                        config.blacklist().contains(trait.traitId()),
+                        entityConfigBlacklist.contains(trait.traitId()),
                         trait.entityBlacklist().contains(entity.id()),
                         !trait.entityWhitelist().isEmpty() && !trait.entityWhitelist().contains(entity.id()),
                         trait.globallyDisabled(), entity.noTrait(),
@@ -98,10 +104,16 @@ public final class TraitSpawnIndexBuilder {
                         config.view().presetTraitsOnly(),
                         settings.disableRandom(), settings.disableAll(), settings.disableMobLevel()));
                 if (!reasons.isEmpty()) continue;
+                GuaranteedPreset guaranteed = simulateGuaranteedPreset(
+                        preset, trait, config, guaranteedRanks, guaranteedBudget);
+                guaranteedBudget = guaranteed.remainingBudget();
+                if (guaranteed.rank() > 0) {
+                    guaranteedRanks.put(preset.traitId(), guaranteed.rank());
+                }
                 presetSet.add(new PresetTraitView(
                         preset.traitId(), trait.itemId(), preset.freeRank(), preset.minRank(), preset.cap(),
                         preset.chance(), preset.conditionLevel(), preset.advancementId(), config.sourceId(),
-                        config.conditionJson(), presetConstraints(preset, config, trait)));
+                        config.conditionJson(), guaranteed.rank(), presetConstraints(preset, config, trait)));
             }
         }
 
@@ -112,6 +124,26 @@ public final class TraitSpawnIndexBuilder {
         List<TraitDynamicConstraint> dynamicConstraints = overviewConstraints(traits, settings, config);
         return new BuildResult(new MobTraitOverview(
                 entity.id(), variantIndex, configs, presets, pool, blocked, dynamicConstraints), warnings);
+    }
+
+    private static GuaranteedPreset simulateGuaranteedPreset(
+            PresetInput preset, TraitInput trait, ConfigInput config,
+            Map<ResourceLocation, Integer> guaranteedRanks, int remainingBudget) {
+        int minimumDifficulty = Math.min(config.view().minDifficulty(), config.view().maxLevel());
+        if (config.view().applyChance() < 1.0D || preset.chance() < 1.0D
+                || preset.conditionLevel() > minimumDifficulty || preset.advancementId() != null
+                || trait.minLevel() > minimumDifficulty) {
+            return new GuaranteedPreset(0, remainingBudget);
+        }
+        int maxRank = Math.max(0, trait.maxRank());
+        int previousRank = guaranteedRanks.getOrDefault(preset.traitId(), 0);
+        int freeRank = Math.min(maxRank, Math.max(previousRank, preset.freeRank()));
+        int targetRank = Math.min(maxRank, Math.max(freeRank, preset.minRank()));
+        int cost = Math.max(1, trait.cost());
+        int paidRank = Math.min(targetRank, freeRank + remainingBudget / cost);
+        int guaranteedRank = Math.max(freeRank, paidRank);
+        int spent = Math.max(0, guaranteedRank - freeRank) * cost;
+        return new GuaranteedPreset(guaranteedRank, remainingBudget - spent);
     }
 
     private static List<TraitDynamicConstraint> presetConstraints(PresetInput preset, ConfigInput config,
@@ -185,6 +217,8 @@ public final class TraitSpawnIndexBuilder {
     }
 
     private record BuildResult(MobTraitOverview overview, int warningCount) {}
+
+    private record GuaranteedPreset(int rank, int remainingBudget) {}
 
     public record Inputs(List<EntityInput> entities, List<TraitInput> traits, Settings settings) {
         public Inputs {

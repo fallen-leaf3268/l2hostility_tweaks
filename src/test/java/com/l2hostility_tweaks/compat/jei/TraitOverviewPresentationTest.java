@@ -43,7 +43,7 @@ class TraitOverviewPresentationTest {
     }
 
     @Test
-    void guaranteedPresetsUseOnlyFreeRanksBecauseMinimumRanksConsumeBudget() {
+    void guaranteedPresetsUseServerComputedRanks() {
         var guaranteed = preset(id("l2hostility:adaptive"), 2, 4, 1.0, 0, null, "", List.of());
         var strongerGuaranteed = preset(id("l2hostility:adaptive"), 3, 4, 1.0, 0, null, "", List.of());
         var minimumOnly = preset(id("l2hostility:speedy"), 0, 1, 1.0, 0, null, "", List.of());
@@ -59,17 +59,18 @@ class TraitOverviewPresentationTest {
                 List.of(guaranteed, strongerGuaranteed, minimumOnly, random, levelBound, advancementBound,
                         conditionalConfig, runtimeBound), List.of(), List.of(), List.of());
 
-        assertEquals(List.of(strongerGuaranteed),
+        assertEquals(List.of(strongerGuaranteed, minimumOnly),
                 TraitOverviewPresentation.guaranteedPresets(page));
-        assertEquals(3, TraitOverviewPresentation.guaranteedPresetRank(strongerGuaranteed));
-        assertEquals(0, TraitOverviewPresentation.guaranteedPresetRank(minimumOnly));
+        assertEquals(4, TraitOverviewPresentation.guaranteedPresetRank(strongerGuaranteed));
+        assertEquals(1, TraitOverviewPresentation.guaranteedPresetRank(minimumOnly));
     }
 
     @Test
     void conditionalPageTreatsItsOwnNbtConditionAsSatisfied() {
         String condition = "{\"nbt\":{\"isApollyon\":1}}";
         var undying = preset(id("l2hostility:undying"), 1, 1, 1.0, 0, null,
-                condition, List.of());
+                condition, List.of(new TraitDynamicConstraint(
+                        "runtime_allow", List.of("l2hostility:undying"))));
         var page = new TraitSpawnIndexSnapshot.MobTraitOverview(
                 id("goety:apostle"), 1, List.of(configWithCondition(condition)),
                 List.of(undying), List.of(), List.of(), List.of());
@@ -341,7 +342,7 @@ class TraitOverviewPresentationTest {
         return new TraitSpawnIndexSnapshot.PresetTraitView(
                 id("l2hostility:adaptive"), id("l2hostility:adaptive"), 1, 2, false,
                 0.5, 100, id("minecraft:story/mine_stone"), id("example:zombies"),
-                "{ \"type\": \"forge:and\" }",
+                "{ \"type\": \"forge:and\" }", 0,
                 List.of(new TraitDynamicConstraint("level", List.of("100"))));
     }
 
@@ -350,7 +351,9 @@ class TraitOverviewPresentationTest {
             ResourceLocation advancement, String conditionJson, List<TraitDynamicConstraint> constraints) {
         return new TraitSpawnIndexSnapshot.PresetTraitView(
                 traitId, traitId, free, min, false, chance, level, advancement,
-                id("example:zombies"), conditionJson, constraints);
+                id("example:zombies"), conditionJson,
+                chance >= 1.0D && level <= 0 && advancement == null ? Math.max(free, min) : 0,
+                constraints);
     }
 
     private static TraitSpawnIndexSnapshot.PoolTraitView pool() {

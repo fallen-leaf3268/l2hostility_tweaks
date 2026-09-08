@@ -58,7 +58,7 @@ class TraitSpawnIndexSnapshotTest {
         var preset = new TraitSpawnIndexSnapshot.PresetTraitView(
                 id("l2hostility", "adaptive"), id("l2hostility", "adaptive"),
                 2, 3, false, 0.5, 200, id("l2hostility", "kill_10_traits"),
-                id("example", "boss"), "{}", presetConstraints);
+                id("example", "boss"), "{}", 2, presetConstraints);
         assertDefensiveCopy(presetConstraints, preset.dynamicConstraints());
 
         List<TraitSpawnIndexSnapshot.BlockedContextView> contexts = new ArrayList<>(List.of(blockedContext()));
@@ -132,14 +132,14 @@ class TraitSpawnIndexSnapshotTest {
         return new TraitSpawnIndexSnapshot.PresetTraitView(
                 id("l2hostility", "adaptive"), id("l2hostility", "adaptive"),
                 2, 3, false, chance, 200, id("l2hostility", "kill_10_traits"),
-                id("example", "boss"), "{}", List.of());
+                id("example", "boss"), "{}", 2, List.of());
     }
 
     private static TraitSpawnIndexSnapshot.PresetTraitView preset(
             ResourceLocation traitId, ResourceLocation itemId) {
         return new TraitSpawnIndexSnapshot.PresetTraitView(
                 traitId, itemId, 2, 3, false, 0.5, 200, id("l2hostility", "kill_10_traits"),
-                id("example", "boss"), "{}", List.of());
+                id("example", "boss"), "{}", 2, List.of());
     }
 
     private static TraitSpawnIndexSnapshot.PoolTraitView poolTrait() {
