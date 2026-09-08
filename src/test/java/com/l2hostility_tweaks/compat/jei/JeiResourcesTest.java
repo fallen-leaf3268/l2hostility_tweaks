@@ -13,6 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class JeiResourcesTest {
 
@@ -56,5 +57,25 @@ class JeiResourcesTest {
                     .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
             assertTrue(missing.isEmpty(), locale + " missing " + missing);
         }
+    }
+
+    @Test
+    void traitOverviewUsesRichCompleteListsAndShadowlessText() throws IOException {
+        String category = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/compat/jei/TraitOverviewCategory.java"));
+        String playerScreen = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/client/PlayerTraitScreen.java"));
+        String clientEvents = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/client/ClientEventHandler.java"));
+
+        assertTrue(category.contains("TraitListTooltip.marker(TraitOverviewPresentation.poolTraitIds(recipe))"));
+        assertTrue(category.contains("TraitListTooltip.marker(TraitOverviewPresentation.blockedTraitIds(recipe))"));
+        assertTrue(category.contains("TraitOverviewPresentation.guaranteedPresets(recipe)"));
+        assertTrue(category.contains("TraitListTooltip.textMarker"));
+        assertFalse(category.contains("drawCenteredString"));
+        assertFalse(category.contains("addConfigTooltip"));
+        assertFalse(playerScreen.contains("drawCenteredString"));
+        assertTrue(clientEvents.contains("event.register(TraitListTooltip.class, TraitListTooltipRenderer::new)"));
+        assertTrue(clientEvents.contains("TraitListTooltip.fromMarker"));
     }
 }

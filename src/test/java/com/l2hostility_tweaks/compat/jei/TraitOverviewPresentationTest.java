@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.compat.jei;
 
+import com.l2hostility_tweaks.client.TraitListTooltip;
 import com.l2hostility_tweaks.generation.view.TraitBlockReason;
 import com.l2hostility_tweaks.generation.view.TraitDynamicConstraint;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
@@ -39,6 +40,61 @@ class TraitOverviewPresentationTest {
         assertEquals("first", TraitOverviewPresentation.cycle(blocked, 3));
         assertEquals("third", TraitOverviewPresentation.cycle(blocked, -1));
         assertNull(TraitOverviewPresentation.cycle(List.of(), 4));
+    }
+
+    @Test
+    void guaranteedPresetsRequireUnconditionalFreeRanks() {
+        var guaranteed = preset(id("l2hostility:adaptive"), 2, 4, 1.0, 0, null, "", List.of());
+        var strongerGuaranteed = preset(id("l2hostility:adaptive"), 3, 4, 1.0, 0, null, "", List.of());
+        var minimumOnly = preset(id("l2hostility:speedy"), 0, 2, 1.0, 0, null, "", List.of());
+        var random = preset(id("l2hostility:tank"), 1, 1, 0.5, 0, null, "", List.of());
+        var levelBound = preset(id("l2hostility:growth"), 1, 1, 1.0, 20, null, "", List.of());
+        var advancementBound = preset(id("l2hostility:undying"), 1, 1, 1.0, 0,
+                id("minecraft:story/mine_stone"), "", List.of());
+        var conditionalConfig = preset(id("l2hostility:invisible"), 1, 1, 1.0, 0, null,
+                "{\"nbt\":{}}", List.of());
+        var runtimeBound = preset(id("l2hostility:teleport"), 1, 1, 1.0, 0, null, "",
+                List.of(new TraitDynamicConstraint("runtime_allow", List.of("l2hostility:teleport"))));
+        var page = new TraitSpawnIndexSnapshot.MobTraitOverview(id("minecraft:zombie"), List.of(),
+                List.of(guaranteed, strongerGuaranteed, minimumOnly, random, levelBound, advancementBound,
+                        conditionalConfig, runtimeBound), List.of(), List.of(), List.of());
+
+        assertEquals(List.of(strongerGuaranteed), TraitOverviewPresentation.guaranteedPresets(page));
+    }
+
+    @Test
+    void sectionTraitIdsAreCompleteAndDeduplicatedInSnapshotOrder() {
+        var page = new TraitSpawnIndexSnapshot.MobTraitOverview(id("minecraft:zombie"), List.of(), List.of(),
+                List.of(
+                        new TraitSpawnIndexSnapshot.PoolTraitView(id("l2hostility:speedy"),
+                                id("l2hostility:speedy"), 10, 0, 1, 3),
+                        new TraitSpawnIndexSnapshot.PoolTraitView(id("l2hostility:adaptive"),
+                                id("l2hostility:adaptive"), 10, 0, 1, 3),
+                        new TraitSpawnIndexSnapshot.PoolTraitView(id("l2hostility:speedy"),
+                                id("l2hostility:speedy"), 10, 0, 1, 3)),
+                List.of(
+                        new TraitSpawnIndexSnapshot.BlockedTraitView(id("l2hostility:growth"),
+                                id("l2hostility:growth"), List.of()),
+                        new TraitSpawnIndexSnapshot.BlockedTraitView(id("l2hostility:growth"),
+                                id("l2hostility:growth"), List.of())), List.of());
+
+        assertEquals(List.of(id("l2hostility:speedy"), id("l2hostility:adaptive")),
+                TraitOverviewPresentation.poolTraitIds(page));
+        assertEquals(List.of(id("l2hostility:growth")),
+                TraitOverviewPresentation.blockedTraitIds(page));
+    }
+
+    @Test
+    void textOnlyTraitListMarkerPreservesEveryTraitAndRank() {
+        List<TraitListTooltip.Entry> entries = List.of(
+                new TraitListTooltip.Entry(id("l2hostility:speedy"), 2),
+                new TraitListTooltip.Entry(id("l2hostility:tank"), 1));
+
+        TraitListTooltip parsed = TraitListTooltip.fromMarker(
+                TraitListTooltip.textMarker(entries).getString()).orElseThrow();
+
+        assertFalse(parsed.showIcons());
+        assertEquals(entries, parsed.entries());
     }
 
     @Test
@@ -161,6 +217,14 @@ class TraitOverviewPresentationTest {
                 0.5, 100, id("minecraft:story/mine_stone"), id("example:zombies"),
                 "{ \"type\": \"forge:and\" }",
                 List.of(new TraitDynamicConstraint("level", List.of("100"))));
+    }
+
+    private static TraitSpawnIndexSnapshot.PresetTraitView preset(
+            ResourceLocation traitId, int free, int min, double chance, int level,
+            ResourceLocation advancement, String conditionJson, List<TraitDynamicConstraint> constraints) {
+        return new TraitSpawnIndexSnapshot.PresetTraitView(
+                traitId, traitId, free, min, false, chance, level, advancement,
+                id("example:zombies"), conditionJson, constraints);
     }
 
     private static TraitSpawnIndexSnapshot.PoolTraitView pool() {

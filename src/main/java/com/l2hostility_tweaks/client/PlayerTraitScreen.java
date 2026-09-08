@@ -220,21 +220,21 @@ public class PlayerTraitScreen extends BaseTextScreen {
 			headerText = Component.literal("Lv." + playerLevel);
 		}
 		g.drawString(font, headerText,
-				left + config.getComp("header").x, top + config.getComp("header").y + 3, 0xFFAA00);
+				left + config.getComp("header").x, top + config.getComp("header").y + 3, 0xFFAA00, false);
 
 		if (player == null || !MobTraitCap.HOLDER.isProper(player)) {
-			g.drawCenteredString(font, Component.translatable("gui.l2hostility_tweaks.no_traits"),
+			drawCenteredNoShadow(g, Component.translatable("gui.l2hostility_tweaks.no_traits"),
 					left + WIDTH / 2, top + 60, 0xAAAAAA);
 			return;
 		}
 		if (cap == null || !cap.isInitialized() || cap.traits.isEmpty()) {
-			g.drawCenteredString(font, Component.translatable("gui.l2hostility_tweaks.no_traits"),
+			drawCenteredNoShadow(g, Component.translatable("gui.l2hostility_tweaks.no_traits"),
 					left + WIDTH / 2, top + 60, 0xAAAAAA);
 			return;
 		}
 
 		if (allLines == null || allLines.isEmpty()) {
-			g.drawCenteredString(font, Component.translatable("gui.l2hostility_tweaks.no_traits"),
+			drawCenteredNoShadow(g, Component.translatable("gui.l2hostility_tweaks.no_traits"),
 					left + WIDTH / 2, top + 60, 0xAAAAAA);
 			return;
 		}
@@ -303,6 +303,10 @@ public class PlayerTraitScreen extends BaseTextScreen {
 				}
 			}
 		}
+	}
+
+	private void drawCenteredNoShadow(GuiGraphics graphics, Component text, int centerX, int y, int color) {
+		graphics.drawString(font, text, centerX - font.width(text) / 2, y, color, false);
 	}
 
 	private List<List<TraitTextLayout.Segment<MobTrait, FormattedCharSequence>>> buildTraitLines(MobTraitCap cap) {

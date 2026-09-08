@@ -4,8 +4,6 @@ import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import mezz.jei.api.ingredients.IIngredientRenderer;
-import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
@@ -38,6 +36,8 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
     private final int height;
     private final MobIngredientHelper helper = new MobIngredientHelper();
     private final EntityCache<Level, LivingEntity> entities = new EntityCache<>(Entity::discard);
+    private double pointerOffsetX;
+    private double pointerOffsetY;
 
     public MobIngredientRenderer(int size) {
         this(size, size);
@@ -65,13 +65,13 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
                 renderFallback(guiGraphics, ingredient);
                 return;
             }
-            PreviewLayout layout = PreviewLayout.calculate(width, height, entity.getBbWidth(), entity.getBbHeight(),
-                    Util.getMillis());
+            PreviewLayout layout = PreviewLayout.calculate(width, height, entity.getBbWidth(), entity.getBbHeight());
+            LookRotation look = LookRotation.calculate(pointerOffsetX, pointerOffsetY);
             ScissorBounds scissor = ScissorBounds.calculate(guiGraphics.pose().last().pose(), width, height);
             ScopedState.use(
                     () -> guiGraphics.enableScissor(scissor.left(), scissor.top(), scissor.right(), scissor.bottom()),
                     guiGraphics::disableScissor,
-                    () -> renderEntity(guiGraphics, layout, entity));
+                    () -> renderEntity(guiGraphics, layout, look, entity));
         } catch (RuntimeException | LinkageError exception) {
             entities.fail(entityId);
             renderFallback(guiGraphics, ingredient);
@@ -81,9 +81,7 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
     @Override
     public List<Component> getTooltip(MobIngredient ingredient, TooltipFlag tooltipFlag) {
         String displayName = helper.getDisplayName(ingredient);
-        Component id = Component.literal(ingredient.entityId().toString()).withStyle(ChatFormatting.DARK_GRAY);
-        if (displayName.equals(ingredient.entityId().toString())) return List.of(id);
-        return List.of(Component.literal(displayName), id);
+        return List.of(Component.literal(displayName));
     }
 
     @Override
@@ -98,6 +96,11 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
 
     public void clear() {
         entities.clear();
+    }
+
+    public void setMousePosition(double pointerOffsetX, double pointerOffsetY) {
+        this.pointerOffsetX = pointerOffsetX;
+        this.pointerOffsetY = pointerOffsetY;
     }
 
     @Override
@@ -119,18 +122,19 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
         return livingEntity;
     }
 
-    private static void renderEntity(GuiGraphics guiGraphics, PreviewLayout layout, LivingEntity entity) {
+    private static void renderEntity(GuiGraphics guiGraphics, PreviewLayout layout, LookRotation look,
+                                     LivingEntity entity) {
         Quaternionf rotation = new Quaternionf().rotateZ((float) Math.PI);
         Quaternionf cameraTilt = new Quaternionf().rotateX((float) Math.toRadians(10.0D));
         rotation.mul(cameraTilt);
         LivingRotation original = LivingRotation.capture(entity);
         ScopedState.use(
                 () -> {
-                    entity.yBodyRot = layout.yawDegrees();
-                    entity.setYRot(layout.yawDegrees());
-                    entity.setXRot(0.0F);
-                    entity.yHeadRot = entity.getYRot();
-                    entity.yHeadRotO = entity.getYRot();
+                    entity.yBodyRot = look.bodyYawDegrees();
+                    entity.setYRot(look.headYawDegrees());
+                    entity.setXRot(look.pitchDegrees());
+                    entity.yHeadRot = look.headYawDegrees();
+                    entity.yHeadRotO = look.headYawDegrees();
                 },
                 () -> original.restore(entity),
                 () -> renderEntityInInventory(guiGraphics, layout, rotation, cameraTilt, entity));
@@ -189,14 +193,13 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
         if (height > 16) {
             String id = Minecraft.getInstance().font.plainSubstrByWidth(ingredient.entityId().toString(),
                     Math.max(0, width - 2));
-            guiGraphics.drawString(Minecraft.getInstance().font, id, 1, height - 9, 0xFFFFFFFF, true);
+            guiGraphics.drawString(Minecraft.getInstance().font, id, 1, height - 9, 0xFFFFFFFF, false);
         }
     }
 
-    static record PreviewLayout(float scale, float anchorX, float anchorY, float yawDegrees) {
+    static record PreviewLayout(float scale, float anchorX, float anchorY) {
 
-        static PreviewLayout calculate(int viewportWidth, int viewportHeight, float width, float height,
-                                       long animationMillis) {
+        static PreviewLayout calculate(int viewportWidth, int viewportHeight, float width, float height) {
             float safeWidth = Math.max(0.01F, width);
             float safeHeight = Math.max(0.01F, height);
             boolean compact = viewportWidth <= 16 && viewportHeight <= 16;
@@ -213,9 +216,16 @@ public final class MobIngredientRenderer implements IIngredientRenderer<MobIngre
                         * (float) (Math.sqrt(2.0D) * Math.sin(Math.toRadians(10.0D))) * 0.5F;
                 scale = Math.min(scale, (compact ? 1.0F : 3.0F) / downwardProjection);
             }
-            long cycleMillis = Math.floorMod(animationMillis, 12_000L);
-            float yaw = cycleMillis * 360.0F / 12_000.0F;
-            return new PreviewLayout(scale, viewportWidth * 0.5F, viewportHeight - (compact ? 1.0F : 3.0F), yaw);
+            return new PreviewLayout(scale, viewportWidth * 0.5F, viewportHeight - (compact ? 1.0F : 3.0F));
+        }
+    }
+
+    static record LookRotation(float bodyYawDegrees, float headYawDegrees, float pitchDegrees) {
+
+        static LookRotation calculate(double pointerOffsetX, double pointerOffsetY) {
+            float horizontal = (float) Math.atan(pointerOffsetX / 40.0D);
+            float vertical = (float) Math.atan(pointerOffsetY / 40.0D);
+            return new LookRotation(-horizontal * 20.0F, -horizontal * 40.0F, vertical * 20.0F);
         }
     }
 

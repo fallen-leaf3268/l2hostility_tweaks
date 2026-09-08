@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.compat.jei;
 
+import com.l2hostility_tweaks.client.TraitListTooltip;
 import com.l2hostility_tweaks.generation.view.TraitDynamicConstraint;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
@@ -13,6 +14,7 @@ import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -20,6 +22,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import dev.xkmc.l2hostility.content.traits.base.MobTrait;
+import dev.xkmc.l2hostility.init.registrate.LHTraits;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,7 +91,7 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                 .addIngredient(MobIngredient.TYPE, new MobIngredient(recipe.entityId()))
                 .setCustomRenderer(MobIngredient.TYPE, mobRenderer)
                 .setSlotName("mob")
-                .addTooltipCallback((slot, tooltip) -> addConfigTooltip(recipe, tooltip));
+                .addTooltipCallback((slot, tooltip) -> addGuaranteedPresetTooltip(recipe, tooltip));
 
         if (shouldRenderPresets(recipe)) {
             builder.addSlot(RecipeIngredientRole.OUTPUT, PRESET_SLOT_X, PRESET_SLOT_Y)
@@ -101,23 +105,32 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                 .addItemStacks(resolveStacks(recipe.pool().stream()
                         .map(TraitSpawnIndexSnapshot.PoolTraitView::itemId).distinct().toList()))
                 .setSlotName("pool")
-                .addTooltipCallback((slot, tooltip) -> addPoolTooltip(recipe, slot, tooltip));
+                .addTooltipCallback((slot, tooltip) -> {
+                    tooltip.add(TraitListTooltip.marker(TraitOverviewPresentation.poolTraitIds(recipe)));
+                    addPoolTooltip(recipe, slot, tooltip);
+                });
     }
 
     @Override
     public void draw(TraitSpawnIndexSnapshot.MobTraitOverview recipe, IRecipeSlotsView recipeSlotsView,
                      GuiGraphics guiGraphics, double mouseX, double mouseY) {
         var font = Minecraft.getInstance().font;
+        mobRenderer.setMousePosition(
+                mouseX - (MOB_SLOT_X + MOB_RENDERER_WIDTH * 0.5D),
+                mouseY - (MOB_SLOT_Y + MOB_RENDERER_HEIGHT * 0.5D));
         TraitOverviewPresentation.Counts counts = TraitOverviewPresentation.counts(recipe);
         String entityName = mobHelper.getDisplayName(new MobIngredient(recipe.entityId()));
         Component entityTitle = Component.literal(font.plainSubstrByWidth(entityName, MOB_RENDERER_WIDTH));
-        guiGraphics.drawCenteredString(font, entityTitle, MOB_CENTER_X, 0, 0xFF555555);
-        guiGraphics.drawCenteredString(font, Component.translatable("jei.l2hostility_tweaks.pool", counts.pool()),
+        drawCenteredNoShadow(guiGraphics, font, entityTitle, MOB_CENTER_X, 0, 0xFF555555);
+        drawCenteredNoShadow(guiGraphics, font,
+                Component.translatable("jei.l2hostility_tweaks.pool", counts.pool()),
                 RIGHT_COLUMN_CENTER_X, 0, 0xFF555555);
-        guiGraphics.drawCenteredString(font, Component.translatable("jei.l2hostility_tweaks.blocked", counts.blocked()),
+        drawCenteredNoShadow(guiGraphics, font,
+                Component.translatable("jei.l2hostility_tweaks.blocked", counts.blocked()),
                 RIGHT_COLUMN_CENTER_X, 40, 0xFF555555);
         if (shouldRenderPresets(recipe)) {
-            guiGraphics.drawCenteredString(font, Component.translatable("jei.l2hostility_tweaks.preset", counts.presets()),
+            drawCenteredNoShadow(guiGraphics, font,
+                    Component.translatable("jei.l2hostility_tweaks.preset", counts.presets()),
                     RIGHT_COLUMN_CENTER_X, 80, 0xFF555555);
         }
         guiGraphics.drawString(font, Component.translatable("jei.l2hostility_tweaks.config_source", counts.configs()),
@@ -144,8 +157,8 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
         TraitSpawnIndexSnapshot.BlockedTraitView blocked = currentBlocked(recipe);
         if (blocked == null) return List.of();
         List<Component> tooltip = new ArrayList<>();
-        tooltip.add(Component.translatable("jei.l2hostility_tweaks.blocked_trait", blocked.traitId().toString())
-                .withStyle(ChatFormatting.RED));
+        tooltip.add(TraitListTooltip.marker(TraitOverviewPresentation.blockedTraitIds(recipe)));
+        tooltip.add(traitDescription(blocked.traitId(), null));
         blocked.contexts().forEach(context -> {
             tooltip.add(Component.translatable("jei.l2hostility_tweaks.source",
                             TraitOverviewPresentation.formatNullableId(context.sourceId()))
@@ -162,33 +175,12 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                 + "/" + recipe.entityId().getPath());
     }
 
-    private static void addConfigTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe, List<Component> tooltip) {
-        tooltip.add(Component.literal(recipe.entityId().toString()).withStyle(ChatFormatting.DARK_GRAY));
-        for (TraitSpawnIndexSnapshot.EntityConfigView config : recipe.configs()) {
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.source",
-                            TraitOverviewPresentation.formatNullableId(config.sourceId()))
-                    .withStyle(ChatFormatting.GOLD));
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.difficulty",
-                    config.minDifficulty(), config.baseDifficulty()));
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.variation", config.variation()));
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.scale", config.scale()));
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.apply_chance",
-                    TraitOverviewPresentation.formatPercent(config.applyChance())));
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.trait_chance",
-                    TraitOverviewPresentation.formatPercent(config.traitChance())));
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.suppression", config.suppression()));
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.min_spawn_level", config.minSpawnLevel()));
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.max_level", config.maxLevel()));
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.max_trait_count", config.maxTraitCount()));
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.preset_only", config.presetTraitsOnly()));
-            String condition = TraitOverviewPresentation.compactConditionJson(config.conditionJson());
-            if (!condition.isEmpty()) tooltip.add(Component.translatable("jei.l2hostility_tweaks.condition", condition)
-                    .withStyle(ChatFormatting.GRAY));
-        }
-        for (TraitDynamicConstraint constraint : recipe.dynamicConstraints()) {
-            tooltip.add(Component.translatable(TraitOverviewPresentation.dynamicConstraintKey(constraint),
-                    String.join(", ", constraint.arguments())).withStyle(ChatFormatting.YELLOW));
-        }
+    private static void addGuaranteedPresetTooltip(
+            TraitSpawnIndexSnapshot.MobTraitOverview recipe, List<Component> tooltip) {
+        List<TraitListTooltip.Entry> entries = TraitOverviewPresentation.guaranteedPresets(recipe).stream()
+                .map(preset -> new TraitListTooltip.Entry(preset.traitId(), preset.freeRank()))
+                .toList();
+        if (!entries.isEmpty()) tooltip.add(TraitListTooltip.textMarker(entries));
     }
 
     private static void addPresetTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe, IRecipeSlotView slot,
@@ -243,6 +235,17 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
 
     private static Optional<ResourceLocation> displayedItemId(IRecipeSlotView slot) {
         return slot.getDisplayedItemStack().map(ItemStack::getItem).map(BuiltInRegistries.ITEM::getKey);
+    }
+
+    private static Component traitDescription(ResourceLocation traitId, Integer rank) {
+        MobTrait trait = LHTraits.TRAITS.get().getValue(traitId);
+        if (trait != null) return trait.getFullDesc(rank);
+        return Component.literal(traitId.toString());
+    }
+
+    private static void drawCenteredNoShadow(GuiGraphics graphics, Font font, Component text,
+                                             int centerX, int y, int color) {
+        graphics.drawString(font, text, centerX - font.width(text) / 2, y, color, false);
     }
 
     static boolean shouldRenderPresets(TraitSpawnIndexSnapshot.MobTraitOverview recipe) {

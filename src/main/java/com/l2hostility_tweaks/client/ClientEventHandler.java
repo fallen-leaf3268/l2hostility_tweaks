@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.client;
 
+import com.mojang.datafixers.util.Either;
 import com.l2hostility_tweaks.L2HostilityFix;
 import com.l2hostility_tweaks.content.TraitUnloaderWand;
 import com.l2hostility_tweaks.config.L2HConfig;
@@ -12,9 +13,11 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+import net.minecraftforge.client.event.RegisterClientTooltipComponentFactoriesEvent;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.client.event.RenderTooltipEvent;
 import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -39,6 +42,11 @@ public class ClientEventHandler {
 	public static void registerGuiOverlayEvent(RegisterGuiOverlaysEvent evt) {
 		evt.registerBelow(VanillaGuiOverlay.BOSS_EVENT_PROGRESS.id(),
 				"l2hostility_tweaks_health_overlay", new L2HHealthOverlay());
+	}
+
+	@SubscribeEvent
+	public static void registerTooltipComponents(RegisterClientTooltipComponentFactoriesEvent event) {
+		event.register(TraitListTooltip.class, TraitListTooltipRenderer::new);
 	}
 
 	@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = "l2hostility_tweaks")
@@ -71,6 +79,17 @@ public class ClientEventHandler {
 		public static void onLogout(ClientPlayerNetworkEvent.LoggingOut event) {
 			L2HConfig.clearDisplaySnapshot();
 			L2HostilityFix.PROXY.clearTraitSpawnIndex();
+		}
+
+		@SubscribeEvent
+		public static void expandTraitListTooltips(RenderTooltipEvent.GatherComponents event) {
+			var elements = event.getTooltipElements();
+			for (int index = 0; index < elements.size(); index++) {
+				var text = elements.get(index).left();
+				if (text.isEmpty()) continue;
+				var tooltip = TraitListTooltip.fromMarker(text.get().getString());
+				if (tooltip.isPresent()) elements.set(index, Either.right(tooltip.get()));
+			}
 		}
 
 	}

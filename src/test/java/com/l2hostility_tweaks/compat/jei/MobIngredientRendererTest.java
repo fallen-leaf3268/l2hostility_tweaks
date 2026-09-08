@@ -44,7 +44,7 @@ class MobIngredientRendererTest {
             float maxScale = size == 48 ? 20.0F : 6.0F;
             float anchorY = size == 48 ? 45.0F : 15.0F;
             for (float[] box : boxes) {
-                var layout = MobIngredientRenderer.PreviewLayout.calculate(size, size, box[0], box[1], 0L);
+                var layout = MobIngredientRenderer.PreviewLayout.calculate(size, size, box[0], box[1]);
                 float horizontalEnvelope = box[0] * (float) (Math.sqrt(2.0D) * 1.1D);
                 float verticalEnvelope = box[1]
                         + box[0] * (float) (Math.sqrt(2.0D) * Math.sin(Math.toRadians(10.0D)));
@@ -56,9 +56,9 @@ class MobIngredientRendererTest {
                 assertTrue(verticalEnvelope * layout.scale() <= usable + 0.001F);
             }
             assertEquals(size * 0.5F,
-                    MobIngredientRenderer.PreviewLayout.calculate(size, size, 1.0F, 2.0F, 0L).anchorX());
+                    MobIngredientRenderer.PreviewLayout.calculate(size, size, 1.0F, 2.0F).anchorX());
             assertEquals(anchorY,
-                    MobIngredientRenderer.PreviewLayout.calculate(size, size, 1.0F, 2.0F, 0L).anchorY());
+                    MobIngredientRenderer.PreviewLayout.calculate(size, size, 1.0F, 2.0F).anchorY());
         }
     }
 
@@ -66,7 +66,7 @@ class MobIngredientRendererTest {
     void rectangularPreviewLayoutUsesIndependentSafeContentBudgetsAndFootAnchor() {
         float width = 2.0F;
         float height = 4.0F;
-        var layout = MobIngredientRenderer.PreviewLayout.calculate(56, 72, width, height, 0L);
+        var layout = MobIngredientRenderer.PreviewLayout.calculate(56, 72, width, height);
         float horizontalEnvelope = width * (float) (Math.sqrt(2.0D) * 1.1D);
         float verticalEnvelope = height
                 + width * (float) (Math.sqrt(2.0D) * Math.sin(Math.toRadians(10.0D)));
@@ -80,7 +80,7 @@ class MobIngredientRendererTest {
     @Test
     void tallRectangularPreviewLayoutKeepsWorstCaseFootProjectionInsideTheViewport() {
         float entityWidth = 10.0F;
-        var layout = MobIngredientRenderer.PreviewLayout.calculate(56, 72, entityWidth, 2.0F, 0L);
+        var layout = MobIngredientRenderer.PreviewLayout.calculate(56, 72, entityWidth, 2.0F);
         float downwardProjection = entityWidth * (float) (Math.sqrt(2.0D) * Math.sin(Math.toRadians(10.0D)))
                 * layout.scale() * 0.5F;
 
@@ -96,7 +96,7 @@ class MobIngredientRendererTest {
                 new int[]{8, 72},
                 new int[]{72, 8})) {
             var layout = MobIngredientRenderer.PreviewLayout.calculate(
-                    viewport[0], viewport[1], 1.0F, 2.0F, 0L);
+                    viewport[0], viewport[1], 1.0F, 2.0F);
 
             assertTrue(Float.isFinite(layout.scale()));
             assertTrue(layout.scale() >= 0.0F);
@@ -104,22 +104,32 @@ class MobIngredientRendererTest {
     }
 
     @Test
-    void previewLayoutRotatesThroughAFullTurnEveryTwelveSeconds() {
-        assertEquals(0.0F, MobIngredientRenderer.PreviewLayout.calculate(48, 48, 1.0F, 2.0F, 0L).yawDegrees());
-        assertEquals(90.0F, MobIngredientRenderer.PreviewLayout.calculate(48, 48, 1.0F, 2.0F, 3000L).yawDegrees());
-        assertEquals(180.0F, MobIngredientRenderer.PreviewLayout.calculate(48, 48, 1.0F, 2.0F, 6000L).yawDegrees());
-        assertEquals(270.0F, MobIngredientRenderer.PreviewLayout.calculate(48, 48, 1.0F, 2.0F, 9000L).yawDegrees());
-        assertEquals(0.0F, MobIngredientRenderer.PreviewLayout.calculate(48, 48, 1.0F, 2.0F, 12000L).yawDegrees());
+    void lookRotationFacesThePointerAndIsNeutralAtThePreviewCenter() {
+        var neutral = MobIngredientRenderer.LookRotation.calculate(0.0, 0.0);
+        var left = MobIngredientRenderer.LookRotation.calculate(-40.0, 0.0);
+        var right = MobIngredientRenderer.LookRotation.calculate(40.0, 0.0);
+        var above = MobIngredientRenderer.LookRotation.calculate(0.0, -40.0);
+        var below = MobIngredientRenderer.LookRotation.calculate(0.0, 40.0);
+
+        assertEquals(0.0F, neutral.bodyYawDegrees(), 0.0001F);
+        assertEquals(0.0F, neutral.headYawDegrees(), 0.0001F);
+        assertEquals(0.0F, neutral.pitchDegrees(), 0.0001F);
+        assertTrue(left.headYawDegrees() > 0.0F);
+        assertTrue(right.headYawDegrees() < 0.0F);
+        assertTrue(above.pitchDegrees() < 0.0F);
+        assertTrue(below.pitchDegrees() > 0.0F);
     }
 
     @Test
-    void previewLayoutUsesModuloBeforeConvertingLargeAnimationTimestamps() {
-        long now = 1_800_000_000_000L;
-        float first = MobIngredientRenderer.PreviewLayout.calculate(48, 48, 1.0F, 2.0F, now).yawDegrees();
-        float next = MobIngredientRenderer.PreviewLayout.calculate(48, 48, 1.0F, 2.0F, now + 3000L).yawDegrees();
+    void lookRotationRemainsFiniteAndBoundedForDistantPointers() {
+        var rotation = MobIngredientRenderer.LookRotation.calculate(1.0E12, -1.0E12);
 
-        assertEquals(0.0F, first);
-        assertEquals(90.0F, next);
+        assertTrue(Float.isFinite(rotation.bodyYawDegrees()));
+        assertTrue(Float.isFinite(rotation.headYawDegrees()));
+        assertTrue(Float.isFinite(rotation.pitchDegrees()));
+        assertTrue(Math.abs(rotation.bodyYawDegrees()) <= 32.0F);
+        assertTrue(Math.abs(rotation.headYawDegrees()) <= 63.0F);
+        assertTrue(Math.abs(rotation.pitchDegrees()) <= 32.0F);
     }
 
     @Test

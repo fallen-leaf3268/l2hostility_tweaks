@@ -9,8 +9,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 public final class TraitOverviewPresentation {
 
@@ -27,6 +29,41 @@ public final class TraitOverviewPresentation {
     public static Counts counts(TraitSpawnIndexSnapshot.MobTraitOverview overview) {
         return new Counts(overview.configs().size(), overview.presets().size(), overview.pool().size(),
                 overview.blocked().size(), overview.dynamicConstraints().size());
+    }
+
+    public static List<TraitSpawnIndexSnapshot.PresetTraitView> guaranteedPresets(
+            TraitSpawnIndexSnapshot.MobTraitOverview overview) {
+        LinkedHashMap<ResourceLocation, TraitSpawnIndexSnapshot.PresetTraitView> guaranteed =
+                new LinkedHashMap<>();
+        overview.presets().stream().filter(TraitOverviewPresentation::isGuaranteedPreset)
+                .forEach(preset -> guaranteed.merge(preset.traitId(), preset,
+                        (first, second) -> first.freeRank() >= second.freeRank() ? first : second));
+        return List.copyOf(guaranteed.values());
+    }
+
+    public static List<ResourceLocation> poolTraitIds(TraitSpawnIndexSnapshot.MobTraitOverview overview) {
+        return distinctIds(overview.pool(), TraitSpawnIndexSnapshot.PoolTraitView::traitId);
+    }
+
+    public static List<ResourceLocation> blockedTraitIds(TraitSpawnIndexSnapshot.MobTraitOverview overview) {
+        return distinctIds(overview.blocked(), TraitSpawnIndexSnapshot.BlockedTraitView::traitId);
+    }
+
+    private static boolean isGuaranteedPreset(TraitSpawnIndexSnapshot.PresetTraitView preset) {
+        return preset.freeRank() > 0
+                && preset.chance() >= 1.0D
+                && preset.conditionLevel() <= 0
+                && preset.advancementId() == null
+                && (preset.conditionJson() == null || preset.conditionJson().isBlank())
+                && preset.dynamicConstraints().stream()
+                .noneMatch(constraint -> constraint.type().equals("runtime_allow"));
+    }
+
+    private static <T> List<ResourceLocation> distinctIds(
+            List<T> values, Function<T, ResourceLocation> mapper) {
+        LinkedHashSet<ResourceLocation> ids = new LinkedHashSet<>();
+        values.stream().map(mapper).forEach(ids::add);
+        return List.copyOf(ids);
     }
 
     public static <T> T cycle(List<T> values, long step) {
