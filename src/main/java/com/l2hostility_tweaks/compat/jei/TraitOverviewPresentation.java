@@ -44,7 +44,7 @@ public final class TraitOverviewPresentation {
     }
 
     public static int guaranteedPresetRank(TraitSpawnIndexSnapshot.PresetTraitView preset) {
-        return Math.max(preset.freeRank(), preset.minRank());
+        return preset.freeRank();
     }
 
     public static List<TraitSpawnIndexSnapshot.PresetTraitView> presetsForItem(

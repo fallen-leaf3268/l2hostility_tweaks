@@ -23,7 +23,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Mixin(value = TraitGenerator.class, remap = false)
 public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
@@ -89,38 +88,11 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
     }
 
     @Redirect(method = "genBase", at = @At(value = "INVOKE",
-            target = "Ldev/xkmc/l2hostility/content/traits/base/MobTrait;allow(Lnet/minecraft/world/entity/LivingEntity;II)Z"),
-            require = 1)
-    private boolean l2fix$tracePresetAllow(MobTrait trait, LivingEntity target,
-                                            int difficulty, int maxLevel,
-                                            EntityConfig.TraitBase preset) {
-        boolean allowed = trait.allow(target, difficulty, maxLevel);
-        EntityConfig.Config active = TraitGenerationHelper.selectActiveNbtConfig(target);
-        if (active != null) {
-            L2FIX$LOG.info("NBT_PRESET_TRACE allow entity={} uuid={} trait={} allowed={} " +
-                            "difficulty={} maxLevel={} free={} min={} traitMax={} entityAllow={} " +
-                            "traitConfigAllow={} activeBlacklist={}",
-                    target.getType(), target.getUUID(), trait.getID(), allowed,
-                    difficulty, maxLevel, preset.free(), preset.min(), trait.getMaxLevel(),
-                    EntityConfig.allow(target.getType(), trait),
-                    trait.getConfig().allows(target.getType()),
-                    active.blacklist().contains(trait));
-        }
-        return allowed;
-    }
-
-    @Redirect(method = "genBase", at = @At(value = "INVOKE",
             target = "Ldev/xkmc/l2hostility/content/logic/TraitGenerator;setRank(Ldev/xkmc/l2hostility/content/traits/base/MobTrait;I)V"),
             require = 1)
     private void l2fix$applyPresetRank(TraitGenerator self, MobTrait trait, int newRank) {
         if (newRank > 0) l2fix$appliedPresetIds.add(trait.getID());
         l2fix$applyRank(trait, newRank);
-        if (TraitGenerationHelper.selectActiveNbtConfig(entity) != null) {
-            L2FIX$LOG.info("NBT_PRESET_TRACE applied entity={} uuid={} trait={} requestedRank={} " +
-                            "actualRank={} remainingBudget={}",
-                    entity.getType(), entity.getUUID(), trait.getID(), newRank,
-                    traits.getOrDefault(trait, 0), level);
-        }
     }
 
     @Inject(method = "genBase", at = @At(
@@ -253,15 +225,6 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
 
     @Inject(method = "generate", at = @At("TAIL"))
     private void l2fix$afterGenerate(CallbackInfo ci) {
-        if (TraitGenerationHelper.selectActiveNbtConfig(entity) != null) {
-            String finalTraits = traits.entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey(
-                            java.util.Comparator.comparing(MobTrait::getID)))
-                    .map(entry -> entry.getKey().getID() + "=" + entry.getValue())
-                    .collect(Collectors.joining(","));
-            L2FIX$LOG.info("NBT_PRESET_TRACE final entity={} uuid={} mobLevel={} remainingBudget={} traits=[{}]",
-                    entity.getType(), entity.getUUID(), mobLevel, level, finalTraits);
-        }
         if (entity == null || !entity.isAlive()) return;
 
         MobTraitCap cap = MobTraitCap.HOLDER.get(entity);

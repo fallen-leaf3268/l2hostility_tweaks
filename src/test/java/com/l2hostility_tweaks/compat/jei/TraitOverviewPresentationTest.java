@@ -43,7 +43,7 @@ class TraitOverviewPresentationTest {
     }
 
     @Test
-    void guaranteedPresetsUseTheHighestUnconditionalConfiguredRank() {
+    void guaranteedPresetsUseOnlyFreeRanksBecauseMinimumRanksConsumeBudget() {
         var guaranteed = preset(id("l2hostility:adaptive"), 2, 4, 1.0, 0, null, "", List.of());
         var strongerGuaranteed = preset(id("l2hostility:adaptive"), 3, 4, 1.0, 0, null, "", List.of());
         var minimumOnly = preset(id("l2hostility:speedy"), 0, 1, 1.0, 0, null, "", List.of());
@@ -59,10 +59,10 @@ class TraitOverviewPresentationTest {
                 List.of(guaranteed, strongerGuaranteed, minimumOnly, random, levelBound, advancementBound,
                         conditionalConfig, runtimeBound), List.of(), List.of(), List.of());
 
-        assertEquals(List.of(strongerGuaranteed, minimumOnly),
+        assertEquals(List.of(strongerGuaranteed),
                 TraitOverviewPresentation.guaranteedPresets(page));
-        assertEquals(4, TraitOverviewPresentation.guaranteedPresetRank(strongerGuaranteed));
-        assertEquals(1, TraitOverviewPresentation.guaranteedPresetRank(minimumOnly));
+        assertEquals(3, TraitOverviewPresentation.guaranteedPresetRank(strongerGuaranteed));
+        assertEquals(0, TraitOverviewPresentation.guaranteedPresetRank(minimumOnly));
     }
 
     @Test
