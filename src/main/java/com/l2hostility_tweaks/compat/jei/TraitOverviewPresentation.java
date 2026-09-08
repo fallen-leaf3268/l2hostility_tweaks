@@ -45,6 +45,13 @@ public final class TraitOverviewPresentation {
         return Math.max(preset.freeRank(), preset.minRank());
     }
 
+    public static List<TraitSpawnIndexSnapshot.PresetTraitView> presetsForItem(
+            TraitSpawnIndexSnapshot.MobTraitOverview overview, ResourceLocation itemId) {
+        return overview.presets().stream()
+                .filter(preset -> preset.itemId().equals(itemId))
+                .toList();
+    }
+
     private static TraitSpawnIndexSnapshot.PresetTraitView strongerGuaranteedPreset(
             TraitSpawnIndexSnapshot.PresetTraitView first,
             TraitSpawnIndexSnapshot.PresetTraitView second) {

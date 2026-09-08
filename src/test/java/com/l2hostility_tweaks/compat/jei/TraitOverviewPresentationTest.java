@@ -66,6 +66,22 @@ class TraitOverviewPresentationTest {
     }
 
     @Test
+    void displayedPresetEntriesFollowTheCurrentlyCycledItem() {
+        var adaptiveFirst = preset(id("l2hostility:adaptive"), 1, 1, 0.5, 0, null, "", List.of());
+        var speedy = preset(id("l2hostility:speedy"), 2, 2, 1.0, 0, null, "", List.of());
+        var adaptiveSecond = preset(id("l2hostility:adaptive"), 3, 3, 1.0, 0, null, "", List.of());
+        var page = new TraitSpawnIndexSnapshot.MobTraitOverview(id("minecraft:zombie"), List.of(),
+                List.of(adaptiveFirst, speedy, adaptiveSecond), List.of(), List.of(), List.of());
+
+        assertEquals(List.of(adaptiveFirst, adaptiveSecond),
+                TraitOverviewPresentation.presetsForItem(page, id("l2hostility:adaptive")));
+        assertEquals(List.of(speedy),
+                TraitOverviewPresentation.presetsForItem(page, id("l2hostility:speedy")));
+        assertEquals(List.of(),
+                TraitOverviewPresentation.presetsForItem(page, id("l2hostility:missing")));
+    }
+
+    @Test
     void sectionTraitIdsAreCompleteAndDeduplicatedInSnapshotOrder() {
         var page = new TraitSpawnIndexSnapshot.MobTraitOverview(id("minecraft:zombie"), List.of(), List.of(),
                 List.of(

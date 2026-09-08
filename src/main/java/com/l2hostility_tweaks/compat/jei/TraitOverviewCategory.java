@@ -221,10 +221,12 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
 
     private static void addPresetTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe, IRecipeSlotView slot,
                                          List<Component> tooltip) {
-        displayedItemId(slot).ifPresent(itemId -> recipe.presets().stream()
-                .filter(preset -> preset.itemId().equals(itemId))
-                .forEach(preset -> {
-                    tooltip.add(traitDescription(preset.traitId(), null));
+        displayedItemId(slot).ifPresent(itemId -> {
+            List<TraitSpawnIndexSnapshot.PresetTraitView> presets =
+                    TraitOverviewPresentation.presetsForItem(recipe, itemId);
+            if (!presets.isEmpty()) {
+                tooltip.add(traitDescription(presets.get(0).traitId(), null));
+                presets.forEach(preset -> {
                     tooltip.add(Component.translatable("jei.l2hostility_tweaks.preset_chance",
                             TraitOverviewPresentation.formatPercent(preset.chance())).withStyle(ChatFormatting.AQUA));
                     tooltip.add(Component.translatable("jei.l2hostility_tweaks.free_rank", preset.freeRank()));
@@ -235,7 +237,9 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                             TraitOverviewPresentation.formatNullableId(preset.advancementId())));
                     String condition = TraitOverviewPresentation.compactConditionJson(preset.conditionJson());
                     if (!condition.isEmpty()) tooltip.add(Component.translatable("jei.l2hostility_tweaks.condition", condition));
-                }));
+                });
+            }
+        });
     }
 
     private static List<ItemStack> resolveStacks(List<ResourceLocation> itemIds) {

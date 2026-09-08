@@ -148,9 +148,10 @@ class JeiResourcesTest {
         assertTrue(presetSlot >= 0 && presetClear > presetSlot && presetDetails > presetClear);
         assertFalse(blockedTooltip.contains("jei.l2hostility_tweaks.source"));
         assertTrue(blockedTooltip.contains("TraitOverviewPresentation.blockedReasonKeys(blocked)"));
-        int presetName = presetTooltip.indexOf("traitDescription(preset.traitId(), null)");
+        int presetName = presetTooltip.indexOf("traitDescription(presets.get(0).traitId(), null)");
         int presetChance = presetTooltip.indexOf("jei.l2hostility_tweaks.preset_chance");
         assertTrue(presetName >= 0 && presetName < presetChance);
+        assertTrue(presetTooltip.contains("TraitOverviewPresentation.presetsForItem(recipe, itemId)"));
         assertFalse(presetTooltip.contains("jei.l2hostility_tweaks.source"));
         assertFalse(presetTooltip.contains("dynamicConstraintKey"));
     }
