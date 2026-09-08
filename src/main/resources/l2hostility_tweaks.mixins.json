@@ -18,6 +18,7 @@
         "EntityConfigConfigMixin",
         "EntityConfigMixin",
         "ConfigMergerMixin",
+        "MobTraitCapConfigMixin",
         "TraitGeneratorMixin",
         "TraitPostRollMixin",
         "LegendaryAllowMixin",

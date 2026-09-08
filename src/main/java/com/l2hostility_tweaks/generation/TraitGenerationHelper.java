@@ -4,7 +4,6 @@ import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.config.L2HConfig.ExclusionGroup;
 import dev.xkmc.l2hostility.init.L2Hostility;
 import dev.xkmc.l2hostility.content.config.EntityConfig;
-import dev.xkmc.l2hostility.content.logic.MobDifficultyCollector;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import dev.xkmc.l2hostility.content.traits.legendary.LegendaryTrait;
 import net.minecraft.resources.ResourceLocation;
@@ -119,46 +118,23 @@ public class TraitGenerationHelper {
         traits.entrySet().removeIf(e -> e.getKey().getID().equals(id));
     }
 
-    public static List<EntityConfig.TraitBase> selectActiveNbtPresets(
-            LivingEntity entity, int difficulty, MobDifficultyCollector collector) {
-        List<EntityConfig.TraitBase> nbtPresets = new ArrayList<>();
-        if (entity == null) return List.of();
-
+    public static EntityConfig.Config selectActiveNbtConfig(LivingEntity entity) {
+        if (entity == null) return null;
         try {
             EntityConfig merged = (EntityConfig) L2Hostility.ENTITY.getMerged();
-            EntityConfig.Config nbtConfig = merged.get(
+            return merged.get(
                     entity.getType(), NBT_CONDITION_ID, LivingEntity.class, entity);
-            l2fix$addActivePresets(
-                    nbtConfig, entity, difficulty, collector, nbtPresets);
         } catch (Exception exception) {
-            l2fix$warnPresetFailure(null, exception);
-        }
-
-        return List.copyOf(nbtPresets);
-    }
-
-    private static void l2fix$addActivePresets(EntityConfig.Config config, LivingEntity entity,
-                                                int difficulty, MobDifficultyCollector collector,
-                                                List<EntityConfig.TraitBase> selected) {
-        if (config == null || config.traits() == null) return;
-        for (EntityConfig.TraitBase preset : config.traits()) {
-            try {
-                if (!(preset.condition() == null ||
-                        preset.condition().match(entity, difficulty, collector))) continue;
-                selected.add(preset);
-            } catch (Exception exception) {
-                l2fix$warnPresetFailure(preset, exception);
-            }
+            l2fix$warnConfigFailure(exception);
+            return null;
         }
     }
 
-    private static void l2fix$warnPresetFailure(EntityConfig.TraitBase preset, Exception exception) {
+    private static void l2fix$warnConfigFailure(Exception exception) {
         long now = System.nanoTime();
         long next = NEXT_WARNING_NANOS.get();
         if (now < next || !NEXT_WARNING_NANOS.compareAndSet(next, now + WARNING_INTERVAL_NANOS)) return;
-        String traitId = preset != null && preset.trait() != null
-                ? preset.trait().getID() : "<config lookup>";
-        LOGGER.warn("Skipped failed NBT trait preset {}. Further warnings are suppressed for 60 seconds.",
-                traitId, exception);
+        LOGGER.warn("Failed to resolve the active NBT entity config. Further warnings are suppressed for 60 seconds.",
+                exception);
     }
 }

@@ -68,7 +68,7 @@ public final class TraitSpawnIndexBuilder {
                     trait.entityBlacklist().contains(entity.id()),
                     !trait.entityWhitelist().isEmpty() && !trait.entityWhitelist().contains(entity.id()),
                     trait.globallyDisabled(), entity.noTrait(),
-                    entity.runtimeRejectedTraits().contains(trait.traitId()), false,
+                    variantIndex == 0 && entity.runtimeRejectedTraits().contains(trait.traitId()), false,
                     config != null && config.view().presetTraitsOnly(),
                     settings.disableRandom(), settings.disableAll(), settings.disableMobLevel()));
             if (reasons.isEmpty()) {
@@ -94,7 +94,7 @@ public final class TraitSpawnIndexBuilder {
                         trait.entityBlacklist().contains(entity.id()),
                         !trait.entityWhitelist().isEmpty() && !trait.entityWhitelist().contains(entity.id()),
                         trait.globallyDisabled(), entity.noTrait(),
-                        entity.runtimeRejectedTraits().contains(trait.traitId()), true,
+                        variantIndex == 0 && entity.runtimeRejectedTraits().contains(trait.traitId()), true,
                         config.view().presetTraitsOnly(),
                         settings.disableRandom(), settings.disableAll(), settings.disableMobLevel()));
                 if (!reasons.isEmpty()) continue;

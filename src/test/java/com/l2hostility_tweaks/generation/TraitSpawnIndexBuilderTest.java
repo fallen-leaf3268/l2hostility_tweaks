@@ -277,6 +277,25 @@ class TraitSpawnIndexBuilderTest {
                 page.blocked().get(0).contexts().get(0).reasons());
     }
 
+    @Test
+    void conditionalPageKeepsConfiguredPresetDespitePlainEntityRuntimeProbe() {
+        TraitInput undying = trait("l2hostility:undying", 100, 10, 10, 3,
+                false, Set.of(), Set.of(), true);
+        ConfigInput conditional = config("goety:apo", "{\"nbt\":{\"isApollyon\":1}}",
+                view("goety:apo", "{\"nbt\":{\"isApollyon\":1}}", 1, 1, 0),
+                Set.of(), List.of(preset("l2hostility:undying", 1, 1, false, 1, 0, null)));
+        EntityInput apostle = new EntityInput(id("goety:apostle"), false,
+                List.of(), List.of(conditional), Set.of(undying.traitId()));
+
+        var conditionalPage = TraitSpawnIndexBuilder.build(1,
+                inputs(List.of(apostle), List.of(undying),
+                        settings(false, false, false, false, false, List.of())))
+                .mobs().get(1);
+
+        assertEquals(List.of(id("l2hostility:undying")),
+                conditionalPage.presets().stream().map(entry -> entry.traitId()).toList());
+    }
+
     private static Inputs inputs(List<EntityInput> entities, List<TraitInput> traits, Settings settings) {
         return new Inputs(entities, traits, settings);
     }

@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
@@ -36,7 +37,7 @@ public final class TraitOverviewPresentation {
             TraitSpawnIndexSnapshot.MobTraitOverview overview) {
         LinkedHashMap<ResourceLocation, TraitSpawnIndexSnapshot.PresetTraitView> guaranteed =
                 new LinkedHashMap<>();
-        overview.presets().stream().filter(TraitOverviewPresentation::isGuaranteedPreset)
+        overview.presets().stream().filter(preset -> isGuaranteedPreset(overview, preset))
                 .forEach(preset -> guaranteed.merge(preset.traitId(), preset,
                         TraitOverviewPresentation::strongerGuaranteedPreset));
         return List.copyOf(guaranteed.values());
@@ -70,12 +71,17 @@ public final class TraitOverviewPresentation {
         return distinctIds(overview.blocked(), TraitSpawnIndexSnapshot.BlockedTraitView::traitId);
     }
 
-    private static boolean isGuaranteedPreset(TraitSpawnIndexSnapshot.PresetTraitView preset) {
+    private static boolean isGuaranteedPreset(TraitSpawnIndexSnapshot.MobTraitOverview overview,
+                                               TraitSpawnIndexSnapshot.PresetTraitView preset) {
+        boolean pageConditionSatisfied = overview.variantIndex() > 0
+                && overview.configs().stream().anyMatch(config ->
+                Objects.equals(config.conditionJson(), preset.conditionJson()));
         return guaranteedPresetRank(preset) > 0
                 && preset.chance() >= 1.0D
                 && preset.conditionLevel() <= 0
                 && preset.advancementId() == null
-                && (preset.conditionJson() == null || preset.conditionJson().isBlank())
+                && (preset.conditionJson() == null || preset.conditionJson().isBlank()
+                || pageConditionSatisfied)
                 && preset.dynamicConstraints().stream()
                 .noneMatch(constraint -> constraint.type().equals("runtime_allow"));
     }

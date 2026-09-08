@@ -125,6 +125,26 @@ class EntityNbtConditionPipelineTest {
         assertFalse(source.contains("if (nbtElement == null) continue;"));
     }
 
+    @Test
+    void matchedNbtConfigOverridesWithoutPollutingTheOrdinaryConfigCache() throws IOException {
+        Path capMixin = Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/MobTraitCapConfigMixin.java");
+        String source = Files.readString(capMixin).replaceAll("\\s+", " ");
+        String generator = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/TraitGeneratorMixin.java"));
+        String mixins = Files.readString(Path.of(
+                "src/main/resources/l2hostility_tweaks.mixins.json"));
+
+        assertTrue(source.contains("method = \"getConfigCache\""));
+        assertTrue(source.contains("at = @At(\"HEAD\")"));
+        assertTrue(source.contains("cancellable = true"));
+        assertTrue(source.contains("TraitGenerationHelper.selectActiveNbtConfig(entity)"));
+        assertTrue(source.contains("cir.setReturnValue(config)"));
+        assertFalse(source.contains("configCache = config"));
+        assertFalse(generator.contains("selectActiveNbtPresets"));
+        assertTrue(mixins.contains("\"MobTraitCapConfigMixin\""));
+    }
+
     private static ArrayList<Pair<SpecialConfigCondition<?>, EntityConfig.Config>> pairs(
             EntityConfig.Config... configs) {
         ArrayList<Pair<SpecialConfigCondition<?>, EntityConfig.Config>> result = new ArrayList<>();

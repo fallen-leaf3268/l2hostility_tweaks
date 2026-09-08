@@ -66,6 +66,18 @@ class TraitOverviewPresentationTest {
     }
 
     @Test
+    void conditionalPageTreatsItsOwnNbtConditionAsSatisfied() {
+        String condition = "{\"nbt\":{\"isApollyon\":1}}";
+        var undying = preset(id("l2hostility:undying"), 1, 1, 1.0, 0, null,
+                condition, List.of());
+        var page = new TraitSpawnIndexSnapshot.MobTraitOverview(
+                id("goety:apostle"), 1, List.of(configWithCondition(condition)),
+                List.of(undying), List.of(), List.of(), List.of());
+
+        assertEquals(List.of(undying), TraitOverviewPresentation.guaranteedPresets(page));
+    }
+
+    @Test
     void displayedPresetEntriesFollowTheCurrentlyCycledItem() {
         var adaptiveFirst = preset(id("l2hostility:adaptive"), 1, 1, 0.5, 0, null, "", List.of());
         var speedy = preset(id("l2hostility:speedy"), 2, 2, 1.0, 0, null, "", List.of());
