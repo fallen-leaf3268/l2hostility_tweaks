@@ -3,9 +3,13 @@ package com.l2hostility_tweaks.compat.jei;
 import com.l2hostility_tweaks.generation.view.TraitBlockReason;
 import com.l2hostility_tweaks.generation.view.TraitDynamicConstraint;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
+import com.google.gson.JsonParser;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
@@ -94,6 +98,50 @@ class TraitOverviewPresentationTest {
         assertEquals(124, TraitOverviewCategory.HEIGHT);
     }
 
+    @Test
+    void categoryUsesTallLeftPreviewAndThreeStackedRightSections() {
+        assertEquals(32, TraitOverviewCategory.MOB_CENTER_X);
+        assertEquals(4, TraitOverviewCategory.MOB_SLOT_X);
+        assertEquals(12, TraitOverviewCategory.MOB_SLOT_Y);
+        assertEquals(56, TraitOverviewCategory.MOB_RENDERER_WIDTH);
+        assertEquals(72, TraitOverviewCategory.MOB_RENDERER_HEIGHT);
+        assertEquals(120, TraitOverviewCategory.RIGHT_COLUMN_CENTER_X);
+        assertEquals(112, TraitOverviewCategory.POOL_SLOT_X);
+        assertEquals(12, TraitOverviewCategory.POOL_SLOT_Y);
+        assertEquals(112, TraitOverviewCategory.BLOCKED_SLOT_X);
+        assertEquals(52, TraitOverviewCategory.BLOCKED_SLOT_Y);
+        assertEquals(112, TraitOverviewCategory.PRESET_SLOT_X);
+        assertEquals(92, TraitOverviewCategory.PRESET_SLOT_Y);
+        assertEquals(4, TraitOverviewCategory.CONFIG_TEXT_X);
+        assertEquals(88, TraitOverviewCategory.CONFIG_TEXT_Y);
+        assertEquals(100, TraitOverviewCategory.DYNAMIC_TEXT_Y);
+        assertEquals(112, TraitOverviewCategory.DIFFICULTY_TEXT_Y);
+        assertEquals(112, TraitOverviewCategory.BLOCKED_HOVER_X);
+        assertEquals(128, TraitOverviewCategory.BLOCKED_HOVER_END_X);
+        assertEquals(52, TraitOverviewCategory.BLOCKED_HOVER_Y);
+        assertEquals(68, TraitOverviewCategory.BLOCKED_HOVER_END_Y);
+    }
+
+    @Test
+    void presetSectionVisibilityFollowsRecipeContents() {
+        TraitSpawnIndexSnapshot.MobTraitOverview withPreset = overviewWithPresetPoolAndBlocked();
+        TraitSpawnIndexSnapshot.MobTraitOverview withoutPreset = new TraitSpawnIndexSnapshot.MobTraitOverview(
+                id("minecraft:zombie"), List.of(), List.of(), List.of(), List.of(), List.of());
+
+        assertTrue(TraitOverviewCategory.shouldRenderPresets(withPreset));
+        assertFalse(TraitOverviewCategory.shouldRenderPresets(withoutPreset));
+    }
+
+    @Test
+    void localeSectionLabelsDescribeAvailabilitySemantics() throws IOException {
+        assertEquals("可生成词条（%s）", translation("zh_cn", "jei.l2hostility_tweaks.pool"));
+        assertEquals("不可生成词条（%s）", translation("zh_cn", "jei.l2hostility_tweaks.blocked"));
+        assertEquals("预设词条（%s）", translation("zh_cn", "jei.l2hostility_tweaks.preset"));
+        assertEquals("Available traits (%s)", translation("en_us", "jei.l2hostility_tweaks.pool"));
+        assertEquals("Unavailable traits (%s)", translation("en_us", "jei.l2hostility_tweaks.blocked"));
+        assertEquals("Preset traits (%s)", translation("en_us", "jei.l2hostility_tweaks.preset"));
+    }
+
     private static TraitSpawnIndexSnapshot.MobTraitOverview overviewWithPresetPoolAndBlocked() {
         return new TraitSpawnIndexSnapshot.MobTraitOverview(
                 id("minecraft:zombie"),
@@ -122,5 +170,11 @@ class TraitOverviewPresentationTest {
 
     private static ResourceLocation id(String value) {
         return new ResourceLocation(value);
+    }
+
+    private static String translation(String locale, String key) throws IOException {
+        return JsonParser.parseString(Files.readString(Path.of(
+                "src/main/resources/assets/l2hostility_tweaks/lang/" + locale + ".json")))
+                .getAsJsonObject().get(key).getAsString();
     }
 }
