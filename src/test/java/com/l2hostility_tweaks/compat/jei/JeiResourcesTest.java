@@ -73,8 +73,10 @@ class JeiResourcesTest {
         assertTrue(category.contains("TraitOverviewPresentation.guaranteedPresets(recipe)"));
         assertTrue(category.contains("TraitOverviewPresentation.guaranteedPresetRank(preset)"));
         assertTrue(category.contains("TraitListTooltip.textMarker"));
+        assertTrue(category.contains("Component.translatable(\"jei.l2hostility_tweaks.guaranteed_traits\")"));
+        assertTrue(category.contains("addConfigTooltip(recipe, tooltip)"));
+        assertTrue(category.contains("addTooltipCallback((slot, tooltip) -> addPresetTooltip(recipe, slot, tooltip))"));
         assertFalse(category.contains("drawCenteredString"));
-        assertFalse(category.contains("addConfigTooltip"));
         assertFalse(category.contains("addPoolTooltip"));
         assertTrue(category.contains("isInsideMobPreview"));
         assertFalse(playerScreen.contains("drawCenteredString"));

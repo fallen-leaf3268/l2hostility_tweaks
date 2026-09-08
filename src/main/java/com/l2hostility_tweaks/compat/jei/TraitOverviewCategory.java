@@ -185,14 +185,46 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                 .map(preset -> new TraitListTooltip.Entry(preset.traitId(),
                         TraitOverviewPresentation.guaranteedPresetRank(preset)))
                 .toList();
-        if (!entries.isEmpty()) tooltip.add(TraitListTooltip.textMarker(entries));
+        if (!entries.isEmpty()) {
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.guaranteed_traits")
+                    .withStyle(ChatFormatting.AQUA));
+            tooltip.add(TraitListTooltip.textMarker(entries));
+        }
     }
 
     private List<Component> mobTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe) {
         List<Component> tooltip = new ArrayList<>();
         tooltip.add(Component.literal(mobHelper.getDisplayName(new MobIngredient(recipe.entityId()))));
         addGuaranteedPresetTooltip(recipe, tooltip);
+        addConfigTooltip(recipe, tooltip);
         return tooltip;
+    }
+
+    private static void addConfigTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe, List<Component> tooltip) {
+        tooltip.add(Component.literal(recipe.entityId().toString()).withStyle(ChatFormatting.DARK_GRAY));
+        for (TraitSpawnIndexSnapshot.EntityConfigView config : recipe.configs()) {
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.source",
+                            TraitOverviewPresentation.formatNullableId(config.sourceId()))
+                    .withStyle(ChatFormatting.GOLD));
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.difficulty",
+                    config.minDifficulty(), config.baseDifficulty()));
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.variation", config.variation()));
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.scale", config.scale()));
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.apply_chance",
+                    TraitOverviewPresentation.formatPercent(config.applyChance())));
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.trait_chance",
+                    TraitOverviewPresentation.formatPercent(config.traitChance())));
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.suppression", config.suppression()));
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.min_spawn_level", config.minSpawnLevel()));
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.max_level", config.maxLevel()));
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.max_trait_count", config.maxTraitCount()));
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.preset_only", config.presetTraitsOnly()));
+            String condition = TraitOverviewPresentation.compactConditionJson(config.conditionJson());
+            if (!condition.isEmpty()) {
+                tooltip.add(Component.translatable("jei.l2hostility_tweaks.condition", condition)
+                        .withStyle(ChatFormatting.GRAY));
+            }
+        }
     }
 
     private static void addPresetTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe, IRecipeSlotView slot,

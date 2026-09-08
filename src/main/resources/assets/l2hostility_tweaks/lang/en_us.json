@@ -132,6 +132,7 @@
   "jei.l2hostility_tweaks.max_trait_count": "Maximum trait count: %s",
   "jei.l2hostility_tweaks.preset_only": "Preset traits only: %s",
   "jei.l2hostility_tweaks.preset": "Preset traits (%s)",
+  "jei.l2hostility_tweaks.guaranteed_traits": "Guaranteed minimum traits:",
   "jei.l2hostility_tweaks.pool": "Available traits (%s)",
   "jei.l2hostility_tweaks.blocked": "Unavailable traits (%s)",
   "jei.l2hostility_tweaks.blocked_trait": "Cannot generate trait: %s",

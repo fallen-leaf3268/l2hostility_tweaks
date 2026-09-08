@@ -132,6 +132,7 @@
   "jei.l2hostility_tweaks.max_trait_count": "最大词条数：%s",
   "jei.l2hostility_tweaks.preset_only": "仅限预设词条：%s",
   "jei.l2hostility_tweaks.preset": "预设词条（%s）",
+  "jei.l2hostility_tweaks.guaranteed_traits": "至少生成词条：",
   "jei.l2hostility_tweaks.pool": "可生成词条（%s）",
   "jei.l2hostility_tweaks.blocked": "不可生成词条（%s）",
   "jei.l2hostility_tweaks.blocked_trait": "不可生成词条：%s",
