@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.generation;
 
+import com.google.gson.JsonParser;
 import com.l2hostility_tweaks.util.EntityConfigNbtData;
 import org.junit.jupiter.api.Test;
 
@@ -12,6 +13,24 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MinecraftTraitSpawnIndexSourceTest {
+
+    @Test
+    void jeiDisplayNameIsAcceptedOnlyForValidNbtRules() {
+        var raw = JsonParser.parseString("{\"jeiDisplayName\":\"  使徒（天启形态）  \"}")
+                .getAsJsonObject();
+        var invalidType = JsonParser.parseString("{\"jeiDisplayName\":12}").getAsJsonObject();
+        var blank = JsonParser.parseString("{\"jeiDisplayName\":\"   \"}").getAsJsonObject();
+
+        assertEquals("使徒（天启形态）", MinecraftTraitSpawnIndexSource.readJeiDisplayName(
+                EntityConfigNbtData.State.VALID, raw));
+        assertEquals("", MinecraftTraitSpawnIndexSource.readJeiDisplayName(
+                EntityConfigNbtData.State.NONE, raw));
+        assertEquals("", MinecraftTraitSpawnIndexSource.readJeiDisplayName(
+                EntityConfigNbtData.State.VALID, invalidType));
+        assertEquals("", MinecraftTraitSpawnIndexSource.readJeiDisplayName(
+                EntityConfigNbtData.State.VALID, blank));
+    }
+
     @Test
     void excludesInvalidNbtConfigsFromEveryIndexContext() {
         assertFalse(MinecraftTraitSpawnIndexSource.shouldIncludeConfig(EntityConfigNbtData.State.INVALID));

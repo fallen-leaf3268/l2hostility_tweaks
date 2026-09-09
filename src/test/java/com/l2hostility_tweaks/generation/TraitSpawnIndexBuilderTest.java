@@ -21,6 +21,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TraitSpawnIndexBuilderTest {
 
     @Test
+    void conditionalPageKeepsItsConfiguredJeiDisplayName() {
+        EntityConfigView view = view("goety:apo", "{\"nbt\":{\"isApollyon\":1}}", 1, 1, 0);
+        ConfigInput conditional = new ConfigInput(id("goety:apo"), view.conditionJson(),
+                "使徒（天启形态）", view, Set.of(), List.of());
+        EntityInput apostle = entity("goety:apostle", false, List.of(), List.of(conditional));
+
+        var page = TraitSpawnIndexBuilder.build(1, inputs(
+                List.of(apostle), List.of(),
+                settings(false, false, false, false, false, List.of()))).mobs().get(1);
+
+        assertEquals("使徒（天启形态）", page.jeiDisplayName());
+    }
+
+    @Test
     void mergesPresetPoolAndBlockedTraitsIntoOneMobOverview() {
         ConfigInput config = config("example:zombie", "", view("example:zombie", "", 0.8, 0.6, 0),
                 Set.of(), List.of(preset("l2hostility:adaptive", 2, 3, false, 0.5, 200, null)));

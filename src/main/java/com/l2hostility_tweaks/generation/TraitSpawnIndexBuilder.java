@@ -123,7 +123,8 @@ public final class TraitSpawnIndexBuilder {
         List<EntityConfigView> configs = config == null ? List.of() : List.of(config.view());
         List<TraitDynamicConstraint> dynamicConstraints = overviewConstraints(traits, settings, config);
         return new BuildResult(new MobTraitOverview(
-                entity.id(), variantIndex, configs, presets, pool, blocked, dynamicConstraints), warnings);
+                entity.id(), variantIndex, config == null ? "" : config.jeiDisplayName(),
+                configs, presets, pool, blocked, dynamicConstraints), warnings);
     }
 
     private static GuaranteedPreset simulateGuaranteedPreset(
@@ -244,14 +245,21 @@ public final class TraitSpawnIndexBuilder {
         }
     }
 
-    public record ConfigInput(ResourceLocation sourceId, String conditionJson,
+    public record ConfigInput(ResourceLocation sourceId, String conditionJson, String jeiDisplayName,
                               EntityConfigView view, Set<ResourceLocation> blacklist,
                               List<PresetInput> presets) {
         public ConfigInput {
             conditionJson = conditionJson == null ? "" : conditionJson;
+            jeiDisplayName = jeiDisplayName == null ? "" : jeiDisplayName;
             Objects.requireNonNull(view);
             blacklist = Set.copyOf(blacklist);
             presets = List.copyOf(presets);
+        }
+
+        public ConfigInput(ResourceLocation sourceId, String conditionJson,
+                           EntityConfigView view, Set<ResourceLocation> blacklist,
+                           List<PresetInput> presets) {
+            this(sourceId, conditionJson, "", view, blacklist, presets);
         }
     }
 

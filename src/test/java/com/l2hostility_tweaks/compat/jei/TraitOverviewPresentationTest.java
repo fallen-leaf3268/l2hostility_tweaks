@@ -267,6 +267,25 @@ class TraitOverviewPresentationTest {
     }
 
     @Test
+    void configuredJeiDisplayNameReplacesEntityNameAndVariantSuffix() {
+        var named = new TraitSpawnIndexSnapshot.MobTraitOverview(
+                id("goety:apostle"), 1, "使徒（天启形态）",
+                List.of(configWithCondition("{\"nbt\":{\"isApollyon\":1}}")),
+                List.of(), List.of(), List.of(), List.of());
+        var fallback = new TraitSpawnIndexSnapshot.MobTraitOverview(
+                id("goety:apostle"), 1,
+                List.of(configWithCondition("{\"nbt\":{\"isApollyon\":1}}")),
+                List.of(), List.of(), List.of(), List.of());
+
+        assertEquals("使徒（天启形态）",
+                TraitOverviewPresentation.mobDisplayName(named, "使徒"));
+        assertEquals("", TraitOverviewPresentation.mobVariantTitleKey(named));
+        assertEquals("使徒", TraitOverviewPresentation.mobDisplayName(fallback, "使徒"));
+        assertEquals("jei.l2hostility_tweaks.mob_variant.nbt",
+                TraitOverviewPresentation.mobVariantTitleKey(fallback));
+    }
+
+    @Test
     void categoryUsesTheSharedRecipeTypeAndFixedPageSize() {
         assertEquals(JeiRuntimeBridge.PAGE_TYPE, TraitOverviewCategory.TYPE);
         assertEquals("l2hostility:teleport", TraitOverviewCategory.ICON_ITEM_ID.toString());

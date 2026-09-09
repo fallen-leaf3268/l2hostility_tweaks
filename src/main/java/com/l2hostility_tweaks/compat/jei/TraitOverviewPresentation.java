@@ -140,6 +140,7 @@ public final class TraitOverviewPresentation {
     }
 
     public static String mobVariantTitleKey(TraitSpawnIndexSnapshot.MobTraitOverview overview) {
+        if (!overview.jeiDisplayName().isBlank()) return "";
         if (overview.variantIndex() == 0) return "";
         boolean nbtCondition = overview.configs().stream()
                 .map(TraitSpawnIndexSnapshot.EntityConfigView::conditionJson)
@@ -148,6 +149,11 @@ public final class TraitOverviewPresentation {
         return nbtCondition
                 ? "jei.l2hostility_tweaks.mob_variant.nbt"
                 : "jei.l2hostility_tweaks.mob_variant.condition";
+    }
+
+    public static String mobDisplayName(TraitSpawnIndexSnapshot.MobTraitOverview overview,
+                                        String fallback) {
+        return overview.jeiDisplayName().isBlank() ? fallback : overview.jeiDisplayName();
     }
 
     private static boolean containsNbtCondition(String json) {

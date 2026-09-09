@@ -70,6 +70,7 @@ public final class TraitSpawnIndexCodec {
             CompoundTag tag = new CompoundTag();
             tag.putString("entityId", idString(mob.entityId(), "entityId"));
             putNonnegative(tag, "variantIndex", mob.variantIndex());
+            tag.putString("jeiDisplayName", checkedString(mob.jeiDisplayName(), "jeiDisplayName"));
             tag.put("configs", writeConfigs(mob.configs(), counter));
             tag.putInt("configCount", mob.configs().size());
             tag.put("presets", writePresets(mob.presets(), counter));
@@ -88,6 +89,7 @@ public final class TraitSpawnIndexCodec {
     private static TraitSpawnIndexSnapshot.MobTraitOverview readMob(CompoundTag tag, Counter counter) {
         ResourceLocation entityId = parseId(requiredString(tag, "entityId"));
         int variantIndex = requiredNonnegative(tag, "variantIndex");
+        String jeiDisplayName = requiredString(tag, "jeiDisplayName");
         List<TraitSpawnIndexSnapshot.EntityConfigView> configs = readConfigs(
                 checkedList(tag, "configs", "configCount", MAX_CONFIGS_PER_MOB, counter, Tag.TAG_COMPOUND), counter);
         List<TraitSpawnIndexSnapshot.PresetTraitView> presets = readPresets(
@@ -99,7 +101,7 @@ public final class TraitSpawnIndexCodec {
         List<TraitDynamicConstraint> constraints = readConstraints(
                 checkedList(tag, "dynamicConstraints", "constraintCount", MAX_CONSTRAINTS, counter, Tag.TAG_COMPOUND), counter);
         return new TraitSpawnIndexSnapshot.MobTraitOverview(
-                entityId, variantIndex, configs, presets, pool, blocked, constraints);
+                entityId, variantIndex, jeiDisplayName, configs, presets, pool, blocked, constraints);
     }
 
     private static ListTag writeConfigs(List<TraitSpawnIndexSnapshot.EntityConfigView> configs, Counter counter) {

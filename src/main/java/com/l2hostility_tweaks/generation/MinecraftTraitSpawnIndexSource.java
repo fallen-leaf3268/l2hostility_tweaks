@@ -78,10 +78,22 @@ public final class MinecraftTraitSpawnIndexSource {
         return nbtState != EntityConfigNbtData.State.INVALID;
     }
 
+    static String readJeiDisplayName(EntityConfigNbtData.State nbtState, JsonObject raw) {
+        if (nbtState != EntityConfigNbtData.State.VALID || raw == null) return "";
+        JsonElement element = raw.get("jeiDisplayName");
+        if (element == null || !element.isJsonPrimitive()
+                || !element.getAsJsonPrimitive().isString()) return "";
+        return element.getAsString().trim();
+    }
+
     private static ConfigInput configInput(EntityConfig.Config config) {
         EntityConfigDisplayData display = config instanceof EntityConfigDisplayData data ? data : null;
         ResourceLocation sourceId = display == null ? null : display.l2fix$getSourceId();
-        String conditionJson = conditionJson(config, display == null ? null : display.l2fix$getRawConfig());
+        JsonObject raw = display == null ? null : display.l2fix$getRawConfig();
+        String conditionJson = conditionJson(config, raw);
+        EntityConfigNbtData.State nbtState = config instanceof EntityConfigNbtData data
+                ? data.l2fix$getNbtConditionState() : EntityConfigNbtData.State.NONE;
+        String jeiDisplayName = readJeiDisplayName(nbtState, raw);
         var difficulty = config.difficulty();
         EntityConfigView view = new EntityConfigView(
                 sourceId, conditionJson, difficulty.min(), difficulty.base(), difficulty.variation(),
@@ -108,7 +120,7 @@ public final class MinecraftTraitSpawnIndexSource {
                     condition == null ? 0 : condition.lv(),
                     condition == null ? null : condition.id()));
         }
-        return new ConfigInput(sourceId, conditionJson, view, blacklist, presets);
+        return new ConfigInput(sourceId, conditionJson, jeiDisplayName, view, blacklist, presets);
     }
 
     private static boolean isConditional(EntityConfig.Config config) {

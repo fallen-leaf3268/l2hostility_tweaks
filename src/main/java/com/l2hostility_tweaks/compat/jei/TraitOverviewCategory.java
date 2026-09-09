@@ -124,7 +124,8 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                 mouseX - (MOB_SLOT_X + MOB_RENDERER_WIDTH * 0.5D),
                 mouseY - (MOB_SLOT_Y + MOB_RENDERER_HEIGHT * 0.5D));
         TraitOverviewPresentation.Counts counts = TraitOverviewPresentation.counts(recipe);
-        String entityName = mobHelper.getDisplayName(new MobIngredient(recipe.entityId()));
+        String entityName = TraitOverviewPresentation.mobDisplayName(recipe,
+                mobHelper.getDisplayName(new MobIngredient(recipe.entityId())));
         Component entityTitle = compactMobTitle(font, entityName, recipe);
         drawCenteredNoShadow(guiGraphics, font, entityTitle, MOB_CENTER_X, 0, 0xFF555555);
         drawCenteredNoShadow(guiGraphics, font,
@@ -193,7 +194,8 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
 
     private List<Component> mobTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe) {
         List<Component> tooltip = new ArrayList<>();
-        tooltip.add(mobTitle(mobHelper.getDisplayName(new MobIngredient(recipe.entityId())), recipe));
+        tooltip.add(mobTitle(TraitOverviewPresentation.mobDisplayName(recipe,
+                mobHelper.getDisplayName(new MobIngredient(recipe.entityId()))), recipe));
         addConfigTooltip(recipe, tooltip);
         addGuaranteedPresetTooltip(recipe, tooltip);
         return tooltip;

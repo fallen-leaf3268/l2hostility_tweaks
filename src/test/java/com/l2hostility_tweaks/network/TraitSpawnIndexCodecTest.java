@@ -39,6 +39,23 @@ public class TraitSpawnIndexCodecTest {
     }
 
     @Test
+    void roundTripsConditionalPageJeiDisplayName() {
+        TraitSpawnIndexSnapshot original = completeSnapshot(13);
+        TraitSpawnIndexSnapshot.MobTraitOverview page = original.mobs().get(0);
+        var named = new TraitSpawnIndexSnapshot.MobTraitOverview(
+                page.entityId(), 1, "使徒（天启形态）", page.configs(), page.presets(),
+                page.pool(), page.blocked(), page.dynamicConstraints());
+        TraitSpawnIndexSnapshot expected = new TraitSpawnIndexSnapshot(
+                13, List.of(named), original.warningCount());
+
+        TraitSpawnIndexSnapshot decoded = TraitSpawnIndexCodec.decode(
+                TraitSpawnIndexCodec.encode(expected));
+
+        assertEquals("使徒（天启形态）", decoded.mobs().get(0).jeiDisplayName());
+        assertEquals(expected, decoded);
+    }
+
+    @Test
     void rejectsOversizedMobListBeforeAllocation() {
         CompoundTag root = new CompoundTag();
         root.putLong("revision", 1);
