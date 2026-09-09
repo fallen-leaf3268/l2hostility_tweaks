@@ -106,8 +106,8 @@
   "item.l2hostility_tweaks.unification_ring": "Ring of Unification",
   "item.l2hostility_tweaks.unification_ring.desc": "Grants the piercing effects of all three rings, and increases damage dealt by 25%",
 
-  "trait.l2hostility.seal": "Seal",
-  "trait.l2hostility.seal.desc": "On attack, randomly seals one of the target's traits for %s seconds.",
+  "trait.l2hostility_tweaks.seal": "Seal",
+  "trait.l2hostility_tweaks.seal.desc": "On attack, randomly seals one of the target's traits for %s seconds.",
   "enchantment.l2hostility_tweaks.abyss_pocket": "Abyss Pocket",
   "enchantment.l2hostility_tweaks.abyss_pocket.desc": "Increases unsealing speed and durability cost per level",
   "enchantment.l2hostility_tweaks.gluttony_pocket": "Gluttony Pocket",

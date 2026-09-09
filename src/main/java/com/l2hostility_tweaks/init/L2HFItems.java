@@ -31,16 +31,13 @@ public class L2HFItems {
     public static final DeferredRegister<Item> ITEMS =
             DeferredRegister.create(ForgeRegistries.ITEMS, "l2hostility_tweaks");
 
-    public static final DeferredRegister<Item> L2H_ITEMS =
-            DeferredRegister.create(ForgeRegistries.ITEMS, "l2hostility");
-
     public static final DeferredRegister<CreativeModeTab> TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, "l2hostility_tweaks");
 
     private static final ResourceKey<net.minecraft.core.Registry<MobTrait>> TRAIT_KEY =
             ResourceKey.createRegistryKey(new ResourceLocation("l2hostility", "trait"));
     public static final DeferredRegister<MobTrait> TRAITS =
-            DeferredRegister.create(TRAIT_KEY, "l2hostility");
+            DeferredRegister.create(TRAIT_KEY, "l2hostility_tweaks");
 
     public static final RegistryObject<DimensionBreakerItem> DIMENSION_BREAKER;
     public static final RegistryObject<TraitSeal> TRAIT_SEAL;
@@ -78,7 +75,7 @@ public class L2HFItems {
                 () -> new RingItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC), 1.25f));
         MIRACLE_TWISTED_POCKET = ITEMS.register("miracle_twisted_pocket",
                 () -> new MiracleTwistedPocket(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
-        SEAL_SYMBOL = L2H_ITEMS.register("seal",
+        SEAL_SYMBOL = ITEMS.register("seal",
                 () -> new TraitSymbol(new Item.Properties()));
         TRAITS.register("seal",
                 () -> new SealTrait(ChatFormatting.DARK_PURPLE));
@@ -88,6 +85,7 @@ public class L2HFItems {
                 .displayItems((params, output) -> {
                     output.accept(DIMENSION_BREAKER.get());
                     output.accept(TRAIT_SEAL.get());
+                    output.accept(SEAL_SYMBOL.get());
                     output.accept(TRAIT_UNLOADER.get());
                     output.accept(TRANQUIL_BELT.get());
                     output.accept(WALKING_BOOTS.get());
@@ -111,7 +109,6 @@ public class L2HFItems {
 
     public static void register() {
         ITEMS.register(FMLJavaModLoadingContext.get().getModEventBus());
-        L2H_ITEMS.register(FMLJavaModLoadingContext.get().getModEventBus());
         TABS.register(FMLJavaModLoadingContext.get().getModEventBus());
         TRAITS.register(FMLJavaModLoadingContext.get().getModEventBus());
     }
