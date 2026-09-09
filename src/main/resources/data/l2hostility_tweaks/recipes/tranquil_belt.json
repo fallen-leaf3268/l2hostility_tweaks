@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "A A",
+    "ABA",
+    "CDE"
+  ],
+  "key": {
+    "A": {
+      "item": "minecraft:netherite_ingot"
+    },
+    "B": {
+      "item": "l2hostility:chaos_ingot"
+    },
+    "C": {
+      "item": "l2hostility:pulling"
+    },
+    "D": {
+      "item": "minecraft:gold_block"
+    },
+    "E": {
+      "item": "l2hostility:repelling"
+    }
+  },
+  "result": {
+    "item": "l2hostility_tweaks:tranquil_belt",
+    "count": 1
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "AAA",
+    "ABA",
+    "AAA"
+  ],
+  "key": {
+    "A": {
+      "item": "l2hostility:miracle_ingot"
+    },
+    "B": {
+      "item": "l2hostility:pocket_of_restoration"
+    }
+  },
+  "result": {
+    "item": "l2hostility_tweaks:miracle_twisted_pocket",
+    "count": 1
+  }
+}

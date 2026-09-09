@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "ABA",
+    "CDC",
+    "ABA"
+  ],
+  "key": {
+    "A": {
+      "item": "l2hostility:miracle_powder"
+    },
+    "B": {
+      "item": "l2complements:storm_core"
+    },
+    "C": {
+      "item": "l2complements:warden_bone_shard"
+    },
+    "D": {
+      "item": "l2hostility:dispell"
+    }
+  },
+  "result": {
+    "item": "minecraft:enchanted_book",
+    "count": 1,
+    "nbt": "{StoredEnchantments:[{id:\"l2hostility_tweaks:gluttony_pocket\",lvl:1s}]}"
+  }
+}

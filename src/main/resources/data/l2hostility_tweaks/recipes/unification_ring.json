@@ -1,0 +1,32 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "ABC",
+    "DEF",
+    "ABC"
+  ],
+  "key": {
+    "A": {
+      "item": "l2hostility:dementor"
+    },
+    "B": {
+      "item": "l2hostility:adaptive"
+    },
+    "C": {
+      "item": "l2hostility:dispell"
+    },
+    "D": {
+      "item": "l2hostility_tweaks:dementor_ring"
+    },
+    "E": {
+      "item": "l2hostility_tweaks:adaptive_ring"
+    },
+    "F": {
+      "item": "l2hostility_tweaks:dispell_ring"
+    }
+  },
+  "result": {
+    "item": "l2hostility_tweaks:unification_ring",
+    "count": 1
+  }
+}

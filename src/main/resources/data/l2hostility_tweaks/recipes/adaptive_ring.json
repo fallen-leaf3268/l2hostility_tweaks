@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "ABA",
+    "CDC",
+    "ABA"
+  ],
+  "key": {
+    "A": {
+      "item": "l2hostility:hostility_essence"
+    },
+    "B": {
+      "item": "l2hostility:adaptive"
+    },
+    "C": {
+      "item": "l2hostility:miracle_powder"
+    },
+    "D": {
+      "item": "l2hostility:chaos_ingot"
+    }
+  },
+  "result": {
+    "item": "l2hostility_tweaks:adaptive_ring",
+    "count": 1
+  }
+}

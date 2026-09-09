@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "ABA",
+    "CDC",
+    "ABA"
+  ],
+  "key": {
+    "A": {
+      "item": "l2hostility:miracle_powder"
+    },
+    "B": {
+      "item": "l2complements:force_field"
+    },
+    "C": {
+      "item": "l2complements:blackstone_core"
+    },
+    "D": {
+      "item": "l2hostility:moonwalk"
+    }
+  },
+  "result": {
+    "item": "minecraft:enchanted_book",
+    "count": 1,
+    "nbt": "{StoredEnchantments:[{id:\"l2hostility_tweaks:abyss_pocket\",lvl:1s}]}"
+  }
+}

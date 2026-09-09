@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "ABA",
+    "BCB",
+    "ABA"
+  ],
+  "key": {
+    "A": {
+      "item": "l2hostility:bottle_of_curse"
+    },
+    "B": {
+      "item": "minecraft:netherite_ingot"
+    },
+    "C": {
+      "type": "forge:nbt",
+      "item": "minecraft:enchanted_book",
+      "nbt": "{StoredEnchantments:[{id:\"minecraft:binding_curse\",lvl:1s}]}"
+    }
+  },
+  "result": {
+    "item": "minecraft:enchanted_book",
+    "count": 1,
+    "nbt": "{StoredEnchantments:[{id:\"l2hostility_tweaks:reprint_counter\",lvl:1s}]}"
+  }
+}
