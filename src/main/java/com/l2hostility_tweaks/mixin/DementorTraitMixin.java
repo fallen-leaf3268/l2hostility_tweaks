@@ -7,6 +7,7 @@ import dev.xkmc.l2damagetracker.contents.attack.CreateSourceEvent;
 import dev.xkmc.l2damagetracker.init.data.L2DamageTypes;
 import dev.xkmc.l2hostility.content.traits.legendary.DementorTrait;
 import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
@@ -14,6 +15,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = DementorTrait.class, remap = false)
 public class DementorTraitMixin {
@@ -33,6 +35,15 @@ public class DementorTraitMixin {
 				return;
 			event.setCanceled(true);
 			ci.cancel();
+		}
+	}
+
+	@Inject(method = "modifyBonusDamage", at = @At("HEAD"), cancellable = true, remap = false)
+	private void l2fix$bypassDementorReduction(DamageSource source, double factor, int level,
+	                                          CallbackInfoReturnable<Double> cir) {
+		var attacker = ImmunityHelper.resolveLivingAttacker(source);
+		if (attacker != null && ImmunityHelper.hasCombatCurioWithTag(attacker, L2HFBypassTags.BYPASSES_DEMENTOR_ITEM)) {
+			cir.setReturnValue(1.0D);
 		}
 	}
 

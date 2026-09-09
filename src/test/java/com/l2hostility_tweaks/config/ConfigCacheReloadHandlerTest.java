@@ -3,6 +3,7 @@ package com.l2hostility_tweaks.config;
 import com.l2hostility_tweaks.client.config.ClientL2HConfig;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,6 +15,58 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConfigCacheReloadHandlerTest {
+
+    @Test
+    void ringsBypassConcreteTraitDefenseWithoutLegacyModes() throws IOException {
+        String dispell = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/DispellTraitMixin.java"));
+        String dementor = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/DementorTraitMixin.java"));
+
+        assertConcreteDefenseBypass(dispell, "DispellTrait", "BYPASSES_DISPELL_ITEM",
+                "isOldDispellEnabled()", "l2fix$bypassDispellDefense", "l2fix$bypassDispellReduction");
+        assertConcreteDefenseBypass(dementor, "DementorTrait", "BYPASSES_DEMENTOR_ITEM",
+                "isOldDementorEnabled()", "l2fix$dementorDefense", "l2fix$bypassDementorReduction");
+    }
+
+    private static void assertConcreteDefenseBypass(String source, String traitClass,
+                                                     String bypassTag, String legacyConfigCheck,
+                                                     String attackMethod, String bonusMethod) {
+        String attack = injectionSection(source, "onAttackedByOthers");
+        String bonus = injectionSection(source, "modifyBonusDamage");
+        String compactAttack = attack.replaceAll("\\s+", " ");
+        String compactBonus = bonus.replaceAll("\\s+", " ");
+        String bypassCall = "ImmunityHelper.hasCombatCurioWithTag(attacker, L2HFBypassTags."
+                + bypassTag + ")";
+
+        assertTrue(source.contains("@Mixin(value = " + traitClass + ".class, remap = false)"));
+        assertTrue(attack.contains("@Inject(method = \"onAttackedByOthers\", at = @At(\"HEAD\"), cancellable = true, remap = false)"));
+        assertTrue(compactAttack.contains("void " + attackMethod
+                + "(int level, LivingEntity entity, LivingAttackEvent event, CallbackInfo ci)"));
+        assertTrue(attack.contains("ImmunityHelper.resolveLivingAttacker(event.getSource())"));
+        assertTrue(compactAttack.contains("if (attacker != null && " + bypassCall
+                + ") { ci.cancel(); return; }"));
+        int bypass = attack.indexOf(bypassTag);
+        int legacyConfig = attack.indexOf(legacyConfigCheck);
+        assertTrue(legacyConfig < 0 || bypass < legacyConfig,
+                "ring bypass must run before the legacy configuration branch");
+
+        assertTrue(bonus.contains("@Inject(method = \"modifyBonusDamage\", at = @At(\"HEAD\"), cancellable = true, remap = false)"));
+        assertTrue(compactBonus.contains("void " + bonusMethod
+                + "(DamageSource source, double factor, int level, CallbackInfoReturnable<Double> cir)"));
+        assertTrue(bonus.contains("ImmunityHelper.resolveLivingAttacker(source)"));
+        assertTrue(compactBonus.contains("if (attacker != null && " + bypassCall
+                + ") { cir.setReturnValue(1.0D); }"));
+        assertFalse(bonus.contains("L2HConfig"),
+                "ring reduction bypass must not depend on a legacy configuration mode");
+    }
+
+    private static String injectionSection(String source, String method) {
+        int start = source.indexOf("@Inject(method = \"" + method + "\"");
+        assertTrue(start >= 0, "missing concrete " + method + " hook");
+        int end = source.indexOf("\n\t@Inject", start + 1);
+        return source.substring(start, end < 0 ? source.length() : end);
+    }
 
     @Test
     void ragnarokOverrideTargetsCurrentUpstreamPostHurtMethod() throws Exception {

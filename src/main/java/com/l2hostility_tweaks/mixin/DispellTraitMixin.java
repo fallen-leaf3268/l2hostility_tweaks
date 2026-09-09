@@ -1,18 +1,23 @@
 package com.l2hostility_tweaks.mixin;
 
+import com.l2hostility_tweaks.L2HFBypassTags;
 import com.l2hostility_tweaks.config.L2HConfig;
+import com.l2hostility_tweaks.util.ImmunityHelper;
 import dev.xkmc.l2hostility.content.item.traits.EnchantmentDisabler;
 import dev.xkmc.l2hostility.content.traits.legendary.DispellTrait;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +25,24 @@ import java.util.function.IntFunction;
 
 @Mixin(value = DispellTrait.class, remap = false)
 public class DispellTraitMixin {
+
+	@Inject(method = "onAttackedByOthers", at = @At("HEAD"), cancellable = true, remap = false)
+	private void l2fix$bypassDispellDefense(int level, LivingEntity entity, LivingAttackEvent event, CallbackInfo ci) {
+		var attacker = ImmunityHelper.resolveLivingAttacker(event.getSource());
+		if (attacker != null && ImmunityHelper.hasCombatCurioWithTag(attacker, L2HFBypassTags.BYPASSES_DISPELL_ITEM)) {
+			ci.cancel();
+			return;
+		}
+	}
+
+	@Inject(method = "modifyBonusDamage", at = @At("HEAD"), cancellable = true, remap = false)
+	private void l2fix$bypassDispellReduction(DamageSource source, double factor, int level,
+	                                         CallbackInfoReturnable<Double> cir) {
+		var attacker = ImmunityHelper.resolveLivingAttacker(source);
+		if (attacker != null && ImmunityHelper.hasCombatCurioWithTag(attacker, L2HFBypassTags.BYPASSES_DISPELL_ITEM)) {
+			cir.setReturnValue(1.0D);
+		}
+	}
 
 	@Inject(method = "postHurtImpl", at = @At("HEAD"), cancellable = true)
 	private void l2fix$dispellPostHurt(int level, LivingEntity attacker, LivingEntity target, CallbackInfo ci) {
