@@ -20,6 +20,11 @@ public class SealTrait extends LegendaryTrait {
 	}
 
 	@Override
+	public boolean isBanned() {
+		return !L2HConfig.isSealTraitEnabled() || super.isBanned();
+	}
+
+	@Override
 	public void postHurtImpl(int level, LivingEntity attacker, LivingEntity target) {
 		GeneralEventHandler.schedule(() -> sealRandomTrait(level, target));
 	}

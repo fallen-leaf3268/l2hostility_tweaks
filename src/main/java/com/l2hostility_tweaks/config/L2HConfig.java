@@ -78,6 +78,7 @@ public class L2HConfig {
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> levelCapPerTrait;
 
         // === 封印词条 ===
+        public final ForgeConfigSpec.BooleanValue sealTraitEnabled;
         public final ForgeConfigSpec.IntValue sealDurationMode;
         public final ForgeConfigSpec.IntValue sealDurationLinear;
         public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> sealDurationArray;
@@ -158,6 +159,8 @@ public class L2HConfig {
             builder.pop();
 
             builder.push("seal_trait");
+            sealTraitEnabled = builder.comment("启用封印词条")
+                    .define("enabled", true);
             sealDurationMode = builder.comment("封印词条持续时间模式",
                     "1 = 线性: duration = level x duration_linear",
                     "2 = 数组: 每级取自 duration_array，超出后线性补齐")
@@ -463,6 +466,10 @@ public class L2HConfig {
 
     public static int getUndyingSealDuration() {
         return COMMON.undyingSealDuration.get();
+    }
+
+    public static boolean isSealTraitEnabled() {
+        return COMMON.sealTraitEnabled.get();
     }
 
     public static int getSealDurationMode() {
