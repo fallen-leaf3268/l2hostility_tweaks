@@ -36,6 +36,7 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
+import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.TagsUpdatedEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -80,6 +81,7 @@ public class L2HostilityFix {
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ClientL2HConfig.CLIENT_SPEC, "l2_configs/l2hostility_tweaks-client.toml");
         L2HFEnchantments.REGISTRY.register(FMLJavaModLoadingContext.get().getModEventBus());
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onCommonSetup);
+        FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onBuildCreativeTab);
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::onConfigReload);
         MinecraftForge.EVENT_BUS.register(this);
         InterModComms.sendTo("curios", SlotTypeMessage.REGISTER_TYPE,
@@ -94,6 +96,12 @@ public class L2HostilityFix {
     private void onCommonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> AttackEventHandler.register(4500, new RingDamageListener()));
     }
+
+	private void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {
+		if (event.getTabKey().location().equals(new ResourceLocation("l2library", "hostility"))) {
+			event.accept(L2HFItems.SEAL_SYMBOL.get());
+		}
+	}
 
     private void onConfigReload(ModConfigEvent.Reloading event) {
         ConfigCacheReloadHandler.invalidate(event.getConfig().getSpec());

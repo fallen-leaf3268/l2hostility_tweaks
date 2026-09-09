@@ -85,7 +85,6 @@ public class L2HFItems {
                 .displayItems((params, output) -> {
                     output.accept(DIMENSION_BREAKER.get());
                     output.accept(TRAIT_SEAL.get());
-                    output.accept(SEAL_SYMBOL.get());
                     output.accept(TRAIT_UNLOADER.get());
                     output.accept(TRANQUIL_BELT.get());
                     output.accept(WALKING_BOOTS.get());
