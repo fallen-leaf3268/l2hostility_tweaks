@@ -4,6 +4,7 @@ import com.l2hostility_tweaks.client.config.ClientL2HConfig;
 import com.l2hostility_tweaks.mixin.MixinTestInvoker;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
 import net.minecraft.network.chat.contents.TranslatableContents;
+import org.objectweb.asm.tree.MethodInsnNode;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,58 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class ConfigCacheReloadHandlerTest {
+
+    @Test
+    void manualSymbolEntrypointsCheckSharedConflictBeforeEarlyReturnsAndMutation() throws Exception {
+        assertConflictCheckOrdering(
+                "com/l2hostility_tweaks/mixin/TraitSymbolMixin",
+                "l2fix$fixSealedLevel", List.of("get", "shrink"));
+        assertConflictCheckOrdering(
+                "com/l2hostility_tweaks/mixin/TraitSymbolSelfUseMixin",
+                "l2fix$traitSymbolSelfUse", List.of("get", "compute", "shrink"));
+    }
+
+    private static void assertConflictCheckOrdering(
+            String ownerName, String callbackName, List<String> laterCalls) throws Exception {
+        var owner = MixinTestInvoker.bytecode(ownerName);
+        var callback = owner.methods.stream().filter(method -> method.name.equals(callbackName))
+                .findFirst().orElseThrow();
+        int exclusionEnabled = -1;
+        int sharedConflict = -1;
+        int firstLaterCall = Integer.MAX_VALUE;
+        int index = 0;
+        for (var instruction = callback.instructions.getFirst(); instruction != null;
+             instruction = instruction.getNext(), index++) {
+            if (!(instruction instanceof MethodInsnNode call)) continue;
+            if (call.name.equals("isExclusionEnabled")) exclusionEnabled = index;
+            if (call.name.equals("findExclusionConflict")) sharedConflict = index;
+            boolean stateAccess = call.owner.startsWith("java/util/") && laterCalls.contains(call.name);
+            boolean consumption = call.owner.equals("net/minecraft/world/item/ItemStack")
+                    && call.name.equals("shrink");
+            if (stateAccess || consumption) {
+                firstLaterCall = Math.min(firstLaterCall, index);
+            }
+        }
+        assertTrue(exclusionEnabled >= 0, callbackName + " config gate");
+        assertTrue(sharedConflict > exclusionEnabled, callbackName + " shared conflict call");
+        assertTrue(sharedConflict < firstLaterCall, callbackName + " conflict must precede rank reads/mutation/consumption");
+    }
+
+    @Test
+    void hiddenBalanceSuppressesOverrideHintAndEmptyLegendaryThresholdDisplaysOne() throws Exception {
+        String symbol = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/TraitSymbolMixin.java"));
+        String difficulty = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/DifficultyScreenMixin.java"));
+        String compactSymbol = symbol.replaceAll("\\s+", "");
+
+        assertTrue(compactSymbol.contains(
+                "if(L2HConfig.isDisplayPlayerSelfTraitBalanceEnabled()&&override!=null)"));
+        assertEquals(1, L2HConfig.getThreshold(List.of(), 200));
+        assertTrue(difficulty.contains(
+                "L2HConfig.getThreshold(L2HConfig.getDisplayLegendaryThresholds(), diff)"));
+        assertFalse(difficulty.contains("L2HTweaksLang.LEGENDARY_PRESET"));
+    }
 
     @Test
     void undyingCountOnlyModeStillExhaustsAndHasDedicatedTooltip() throws Exception {

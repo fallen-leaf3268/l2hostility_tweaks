@@ -1,6 +1,8 @@
 package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.config.L2HConfig;
+import com.l2hostility_tweaks.generation.TraitGenerationHelper;
+import com.l2hostility_tweaks.init.L2HTweaksLang;
 import com.l2hostility_tweaks.util.ImmunityHelper;
 import com.l2hostility_tweaks.util.LegendaryTraitClassifier;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
@@ -25,6 +27,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @Mixin(value = TraitSymbol.class, remap = false)
@@ -43,6 +46,21 @@ public class TraitSymbolMixin {
 
 		MobTraitCap cap = MobTraitCap.HOLDER.get(target);
 		MobTrait trait = ((TraitSymbol) (Object) this).get();
+		if (L2HConfig.isExclusionEnabled()) {
+			var existing = new HashMap<String, Integer>();
+			for (var entry : cap.traits.entrySet()) {
+				existing.put(entry.getKey().getID(), entry.getValue());
+			}
+			String conflict = TraitGenerationHelper.findExclusionConflict(
+					trait.getID(), existing, L2HConfig.getExclusionGroups());
+			if (conflict != null) {
+				player.displayClientMessage(L2HTweaksLang.translate(
+						L2HTweaksLang.SELF_TRAIT_MUTUAL_EXCLUSION, trait.getDesc(),
+						l2fix$getTraitName(getTraitRegistry(), conflict)).withStyle(ChatFormatting.RED), true);
+				cir.setReturnValue(InteractionResult.FAIL);
+				return;
+			}
+		}
 		Integer raw = cap.traits.get(trait);
 		if (raw == null || raw >= 0) return;
 
@@ -127,7 +145,7 @@ public class TraitSymbolMixin {
 				}
 
 			var override = L2HConfig.getDisplayPlayerTraitOverrides().get(trait.getID());
-			if (override != null) {
+			if (L2HConfig.isDisplayPlayerSelfTraitBalanceEnabled() && override != null) {
 				fixes.add(Component.translatable("tooltip.l2hostility_tweaks.player_override.override",
 						override.minLevel(), override.cost()));
 				}

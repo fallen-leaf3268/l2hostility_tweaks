@@ -104,6 +104,19 @@ public class TraitGenerationHelper {
 
     // ==================== Helpers ====================
 
+    public static String findExclusionConflict(String candidateId, Map<String, Integer> existing,
+                                               List<ExclusionGroup> groups) {
+        for (ExclusionGroup group : groups) {
+            if (!group.traitIds().contains(candidateId)) continue;
+            for (String traitId : group.traitIds()) {
+                if (traitId.equals(candidateId)) continue;
+                Integer rank = existing.get(traitId);
+                if (rank != null && rank != 0) return traitId;
+            }
+        }
+        return null;
+    }
+
     private static boolean hasTraitById(HashMap<MobTrait, Integer> traits, String id) {
         for (Map.Entry<MobTrait, Integer> entry : traits.entrySet()) {
             if (entry.getValue() > 0 && entry.getKey().getID().equals(id)) {

@@ -53,13 +53,8 @@ public class DifficultyScreenMixin {
 			if (diff >= L2HConfig.getDisplayLegendaryUnlimited()) {
 				text = L2HTweaksLang.translate(L2HTweaksLang.LEGENDARY_UNLIMITED);
 			} else {
-				List<int[]> thresholds = L2HConfig.getDisplayLegendaryThresholds();
-				if (thresholds.isEmpty()) {
-					text = L2HTweaksLang.translate(L2HTweaksLang.LEGENDARY_PRESET);
-				} else {
-					int limit = L2HConfig.getThreshold(thresholds, diff);
-					text = L2HTweaksLang.translate(L2HTweaksLang.LEGENDARY_COUNT, limit);
-				}
+				int limit = L2HConfig.getThreshold(L2HConfig.getDisplayLegendaryThresholds(), diff);
+				text = L2HTweaksLang.translate(L2HTweaksLang.LEGENDARY_COUNT, limit);
 			}
 			legendaryEntry = Pair.of(text, () -> java.util.List.of());
 		}
