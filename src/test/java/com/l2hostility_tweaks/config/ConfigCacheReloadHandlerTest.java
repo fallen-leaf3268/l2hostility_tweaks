@@ -1,10 +1,18 @@
 package com.l2hostility_tweaks.config;
 
 import com.l2hostility_tweaks.client.config.ClientL2HConfig;
+import com.l2hostility_tweaks.mixin.MixinTestInvoker;
+import com.l2hostility_tweaks.util.TraitDisableHelper;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -13,59 +21,208 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class ConfigCacheReloadHandlerTest {
 
     @Test
-    void ringsBypassConcreteTraitDefenseWithoutLegacyModes() throws IOException {
-        String dispell = Files.readString(Path.of(
-                "src/main/java/com/l2hostility_tweaks/mixin/DispellTraitMixin.java"));
-        String dementor = Files.readString(Path.of(
-                "src/main/java/com/l2hostility_tweaks/mixin/DementorTraitMixin.java"));
-
-        assertConcreteDefenseBypass(dispell, "DispellTrait", "BYPASSES_DISPELL_ITEM",
-                "isOldDispellEnabled()", "l2fix$bypassDispellDefense", "l2fix$bypassDispellReduction");
-        assertConcreteDefenseBypass(dementor, "DementorTrait", "BYPASSES_DEMENTOR_ITEM",
-                "isOldDementorEnabled()", "l2fix$dementorDefense", "l2fix$bypassDementorReduction");
+    void hudStateSeparatesTraitsHealthAndVanillaBossSuppression() throws Exception {
+        Class<?> overlay = Class.forName("com.l2hostility_tweaks.client.L2HHealthOverlay");
+        Method resolve = overlay.getDeclaredMethod(
+                "l2fix$resolveHudState", boolean.class, boolean.class, boolean.class);
+        resolve.setAccessible(true);
+        for (boolean valid : new boolean[]{false, true}) {
+            for (boolean boss : new boolean[]{false, true}) {
+                for (boolean preference : new boolean[]{false, true}) {
+                    Object state = resolve.invoke(null, valid, boss, preference);
+                    assertEquals(valid, hudStateFlag(state, "showTraits"),
+                            "traits: valid=" + valid + ", boss=" + boss + ", preference=" + preference);
+                    boolean expectedHealth = valid && !(preference && boss);
+                    assertEquals(expectedHealth, hudStateFlag(state, "showHealth"),
+                            "health: valid=" + valid + ", boss=" + boss + ", preference=" + preference);
+                    assertEquals(expectedHealth, hudStateFlag(state, "hideBossBars"),
+                            "boss: valid=" + valid + ", boss=" + boss + ", preference=" + preference);
+                }
+            }
+        }
     }
 
-    private static void assertConcreteDefenseBypass(String source, String traitClass,
-                                                     String bypassTag, String legacyConfigCheck,
-                                                     String attackMethod, String bonusMethod) {
-        String attack = injectionSection(source, "onAttackedByOthers");
-        String bonus = injectionSection(source, "modifyBonusDamage");
-        String compactAttack = attack.replaceAll("\\s+", " ");
-        String compactBonus = bonus.replaceAll("\\s+", " ");
-        String bypassCall = "ImmunityHelper.hasCombatCurioWithTag(attacker, L2HFBypassTags."
-                + bypassTag + ")";
-
-        assertTrue(source.contains("@Mixin(value = " + traitClass + ".class, remap = false)"));
-        assertTrue(attack.contains("@Inject(method = \"onAttackedByOthers\", at = @At(\"HEAD\"), cancellable = true, remap = false)"));
-        assertTrue(compactAttack.contains("void " + attackMethod
-                + "(int level, LivingEntity entity, LivingAttackEvent event, CallbackInfo ci)"));
-        assertTrue(attack.contains("ImmunityHelper.resolveLivingAttacker(event.getSource())"));
-        assertTrue(compactAttack.contains("if (attacker != null && " + bypassCall
-                + ") { ci.cancel(); return; }"));
-        int bypass = attack.indexOf(bypassTag);
-        int legacyConfig = attack.indexOf(legacyConfigCheck);
-        assertTrue(legacyConfig < 0 || bypass < legacyConfig,
-                "ring bypass must run before the legacy configuration branch");
-
-        assertTrue(bonus.contains("@Inject(method = \"modifyBonusDamage\", at = @At(\"HEAD\"), cancellable = true, remap = false)"));
-        assertTrue(compactBonus.contains("void " + bonusMethod
-                + "(DamageSource source, double factor, int level, CallbackInfoReturnable<Double> cir)"));
-        assertTrue(bonus.contains("ImmunityHelper.resolveLivingAttacker(source)"));
-        assertTrue(compactBonus.contains("if (attacker != null && " + bypassCall
-                + ") { cir.setReturnValue(1.0D); }"));
-        assertFalse(bonus.contains("L2HConfig"),
-                "ring reduction bypass must not depend on a legacy configuration mode");
+    private static boolean hudStateFlag(Object state, String name) throws Exception {
+        Method accessor = state.getClass().getDeclaredMethod(name);
+        accessor.setAccessible(true);
+        return (boolean) accessor.invoke(state);
     }
 
-    private static String injectionSection(String source, String method) {
-        int start = source.indexOf("@Inject(method = \"" + method + "\"");
-        assertTrue(start >= 0, "missing concrete " + method + " hook");
-        int end = source.indexOf("\n\t@Inject", start + 1);
-        return source.substring(start, end < 0 ? source.length() : end);
+    @Test
+    void traitsOnlyRenderPathSkipsHealthAndHeaderButStillDrawsTraitLines() throws Exception {
+        var owner = MixinTestInvoker.bytecode("com/l2hostility_tweaks/client/L2HHealthOverlay");
+        var publicRender = owner.methods.stream().filter(method -> method.name.equals("render"))
+                .findFirst().orElseThrow();
+        MethodInsnNode traitsFlag = findMethodCall(publicRender.instructions.getFirst(), "showTraits");
+        assertNotNull(traitsFlag, "outer render path must branch on showTraits instead of health visibility");
+        AbstractInsnNode traitsBranchInstruction = nextExecutable(traitsFlag);
+        JumpInsnNode traitsBranch = assertInstanceOf(JumpInsnNode.class, traitsBranchInstruction);
+        assertEquals(org.objectweb.asm.Opcodes.IFEQ, traitsBranch.getOpcode());
+        assertTrue(methodCallsUntilReturn(traitsBranch.getNext()).contains("renderTargetHud"));
+
+        var render = owner.methods.stream().filter(method -> method.name.equals("renderTargetHud"))
+                .findFirst().orElseThrow();
+        MethodInsnNode healthFlag = findMethodCall(render.instructions.getFirst(), "showHealth");
+        assertNotNull(healthFlag, "render path must branch on showHealth");
+        AbstractInsnNode branchInstruction = nextExecutable(healthFlag);
+        JumpInsnNode branch = assertInstanceOf(JumpInsnNode.class, branchInstruction);
+        assertEquals(org.objectweb.asm.Opcodes.IFEQ, branch.getOpcode());
+
+        List<String> traitsOnlyCalls = methodCallsUntilReturn(branch.label);
+        assertTrue(traitsOnlyCalls.contains("renderTraitLines"));
+        assertFalse(traitsOnlyCalls.contains("renderHeader"));
+        assertFalse(traitsOnlyCalls.contains("fillRun"));
+
+        List<String> healthCalls = methodCallsUntilReturn(branch.getNext());
+        assertTrue(healthCalls.contains("renderHeader"));
+        assertTrue(healthCalls.contains("renderTraitLines"));
+        assertTrue(healthCalls.contains("fillRun"));
+    }
+
+    private static MethodInsnNode findMethodCall(AbstractInsnNode start, String name) {
+        for (AbstractInsnNode instruction = start; instruction != null;
+             instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode call && call.name.equals(name)) return call;
+        }
+        return null;
+    }
+
+    private static AbstractInsnNode nextExecutable(AbstractInsnNode instruction) {
+        do {
+            instruction = instruction.getNext();
+        } while (instruction != null && instruction.getOpcode() < 0);
+        return instruction;
+    }
+
+    private static List<String> methodCallsUntilReturn(AbstractInsnNode start) {
+        List<String> calls = new ArrayList<>();
+        for (AbstractInsnNode instruction = start; instruction != null;
+             instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode call) calls.add(call.name);
+            if (instruction.getOpcode() == org.objectweb.asm.Opcodes.RETURN) break;
+        }
+        return calls;
+    }
+
+    @Test
+    void manualSymbolEntrypointsCheckSharedConflictBeforeEarlyReturnsAndMutation() throws Exception {
+        assertConflictCheckOrdering(
+                "com/l2hostility_tweaks/mixin/TraitSymbolMixin",
+                "l2fix$fixSealedLevel", List.of("get", "shrink"));
+        assertConflictCheckOrdering(
+                "com/l2hostility_tweaks/mixin/TraitSymbolSelfUseMixin",
+                "l2fix$traitSymbolSelfUse", List.of("get", "compute", "shrink"));
+    }
+
+    private static void assertConflictCheckOrdering(
+            String ownerName, String callbackName, List<String> laterCalls) throws Exception {
+        var owner = MixinTestInvoker.bytecode(ownerName);
+        var callback = owner.methods.stream().filter(method -> method.name.equals(callbackName))
+                .findFirst().orElseThrow();
+        int exclusionEnabled = -1;
+        int sharedConflict = -1;
+        int firstLaterCall = Integer.MAX_VALUE;
+        int index = 0;
+        for (var instruction = callback.instructions.getFirst(); instruction != null;
+             instruction = instruction.getNext(), index++) {
+            if (!(instruction instanceof MethodInsnNode call)) continue;
+            if (call.name.equals("isExclusionEnabled")) exclusionEnabled = index;
+            if (call.name.equals("findExclusionConflict")) sharedConflict = index;
+            boolean stateAccess = call.owner.startsWith("java/util/") && laterCalls.contains(call.name);
+            boolean consumption = call.owner.equals("net/minecraft/world/item/ItemStack")
+                    && call.name.equals("shrink");
+            if (stateAccess || consumption) {
+                firstLaterCall = Math.min(firstLaterCall, index);
+            }
+        }
+        assertTrue(exclusionEnabled >= 0, callbackName + " config gate");
+        assertTrue(sharedConflict > exclusionEnabled, callbackName + " shared conflict call");
+        assertTrue(sharedConflict < firstLaterCall, callbackName + " conflict must precede rank reads/mutation/consumption");
+    }
+
+    @Test
+    void hiddenBalanceSuppressesOverrideHintAndEmptyLegendaryThresholdDisplaysOne() throws Exception {
+        String symbol = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/TraitSymbolMixin.java"));
+        String difficulty = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/mixin/DifficultyScreenMixin.java"));
+        String compactSymbol = symbol.replaceAll("\\s+", "");
+
+        assertTrue(compactSymbol.contains(
+                "if(L2HConfig.isDisplayPlayerSelfTraitBalanceEnabled()&&override!=null)"));
+        assertEquals(1, L2HConfig.getThreshold(List.of(), 200));
+        assertTrue(difficulty.contains(
+                "L2HConfig.getThreshold(L2HConfig.getDisplayLegendaryThresholds(), diff)"));
+        assertFalse(difficulty.contains("L2HTweaksLang.LEGENDARY_PRESET"));
+    }
+
+    @Test
+    void undyingCountOnlyModeStillExhaustsAndHasDedicatedTooltip() throws Exception {
+        assertTrue(com.l2hostility_tweaks.util.TraitDisableHelper.isUndyingLimitExhausted(2, 2, 0));
+        assertFalse(com.l2hostility_tweaks.util.TraitDisableHelper.isUndyingLimitExhausted(2, 1, 0));
+        assertFalse(com.l2hostility_tweaks.util.TraitDisableHelper.isUndyingLimitExhausted(-1, 100, 0));
+        assertTrue(com.l2hostility_tweaks.util.TraitDisableHelper.isUndyingLimitExhausted(0, 0, 0));
+        assertUndyingTooltip(0, "limit_count_only", 2);
+        assertUndyingTooltip(20, "limit_timed", 2, 20);
+        assertUndyingTooltip(-1, "limit_permanent", 2);
+        assertTrue(Files.readString(Path.of("src/main/resources/assets/l2hostility_tweaks/lang/zh_cn.json"))
+                .contains("最多触发 %s 次复活"));
+        assertTrue(Files.readString(Path.of("src/main/resources/assets/l2hostility_tweaks/lang/en_us.json"))
+                .contains("Allows at most %s resurrections"));
+    }
+
+    private static void assertUndyingTooltip(int duration, String suffix, Object... arguments) {
+        TranslatableContents contents = assertInstanceOf(TranslatableContents.class,
+                TraitDisableHelper.buildUndyingLimitDetail(2, duration).getContents());
+        assertEquals("trait.l2hostility_tweaks.undying." + suffix, contents.getKey());
+        assertArrayEquals(arguments, contents.getArgs());
+    }
+
+    @Test
+    void actualUndyingCallbacksSkipSealingAtZeroDuration() throws Exception {
+        var owner = MixinTestInvoker.bytecode("com/l2hostility_tweaks/mixin/UndyingTraitMixin");
+        for (String name : List.of("l2fix$limitResurrections", "l2fix$incrementCount")) {
+            var callback = owner.methods.stream().filter(m -> m.name.equals(name)).findFirst().orElseThrow();
+            var inject = callback.visibleAnnotations.stream().filter(a -> a.desc.equals(
+                    "Lorg/spongepowered/asm/mixin/injection/Inject;")).findFirst().orElseThrow();
+            assertEquals(List.of("onDeath"), inject.values.get(inject.values.indexOf("method") + 1));
+            for (int duration : new int[]{0, 20, -1}) {
+                for (int count : new int[]{0, 2}) {
+                    Object entity = new Object(), level = new Object(), data = new Object(), event = new Object();
+                    CallbackInfo ci = new CallbackInfo("onDeath", true);
+                    int[] seals = {0};
+                    MixinTestInvoker.replay(owner, callback, (callOwner, call, args) -> {
+                        switch (call) {
+                            case "level": assertSame(entity, args.get(0)); return level;
+                            case "isClientSide": assertSame(level, args.get(0)); return false;
+                            case "isDisabled": assertSame(entity, args.get(0)); return false;
+                            case "getUndyingMaxResurrections": return 2;
+                            case "getUndyingSealDuration": return duration;
+                            case "getPersistentData": assertSame(entity, args.get(0)); return data;
+                            case "getInt": assertEquals(List.of(data, TraitDisableHelper.UNDYING_COUNT_KEY), args); return count;
+                            case "isUndyingLimitExhausted":
+                                assertEquals(List.of(2, count, duration), args);
+                                return TraitDisableHelper.isUndyingLimitExhausted(2, count, duration);
+                            case "l2fix$sealUndying": assertEquals(List.of(entity, duration), args); seals[0]++; return null;
+                            case "cancel": assertSame(ci, args.get(0)); ci.cancel(); return null;
+                            case "isCanceled": assertSame(event, args.get(0)); return true;
+                            case "syncUndyingCountData": assertEquals(List.of(data, count + 1), args); return null;
+                            default: throw new AssertionError("Unexpected Undying dependency: " + callOwner + "." + call);
+                        }
+                    }, new Object(), 1, entity, event, ci);
+                    assertEquals(count >= 2 && duration != 0 ? 1 : 0, seals[0], name + " duration=" + duration);
+                    assertEquals(name.equals("l2fix$limitResurrections") && count >= 2, ci.isCancelled());
+                }
+            }
+        }
     }
 
     @Test

@@ -25,6 +25,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 import java.util.function.IntFunction;
+import dev.xkmc.l2hostility.init.data.LHDamageTypes;
 
 @Mixin(value = DrainTrait.class, remap = false)
 public class DrainTraitMixin {
@@ -37,7 +38,10 @@ public class DrainTraitMixin {
 	private void l2fix$drainOnHurt(int level, LivingEntity attacker, AttackCache cache,
 									dev.xkmc.l2hostility.content.logic.TraitEffectCache traitCache, CallbackInfo ci) {
 		ci.cancel();
-		((dev.xkmc.l2hostility.content.traits.base.MobTrait)(Object)this).postHurtPlayer(level, attacker, traitCache);
+		var hurt = cache.getLivingHurtEvent();
+		if (hurt != null && hurt.getAmount() > 0 && !hurt.getSource().is(LHDamageTypes.KILLER_AURA)) {
+			((dev.xkmc.l2hostility.content.traits.base.MobTrait)(Object)this).postHurtPlayer(level, attacker, traitCache);
+		}
 		var target = cache.getAttackTarget();
 		var neg = target.getActiveEffects().stream()
 				.filter(e -> e.getEffect().getCategory() == MobEffectCategory.HARMFUL).count();

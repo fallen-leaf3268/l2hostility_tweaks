@@ -1,6 +1,7 @@
 package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.config.L2HConfig;
+import com.l2hostility_tweaks.generation.TraitGenerationHelper;
 import com.l2hostility_tweaks.init.L2HTweaksLang;
 import com.l2hostility_tweaks.util.ImmunityHelper;
 import com.l2hostility_tweaks.util.TraitCostHelper;
@@ -25,6 +26,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Collection;
+import java.util.HashMap;
 
 @Mixin(Item.class)
 public class TraitSymbolSelfUseMixin {
@@ -45,6 +47,27 @@ public class TraitSymbolSelfUseMixin {
 
 		MobTraitCap cap = MobTraitCap.HOLDER.get(player);
 		MobTrait trait = traitSymbol.get();
+		if (L2HConfig.isExclusionEnabled()) {
+			var existing = new HashMap<String, Integer>();
+			for (var entry : cap.traits.entrySet()) {
+				existing.put(entry.getKey().getID(), entry.getValue());
+			}
+			String conflict = TraitGenerationHelper.findExclusionConflict(
+					trait.getID(), existing, L2HConfig.getExclusionGroups());
+			if (conflict != null) {
+				if (player instanceof ServerPlayer sp) {
+					MobTrait other = cap.traits.keySet().stream()
+							.filter(existingTrait -> existingTrait.getID().equals(conflict))
+							.findFirst().orElse(null);
+					sp.sendSystemMessage(L2HTweaksLang.translate(
+							L2HTweaksLang.SELF_TRAIT_MUTUAL_EXCLUSION, trait.getDesc(),
+							other != null ? other.getDesc() : net.minecraft.network.chat.Component.literal(conflict))
+							.withStyle(ChatFormatting.RED), true);
+				}
+				cir.setReturnValue(InteractionResultHolder.fail(stack));
+				return;
+			}
+		}
 
 		if (ImmunityHelper.isSelfBlacklisted(trait)) {
 			if (player instanceof ServerPlayer sp) {
@@ -76,22 +99,6 @@ public class TraitSymbolSelfUseMixin {
 			}
 			cir.setReturnValue(InteractionResultHolder.fail(stack));
 			return;
-		}
-
-		if (L2HConfig.isExclusionEnabled()) {
-			for (var group : L2HConfig.getExclusionGroups()) {
-				if (group.traitIds().contains(trait.getID())) {
-					for (var entry : cap.traits.entrySet()) {
-						if (l2fix$isPresentForExclusion(entry.getValue()) && !entry.getKey().getID().equals(trait.getID()) && group.traitIds().contains(entry.getKey().getID())) {
-							if (player instanceof ServerPlayer sp) {
-								sp.sendSystemMessage(L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_MUTUAL_EXCLUSION, trait.getDesc(), entry.getKey().getDesc()).withStyle(ChatFormatting.RED), true);
-							}
-							cir.setReturnValue(InteractionResultHolder.fail(stack));
-							return;
-						}
-					}
-				}
-			}
 		}
 
 		if (L2HConfig.isPlayerSelfTraitBalanceEnabled()) {
@@ -190,7 +197,4 @@ public class TraitSymbolSelfUseMixin {
 		return targetRawLevel == null || targetRawLevel == 0 ? count + 1 : count;
 	}
 
-	private static boolean l2fix$isPresentForExclusion(Integer rawLevel) {
-		return rawLevel != null && rawLevel != 0;
-	}
 }

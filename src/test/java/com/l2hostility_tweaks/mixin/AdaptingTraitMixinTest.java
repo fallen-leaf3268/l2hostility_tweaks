@@ -7,6 +7,11 @@ import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.MethodInsnNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.InsnNode;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import static org.objectweb.asm.Opcodes.*;
 
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -135,6 +140,165 @@ class AdaptingTraitMixinTest {
         assertEquals(1f, resolve(true, false, unused));
         assertNull(resolve(false, false, unused));
         assertEquals(0.05f, resolve(false, true, () -> 0.95), 1e-7f);
+    }
+
+    @Test
+    void combatMixinsMatchOneDefenseEntryInEachSupportedVersion() throws Exception {
+        Path modern = Path.of("libs/l2hostility-adaptive-regression.jar");
+        Path legacy = Path.of(System.getProperty("l2htweaks.legacyJar", modern.toString()));
+        assertDefenseMatches(modern, "DispellTrait", "l2fix$dispellDefense");
+        assertDefenseMatches(modern, "DementorTrait", "l2fix$dementorDefense");
+        assertDefenseMatches(legacy, "DispellTrait", "l2fix$dispellDefense");
+        assertDefenseMatches(legacy, "DementorTrait", "l2fix$dementorDefense");
+    }
+
+    @Test
+    void sealedBonusSkipsTraitInvocation() {
+        DoubleSupplier unused = () -> { throw new AssertionError("inactive trait must not run"); };
+        assertEquals(1D, MixinTestInvoker.call(LHAttackListenerMixin.class,
+                "l2fix$resolveBonus", 0, unused));
+        assertEquals(1D, MixinTestInvoker.call(LHAttackListenerMixin.class,
+                "l2fix$resolveBonus", -2, unused));
+        assertEquals(0.75D, MixinTestInvoker.call(LHAttackListenerMixin.class,
+                "l2fix$resolveBonus", 2, (DoubleSupplier) () -> 0.75D));
+    }
+
+    @Test
+    void drainSideEffectsOnlyRunForOrdinaryPositiveHits() throws Exception {
+        ClassNode owner = MixinTestInvoker.bytecode("com/l2hostility_tweaks/mixin/DrainTraitMixin");
+        MethodNode callback = owner.methods.stream().filter(m -> m.name.equals("l2fix$drainOnHurt")).findFirst().orElseThrow();
+        assertEquals(List.of("onHurtTarget"), value(annotation(callback,
+                "Lorg/spongepowered/asm/mixin/injection/Inject;"), "method"));
+        for (boolean hasHurt : new boolean[]{false, true}) {
+            for (boolean aura : new boolean[]{false, true}) {
+                for (float damage : new float[]{-3F, 0F, 3F}) {
+                    assertDrainDispatch(owner, callback, hasHurt, aura, damage);
+                }
+            }
+        }
+    }
+
+    private static void assertDrainDispatch(ClassNode owner, MethodNode callback, boolean hasHurt,
+                                            boolean aura, float damage) {
+        Object self = new Object(), attacker = new Object(), cache = new Object(), traitCache = new Object();
+        Object hurt = new Object(), source = new Object();
+        CallbackInfo ci = new CallbackInfo("onHurtTarget", true);
+        int[] calls = {0};
+        RuntimeException endOfSideEffectSection = new RuntimeException();
+        RuntimeException stopped = assertThrows(RuntimeException.class, () -> MixinTestInvoker.replay(owner, callback,
+                (callOwner, name, args) -> {
+                    switch (name) {
+                        case "cancel": assertSame(ci, args.get(0)); ci.cancel(); return null;
+                        case "getLivingHurtEvent": assertSame(cache, args.get(0)); return hasHurt ? hurt : null;
+                        case "getAmount": assertSame(hurt, args.get(0)); return damage;
+                        case "getSource": assertSame(hurt, args.get(0)); return source;
+                        case "KILLER_AURA":
+                            assertEquals("dev/xkmc/l2hostility/init/data/LHDamageTypes", callOwner);
+                            return "KILLER_AURA";
+                        case "is": assertEquals(List.of(source, "KILLER_AURA"), args); return aura;
+                        case "postHurtPlayer":
+                            assertEquals("dev/xkmc/l2hostility/content/traits/base/MobTrait", callOwner);
+                            assertEquals(List.of(self, 2, attacker, traitCache), args); calls[0]++; return null;
+                        case "getAttackTarget": assertSame(cache, args.get(0)); throw endOfSideEffectSection;
+                        default: throw new AssertionError("Unexpected Drain dependency: " + callOwner + "." + name);
+                    }
+                }, self, 2, attacker, cache, traitCache, ci));
+        assertSame(endOfSideEffectSection, stopped);
+        assertTrue(ci.isCancelled());
+        assertEquals(hasHurt && !aura && damage > 0 ? 1 : 0, calls[0],
+                "hurt=" + hasHurt + ", aura=" + aura + ", final damage=" + damage);
+    }
+
+    @Test
+    void registeredModernDefenseCallbacksCancelOnlyTheirOwnBypass() throws Exception {
+        for (String trait : List.of("Dispell", "Dementor")) {
+            ClassNode owner = MixinTestInvoker.bytecode("com/l2hostility_tweaks/mixin/" + trait + "TraitMixin");
+            MethodNode callback = owner.methods.stream().filter(m -> {
+                AnnotationNode inject = annotation(m, "Lorg/spongepowered/asm/mixin/injection/Inject;");
+                return inject != null && ((List<String>) value(inject, "method")).stream()
+                        .anyMatch(selector -> selector.startsWith("onDamaged("));
+            }).findFirst().orElseThrow();
+            assertEquals(true, value(annotation(callback, "Lorg/spongepowered/asm/mixin/injection/Inject;"), "cancellable"));
+            assertDefenseBehavior(owner, callback, "BYPASSES_" + trait.toUpperCase(java.util.Locale.ROOT) + "_ITEM");
+            for (String mutation : List.of("wrong tag", "inverted bypass", "unconditional cancel")) {
+                MethodNode mutant = new MethodNode();
+                callback.accept(mutant);
+                for (var instruction : mutant.instructions) {
+                    if (mutation.equals("wrong tag") && instruction instanceof FieldInsnNode field) {
+                        field.name = "BYPASSES_OTHER_ITEM";
+                    }
+                    if (instruction instanceof MethodInsnNode call && call.name.equals("hasCombatCurioWithTag")) {
+                        JumpInsnNode branch = (JumpInsnNode) instruction.getNext();
+                        if (mutation.equals("inverted bypass")) branch.setOpcode(branch.getOpcode() == IFEQ ? IFNE : IFEQ);
+                        if (mutation.equals("unconditional cancel")) mutant.instructions.set(branch, new InsnNode(POP));
+                    }
+                }
+                assertThrows(AssertionError.class, () -> assertDefenseBehavior(owner, mutant,
+                        "BYPASSES_" + trait.toUpperCase(java.util.Locale.ROOT) + "_ITEM"), mutation);
+            }
+        }
+    }
+
+    private static void assertDefenseBehavior(ClassNode owner, MethodNode callback, String expectedTag) {
+        for (boolean eventPresent : new boolean[]{false, true}) {
+            for (boolean attackerPresent : new boolean[]{false, true}) {
+                for (boolean bypass : new boolean[]{false, true}) {
+                    Object cache = new Object(), event = new Object(), source = new Object(), attacker = new Object();
+                    CallbackInfo ci = new CallbackInfo("onDamaged", true);
+                    MixinTestInvoker.replay(owner, callback, (callOwner, name, args) -> {
+                        switch (name) {
+                            case "getLivingDamageEvent": assertSame(cache, args.get(0)); return eventPresent ? event : null;
+                            case "getSource": assertSame(event, args.get(0)); return source;
+                            case "resolveLivingAttacker": assertEquals(List.of(source), args); return attackerPresent ? attacker : null;
+                            case "hasCombatCurioWithTag":
+                                assertEquals("com/l2hostility_tweaks/util/ImmunityHelper", callOwner);
+                                assertEquals(List.of(attacker, expectedTag), args); return bypass;
+                            case "cancel": assertSame(ci, args.get(0)); ci.cancel(); return null;
+                            default:
+                                assertEquals("com/l2hostility_tweaks/L2HFBypassTags", callOwner);
+                                assertEquals(expectedTag, name); return name;
+                        }
+                    }, new Object(), 2, new Object(), cache, ci);
+                    assertEquals(eventPresent && attackerPresent && bypass, ci.isCancelled());
+                }
+            }
+        }
+    }
+
+    private static void assertDefenseMatches(Path jar, String trait, String hookName) throws Exception {
+        String targetName = "dev/xkmc/l2hostility/content/traits/legendary/" + trait + ".class";
+        try (JarFile file = new JarFile(jar.toFile()); InputStream input = file.getInputStream(file.getJarEntry(targetName))) {
+            ClassNode target = readClass(input);
+            List<String> methods = defenseSelectors(hookName);
+            long matches = methods.stream().flatMap(selector -> target.methods.stream()
+                    .filter(method -> selector.equals(method.name + method.desc))).count();
+            assertEquals(1, matches, trait + " must match exactly one defense callback in " + jar);
+        }
+    }
+
+    private static List<String> defenseSelectors(String hookName) throws Exception {
+        try (InputStream input = AdaptingTraitMixinTest.class.getClassLoader().getResourceAsStream(
+                "com/l2hostility_tweaks/mixin/" + (hookName.contains("dispell") ? "Dispell" : "Dementor") + "TraitMixin.class")) {
+            List<MethodNode> hooks = readClass(input).methods.stream().filter(method -> {
+                AnnotationNode group = annotation(method, "Lorg/spongepowered/asm/mixin/injection/Group;");
+                return group != null && String.valueOf(value(group, "name")).contains("Defense");
+            }).toList();
+            assertEquals(2, hooks.size());
+            for (MethodNode hook : hooks) {
+                AnnotationNode group = annotation(hook, "Lorg/spongepowered/asm/mixin/injection/Group;");
+                assertEquals(1, value(group, "min"));
+                assertEquals(1, value(group, "max"));
+                List<String> calls = new ArrayList<>();
+                for (var instruction : hook.instructions) {
+                    if (instruction instanceof MethodInsnNode call) calls.add(call.name);
+                }
+                assertEquals(1, calls.stream().filter("resolveLivingAttacker"::equals).count());
+                assertEquals(1, calls.stream().filter("hasCombatCurioWithTag"::equals).count());
+                assertTrue(calls.stream().filter("cancel"::equals).count() >= 1);
+            }
+            return hooks.stream().flatMap(hook -> ((List<String>) value(annotation(hook,
+                    "Lorg/spongepowered/asm/mixin/injection/Inject;"), "method")).stream()).toList();
+        }
     }
 
     private static double update(AdaptingTrait.Data data, int level, String id, double perStack, double cap) {

@@ -266,7 +266,9 @@ public class TraitDisableHelper {
 	}
 
 	public static Component buildUndyingLimitDetail(int maxResurrections, int sealDuration) {
-		if (maxResurrections < 0 || sealDuration == 0) return null;
+		if (maxResurrections < 0) return null;
+		if (sealDuration == 0) return Component.translatable(
+				"trait.l2hostility_tweaks.undying.limit_count_only", maxResurrections);
 		if (sealDuration > 0) {
 			return Component.translatable("trait.l2hostility_tweaks.undying.limit_timed",
 					maxResurrections, sealDuration);
@@ -277,7 +279,7 @@ public class TraitDisableHelper {
 
 	public static boolean isUndyingLimitExhausted(int maxResurrections, int currentCount,
 			int sealDuration) {
-		return maxResurrections >= 0 && sealDuration != 0 && currentCount >= maxResurrections;
+		return maxResurrections >= 0 && currentCount >= maxResurrections;
 	}
 
 	public static Registry<MobTrait> getTraitRegistry() {

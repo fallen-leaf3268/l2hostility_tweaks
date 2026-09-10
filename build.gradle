@@ -119,6 +119,7 @@ tasks.register('testAdaptiveLegacy', Test) {
         includeTestsMatching 'com.l2hostility_tweaks.mixin.AdaptingTraitMixinTest'
     }
     systemProperty 'l2htweaks.adaptive.expectedHook', 'onHurtByOthers'
+    systemProperty 'l2htweaks.legacyJar', configurations.adaptiveLegacyRuntime.singleFile
     shouldRunAfter tasks.named('test')
 }
 

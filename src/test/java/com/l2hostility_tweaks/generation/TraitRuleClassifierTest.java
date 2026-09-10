@@ -1,14 +1,32 @@
 package com.l2hostility_tweaks.generation;
 
+import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.generation.view.TraitBlockReason;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TraitRuleClassifierTest {
+    @Test
+    void manualExclusionConflictUsesNonzeroOtherTraitRanks() {
+        var groups = List.of(new L2HConfig.ExclusionGroup(
+                "first", List.of("l2hostility:moonwalk", "l2hostility:gravity")));
+
+        assertEquals("l2hostility:moonwalk", TraitGenerationHelper.findExclusionConflict(
+                "l2hostility:gravity", Map.of("l2hostility:moonwalk", -2), groups));
+        assertNull(TraitGenerationHelper.findExclusionConflict(
+                "l2hostility:gravity", Map.of("l2hostility:moonwalk", 0), groups));
+        assertNull(TraitGenerationHelper.findExclusionConflict(
+                "l2hostility:gravity", Map.of("l2hostility:gravity", 1), groups));
+        assertNull(TraitGenerationHelper.findExclusionConflict(
+                "l2hostility:gravity", Map.of("l2hostility:moonwalk", 1), List.of()));
+    }
+
     @Test
     void reportsEveryIndependentAbsoluteBlock() {
         var context = new TraitRuleClassifier.Context(
