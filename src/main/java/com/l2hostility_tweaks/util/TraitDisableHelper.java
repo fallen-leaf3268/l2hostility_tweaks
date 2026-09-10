@@ -22,12 +22,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.BooleanSupplier;
 
 public class TraitDisableHelper {
-	public static boolean runPositiveHitSideEffect(boolean ordinaryHit, float damage, BooleanSupplier action) {
-		return ordinaryHit && damage > 0 && action.getAsBoolean();
-	}
 
 	public static final String SEAL_EXPIRY_PREFIX = "l2htweaks_seal_expiry_";
 	public static final int MAX_SEAL_STATE_ENTRIES = 1024;

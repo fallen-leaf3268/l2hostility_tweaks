@@ -1,9 +1,13 @@
 package com.l2hostility_tweaks.config;
 
 import com.l2hostility_tweaks.client.config.ClientL2HConfig;
+import com.l2hostility_tweaks.mixin.MixinTestInvoker;
+import com.l2hostility_tweaks.util.TraitDisableHelper;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,19 +17,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class ConfigCacheReloadHandlerTest {
-
-    @Test
-    void ringsBypassConcreteTraitDefenseWithoutLegacyModes() throws IOException {
-        String dispell = Files.readString(Path.of(
-                "src/main/java/com/l2hostility_tweaks/mixin/DispellTraitMixin.java"));
-        String dementor = Files.readString(Path.of(
-                "src/main/java/com/l2hostility_tweaks/mixin/DementorTraitMixin.java"));
-
-        assertTrue(dispell.contains("BYPASSES_DISPELL_ITEM"));
-        assertTrue(dementor.contains("BYPASSES_DEMENTOR_ITEM"));
-    }
 
     @Test
     void undyingCountOnlyModeStillExhaustsAndHasDedicatedTooltip() throws Exception {
@@ -33,15 +30,59 @@ class ConfigCacheReloadHandlerTest {
         assertFalse(com.l2hostility_tweaks.util.TraitDisableHelper.isUndyingLimitExhausted(2, 1, 0));
         assertFalse(com.l2hostility_tweaks.util.TraitDisableHelper.isUndyingLimitExhausted(-1, 100, 0));
         assertTrue(com.l2hostility_tweaks.util.TraitDisableHelper.isUndyingLimitExhausted(0, 0, 0));
-        assertNotNull(com.l2hostility_tweaks.util.TraitDisableHelper.buildUndyingLimitDetail(2, 0));
-        assertNotNull(com.l2hostility_tweaks.util.TraitDisableHelper.buildUndyingLimitDetail(2, 20));
-        assertNotNull(com.l2hostility_tweaks.util.TraitDisableHelper.buildUndyingLimitDetail(2, -1));
+        assertUndyingTooltip(0, "limit_count_only", 2);
+        assertUndyingTooltip(20, "limit_timed", 2, 20);
+        assertUndyingTooltip(-1, "limit_permanent", 2);
         assertTrue(Files.readString(Path.of("src/main/resources/assets/l2hostility_tweaks/lang/zh_cn.json"))
                 .contains("最多触发 %s 次复活"));
         assertTrue(Files.readString(Path.of("src/main/resources/assets/l2hostility_tweaks/lang/en_us.json"))
                 .contains("Allows at most %s resurrections"));
-        String undying = Files.readString(Path.of("src/main/java/com/l2hostility_tweaks/mixin/UndyingTraitMixin.java"));
-        assertTrue(undying.contains("if (duration != 0) l2fix$sealUndying(entity, duration);"));
+    }
+
+    private static void assertUndyingTooltip(int duration, String suffix, Object... arguments) {
+        TranslatableContents contents = assertInstanceOf(TranslatableContents.class,
+                TraitDisableHelper.buildUndyingLimitDetail(2, duration).getContents());
+        assertEquals("trait.l2hostility_tweaks.undying." + suffix, contents.getKey());
+        assertArrayEquals(arguments, contents.getArgs());
+    }
+
+    @Test
+    void actualUndyingCallbacksSkipSealingAtZeroDuration() throws Exception {
+        var owner = MixinTestInvoker.bytecode("com/l2hostility_tweaks/mixin/UndyingTraitMixin");
+        for (String name : List.of("l2fix$limitResurrections", "l2fix$incrementCount")) {
+            var callback = owner.methods.stream().filter(m -> m.name.equals(name)).findFirst().orElseThrow();
+            var inject = callback.visibleAnnotations.stream().filter(a -> a.desc.equals(
+                    "Lorg/spongepowered/asm/mixin/injection/Inject;")).findFirst().orElseThrow();
+            assertEquals(List.of("onDeath"), inject.values.get(inject.values.indexOf("method") + 1));
+            for (int duration : new int[]{0, 20, -1}) {
+                for (int count : new int[]{0, 2}) {
+                    Object entity = new Object(), level = new Object(), data = new Object(), event = new Object();
+                    CallbackInfo ci = new CallbackInfo("onDeath", true);
+                    int[] seals = {0};
+                    MixinTestInvoker.replay(owner, callback, (callOwner, call, args) -> {
+                        switch (call) {
+                            case "level": assertSame(entity, args.get(0)); return level;
+                            case "isClientSide": assertSame(level, args.get(0)); return false;
+                            case "isDisabled": assertSame(entity, args.get(0)); return false;
+                            case "getUndyingMaxResurrections": return 2;
+                            case "getUndyingSealDuration": return duration;
+                            case "getPersistentData": assertSame(entity, args.get(0)); return data;
+                            case "getInt": assertEquals(List.of(data, TraitDisableHelper.UNDYING_COUNT_KEY), args); return count;
+                            case "isUndyingLimitExhausted":
+                                assertEquals(List.of(2, count, duration), args);
+                                return TraitDisableHelper.isUndyingLimitExhausted(2, count, duration);
+                            case "l2fix$sealUndying": assertEquals(List.of(entity, duration), args); seals[0]++; return null;
+                            case "cancel": assertSame(ci, args.get(0)); ci.cancel(); return null;
+                            case "isCanceled": assertSame(event, args.get(0)); return true;
+                            case "syncUndyingCountData": assertEquals(List.of(data, count + 1), args); return null;
+                            default: throw new AssertionError("Unexpected Undying dependency: " + callOwner + "." + call);
+                        }
+                    }, new Object(), 1, entity, event, ci);
+                    assertEquals(count >= 2 && duration != 0 ? 1 : 0, seals[0], name + " duration=" + duration);
+                    assertEquals(name.equals("l2fix$limitResurrections") && count >= 2, ci.isCancelled());
+                }
+            }
+        }
     }
 
     @Test
