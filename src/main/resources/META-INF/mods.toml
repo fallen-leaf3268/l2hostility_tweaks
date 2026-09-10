@@ -26,7 +26,7 @@ description='''${mod_description}'''
 [[dependencies.${mod_id}]]
     modId="l2hostility"
     mandatory=true
-    versionRange="[2.5.4,)"
+    versionRange="[2.5.5,)"
     ordering="AFTER"
     side="BOTH"
 
