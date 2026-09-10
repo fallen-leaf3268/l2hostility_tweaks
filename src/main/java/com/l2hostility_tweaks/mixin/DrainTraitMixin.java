@@ -25,6 +25,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 import java.util.function.IntFunction;
+import com.l2hostility_tweaks.util.TraitDisableHelper;
 
 @Mixin(value = DrainTrait.class, remap = false)
 public class DrainTraitMixin {
@@ -37,7 +38,11 @@ public class DrainTraitMixin {
 	private void l2fix$drainOnHurt(int level, LivingEntity attacker, AttackCache cache,
 									dev.xkmc.l2hostility.content.logic.TraitEffectCache traitCache, CallbackInfo ci) {
 		ci.cancel();
-		((dev.xkmc.l2hostility.content.traits.base.MobTrait)(Object)this).postHurtPlayer(level, attacker, traitCache);
+		var hurt = cache.getLivingHurtEvent();
+		TraitDisableHelper.runPositiveHitSideEffect(hurt != null, hurt == null ? 0 : hurt.getAmount(), () -> {
+			((dev.xkmc.l2hostility.content.traits.base.MobTrait)(Object)this).postHurtPlayer(level, attacker, traitCache);
+			return true;
+		});
 		var target = cache.getAttackTarget();
 		var neg = target.getActiveEffects().stream()
 				.filter(e -> e.getEffect().getCategory() == MobEffectCategory.HARMFUL).count();

@@ -5,9 +5,9 @@ import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.util.ImmunityHelper;
 import dev.xkmc.l2hostility.content.item.traits.EnchantmentDisabler;
 import dev.xkmc.l2hostility.content.traits.legendary.DispellTrait;
+import dev.xkmc.l2damagetracker.contents.attack.AttackCache;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -16,8 +16,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.Group;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +26,8 @@ import java.util.function.IntFunction;
 @Mixin(value = DispellTrait.class, remap = false)
 public class DispellTraitMixin {
 
-	@Inject(method = "onAttackedByOthers", at = @At("HEAD"), cancellable = true, remap = false)
+	@Group(name = "l2fix$dispellDefense", min = 1, max = 1)
+	@Inject(method = "onAttackedByOthers(ILnet/minecraft/world/entity/LivingEntity;Lnet/minecraftforge/event/entity/living/LivingAttackEvent;)V", at = @At("HEAD"), cancellable = true, remap = false, require = 0, expect = 0)
 	private void l2fix$bypassDispellDefense(int level, LivingEntity entity, LivingAttackEvent event, CallbackInfo ci) {
 		var attacker = ImmunityHelper.resolveLivingAttacker(event.getSource());
 		if (attacker != null && ImmunityHelper.hasCombatCurioWithTag(attacker, L2HFBypassTags.BYPASSES_DISPELL_ITEM)) {
@@ -35,13 +36,13 @@ public class DispellTraitMixin {
 		}
 	}
 
-	@Inject(method = "modifyBonusDamage", at = @At("HEAD"), cancellable = true, remap = false)
-	private void l2fix$bypassDispellReduction(DamageSource source, double factor, int level,
-	                                         CallbackInfoReturnable<Double> cir) {
-		var attacker = ImmunityHelper.resolveLivingAttacker(source);
-		if (attacker != null && ImmunityHelper.hasCombatCurioWithTag(attacker, L2HFBypassTags.BYPASSES_DISPELL_ITEM)) {
-			cir.setReturnValue(1.0D);
-		}
+	@Group(name = "l2fix$dispellDefense", min = 1, max = 1)
+	@Inject(method = "onDamaged(ILnet/minecraft/world/entity/LivingEntity;Ldev/xkmc/l2damagetracker/contents/attack/AttackCache;)V", at = @At("HEAD"), cancellable = true, remap = false, require = 0, expect = 0)
+	private void l2fix$dispellDefense(int level, LivingEntity entity, AttackCache cache, CallbackInfo ci) {
+		var event = cache.getLivingDamageEvent();
+		if (event == null) return;
+		var attacker = ImmunityHelper.resolveLivingAttacker(event.getSource());
+		if (attacker != null && ImmunityHelper.hasCombatCurioWithTag(attacker, L2HFBypassTags.BYPASSES_DISPELL_ITEM)) ci.cancel();
 	}
 
 	@Inject(method = "postHurtImpl", at = @At("HEAD"), cancellable = true)

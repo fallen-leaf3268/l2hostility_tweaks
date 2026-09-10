@@ -22,8 +22,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.BooleanSupplier;
 
 public class TraitDisableHelper {
+	public static boolean runPositiveHitSideEffect(boolean ordinaryHit, float damage, BooleanSupplier action) {
+		return ordinaryHit && damage > 0 && action.getAsBoolean();
+	}
 
 	public static final String SEAL_EXPIRY_PREFIX = "l2htweaks_seal_expiry_";
 	public static final int MAX_SEAL_STATE_ENTRIES = 1024;
@@ -266,7 +270,9 @@ public class TraitDisableHelper {
 	}
 
 	public static Component buildUndyingLimitDetail(int maxResurrections, int sealDuration) {
-		if (maxResurrections < 0 || sealDuration == 0) return null;
+		if (maxResurrections < 0) return null;
+		if (sealDuration == 0) return Component.translatable(
+				"trait.l2hostility_tweaks.undying.limit_count_only", maxResurrections);
 		if (sealDuration > 0) {
 			return Component.translatable("trait.l2hostility_tweaks.undying.limit_timed",
 					maxResurrections, sealDuration);
@@ -277,7 +283,7 @@ public class TraitDisableHelper {
 
 	public static boolean isUndyingLimitExhausted(int maxResurrections, int currentCount,
 			int sealDuration) {
-		return maxResurrections >= 0 && sealDuration != 0 && currentCount >= maxResurrections;
+		return maxResurrections >= 0 && currentCount >= maxResurrections;
 	}
 
 	public static Registry<MobTrait> getTraitRegistry() {

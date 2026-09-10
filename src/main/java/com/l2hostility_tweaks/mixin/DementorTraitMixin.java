@@ -4,23 +4,24 @@ import com.l2hostility_tweaks.L2HFBypassTags;
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.util.ImmunityHelper;
 import dev.xkmc.l2damagetracker.contents.attack.CreateSourceEvent;
+import dev.xkmc.l2damagetracker.contents.attack.AttackCache;
 import dev.xkmc.l2damagetracker.init.data.L2DamageTypes;
 import dev.xkmc.l2hostility.content.traits.legendary.DementorTrait;
 import net.minecraft.tags.DamageTypeTags;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Group;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = DementorTrait.class, remap = false)
 public class DementorTraitMixin {
 
-	@Inject(method = "onAttackedByOthers", at = @At("HEAD"), cancellable = true, remap = false)
+	@Group(name = "l2fix$dementorDefense", min = 1, max = 1)
+	@Inject(method = "onAttackedByOthers(ILnet/minecraft/world/entity/LivingEntity;Lnet/minecraftforge/event/entity/living/LivingAttackEvent;)V", at = @At("HEAD"), cancellable = true, remap = false, require = 0, expect = 0)
 	private void l2fix$dementorDefense(int level, LivingEntity entity, LivingAttackEvent event, CallbackInfo ci) {
 		var attacker = ImmunityHelper.resolveLivingAttacker(event.getSource());
 		if (attacker != null && ImmunityHelper.hasCombatCurioWithTag(attacker, L2HFBypassTags.BYPASSES_DEMENTOR_ITEM)) {
@@ -38,13 +39,13 @@ public class DementorTraitMixin {
 		}
 	}
 
-	@Inject(method = "modifyBonusDamage", at = @At("HEAD"), cancellable = true, remap = false)
-	private void l2fix$bypassDementorReduction(DamageSource source, double factor, int level,
-	                                          CallbackInfoReturnable<Double> cir) {
-		var attacker = ImmunityHelper.resolveLivingAttacker(source);
-		if (attacker != null && ImmunityHelper.hasCombatCurioWithTag(attacker, L2HFBypassTags.BYPASSES_DEMENTOR_ITEM)) {
-			cir.setReturnValue(1.0D);
-		}
+	@Group(name = "l2fix$dementorDefense", min = 1, max = 1)
+	@Inject(method = "onDamaged(ILnet/minecraft/world/entity/LivingEntity;Ldev/xkmc/l2damagetracker/contents/attack/AttackCache;)V", at = @At("HEAD"), cancellable = true, remap = false, require = 0, expect = 0)
+	private void l2fix$dementorDefenseModern(int level, LivingEntity entity, AttackCache cache, CallbackInfo ci) {
+		var event = cache.getLivingDamageEvent();
+		if (event == null) return;
+		var attacker = ImmunityHelper.resolveLivingAttacker(event.getSource());
+		if (attacker != null && ImmunityHelper.hasCombatCurioWithTag(attacker, L2HFBypassTags.BYPASSES_DEMENTOR_ITEM)) ci.cancel();
 	}
 
 	@Inject(method = "onCreateSource", at = @At("HEAD"), cancellable = true, remap = false)

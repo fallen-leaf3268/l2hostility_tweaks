@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.DoubleSupplier;
+import java.util.function.BooleanSupplier;
 import java.util.function.IntUnaryOperator;
 import java.util.jar.JarFile;
 
@@ -135,6 +136,74 @@ class AdaptingTraitMixinTest {
         assertEquals(1f, resolve(true, false, unused));
         assertNull(resolve(false, false, unused));
         assertEquals(0.05f, resolve(false, true, () -> 0.95), 1e-7f);
+    }
+
+    @Test
+    void combatMixinsMatchOneDefenseEntryInEachSupportedVersion() throws Exception {
+        Path modern = Path.of("libs/l2hostility-adaptive-regression.jar");
+        Path legacy = Path.of(System.getProperty("l2htweaks.legacyJar", modern.toString()));
+        assertDefenseMatches(modern, "DispellTrait", "l2fix$dispellDefense");
+        assertDefenseMatches(modern, "DementorTrait", "l2fix$dementorDefense");
+        assertDefenseMatches(legacy, "DispellTrait", "l2fix$dispellDefense");
+        assertDefenseMatches(legacy, "DementorTrait", "l2fix$dementorDefense");
+    }
+
+    @Test
+    void sealedBonusSkipsTraitInvocation() {
+        DoubleSupplier unused = () -> { throw new AssertionError("inactive trait must not run"); };
+        assertEquals(1D, MixinTestInvoker.call(LHAttackListenerMixin.class,
+                "l2fix$resolveBonus", 0, unused));
+        assertEquals(1D, MixinTestInvoker.call(LHAttackListenerMixin.class,
+                "l2fix$resolveBonus", -2, unused));
+        assertEquals(0.75D, MixinTestInvoker.call(LHAttackListenerMixin.class,
+                "l2fix$resolveBonus", 2, (DoubleSupplier) () -> 0.75D));
+    }
+
+    @Test
+    void drainSideEffectsOnlyRunForOrdinaryPositiveHits() {
+        BooleanSupplier unused = () -> { throw new AssertionError("skipped hit must not run"); };
+        assertFalse(com.l2hostility_tweaks.util.TraitDisableHelper.runPositiveHitSideEffect(false, 3F, unused));
+        assertFalse(com.l2hostility_tweaks.util.TraitDisableHelper.runPositiveHitSideEffect(true, 0F, unused));
+        int[] calls = {0};
+        assertTrue(com.l2hostility_tweaks.util.TraitDisableHelper.runPositiveHitSideEffect(true, 3F,
+                (BooleanSupplier) () -> { calls[0]++; return true; }));
+        assertEquals(1, calls[0]);
+    }
+
+    private static void assertDefenseMatches(Path jar, String trait, String hookName) throws Exception {
+        String targetName = "dev/xkmc/l2hostility/content/traits/legendary/" + trait + ".class";
+        try (JarFile file = new JarFile(jar.toFile()); InputStream input = file.getInputStream(file.getJarEntry(targetName))) {
+            ClassNode target = readClass(input);
+            List<String> methods = defenseSelectors(hookName);
+            long matches = methods.stream().flatMap(selector -> target.methods.stream()
+                    .filter(method -> selector.equals(method.name + method.desc))).count();
+            assertEquals(1, matches, trait + " must match exactly one defense callback in " + jar);
+        }
+    }
+
+    private static List<String> defenseSelectors(String hookName) throws Exception {
+        try (InputStream input = AdaptingTraitMixinTest.class.getClassLoader().getResourceAsStream(
+                "com/l2hostility_tweaks/mixin/" + (hookName.contains("dispell") ? "Dispell" : "Dementor") + "TraitMixin.class")) {
+            List<MethodNode> hooks = readClass(input).methods.stream().filter(method -> {
+                AnnotationNode group = annotation(method, "Lorg/spongepowered/asm/mixin/injection/Group;");
+                return group != null && String.valueOf(value(group, "name")).contains("Defense");
+            }).toList();
+            assertEquals(2, hooks.size());
+            for (MethodNode hook : hooks) {
+                AnnotationNode group = annotation(hook, "Lorg/spongepowered/asm/mixin/injection/Group;");
+                assertEquals(1, value(group, "min"));
+                assertEquals(1, value(group, "max"));
+                List<String> calls = new ArrayList<>();
+                for (var instruction : hook.instructions) {
+                    if (instruction instanceof MethodInsnNode call) calls.add(call.name);
+                }
+                assertEquals(1, calls.stream().filter("resolveLivingAttacker"::equals).count());
+                assertEquals(1, calls.stream().filter("hasCombatCurioWithTag"::equals).count());
+                assertTrue(calls.stream().filter("cancel"::equals).count() >= 1);
+            }
+            return hooks.stream().flatMap(hook -> ((List<String>) value(annotation(hook,
+                    "Lorg/spongepowered/asm/mixin/injection/Inject;"), "method")).stream()).toList();
+        }
     }
 
     private static double update(AdaptingTrait.Data data, int level, String id, double perStack, double cap) {

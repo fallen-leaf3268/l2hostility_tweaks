@@ -28,7 +28,7 @@ public class UndyingTraitMixin {
 		int duration = L2HConfig.getUndyingSealDuration();
 		int count = entity.getPersistentData().getInt(TraitDisableHelper.UNDYING_COUNT_KEY);
 		if (TraitDisableHelper.isUndyingLimitExhausted(max, count, duration)) {
-			l2fix$sealUndying(entity, duration);
+			if (duration != 0) l2fix$sealUndying(entity, duration);
 			ci.cancel();
 		}
 	}
