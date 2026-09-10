@@ -16,6 +16,7 @@ import dev.xkmc.l2complements.content.feature.CurioFeaturePredicate;
 import dev.xkmc.l2complements.content.feature.EntityFeature;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
 import com.l2hostility_tweaks.util.ImmunityHelper;
+import com.l2hostility_tweaks.util.LegendaryTraitClassifier;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.init.data.LHConfig;
 import dev.xkmc.l2hostility.init.registrate.LHItems;
@@ -94,7 +95,10 @@ public class L2HostilityFix {
     }
 
     private void onCommonSetup(FMLCommonSetupEvent event) {
-        event.enqueueWork(() -> AttackEventHandler.register(4500, new RingDamageListener()));
+        event.enqueueWork(() -> {
+            AttackEventHandler.register(4500, new RingDamageListener());
+            LegendaryTraitClassifier.validateConfiguredIds();
+        });
     }
 
 	private void onBuildCreativeTab(BuildCreativeModeTabContentsEvent event) {
@@ -106,6 +110,7 @@ public class L2HostilityFix {
     private void onConfigReload(ModConfigEvent.Reloading event) {
         ConfigCacheReloadHandler.invalidate(event.getConfig().getSpec());
         if (event.getConfig().getSpec() == L2HConfig.SPEC) {
+            LegendaryTraitClassifier.validateConfiguredIds();
             TraitSpawnIndexService.INSTANCE.requestRebuild();
             NetworkHandler.broadcastDisplayConfig();
         }

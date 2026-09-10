@@ -2,10 +2,10 @@ package com.l2hostility_tweaks.generation;
 
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.config.L2HConfig.ExclusionGroup;
+import com.l2hostility_tweaks.util.LegendaryTraitClassifier;
 import dev.xkmc.l2hostility.init.L2Hostility;
 import dev.xkmc.l2hostility.content.config.EntityConfig;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
-import dev.xkmc.l2hostility.content.traits.legendary.LegendaryTrait;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
@@ -62,13 +62,12 @@ public class TraitGenerationHelper {
         if (protectedIds == null) protectedIds = Collections.emptySet();
 
         if (L2HConfig.COMMON.legendaryEnabled.get()) {
-            Set<String> extraLegendaryIds = L2HConfig.getExtraLegendaryIds();
             if (difficulty < L2HConfig.COMMON.legendaryUnlimited.get()) {
                 int maxAllowed = L2HConfig.getThreshold(L2HConfig.getLegendaryThresholds(), difficulty);
                 List<Map.Entry<MobTrait, Integer>> legendaries = new ArrayList<>();
                 for (Map.Entry<MobTrait, Integer> entry : traits.entrySet()) {
                     String id = entry.getKey().getID();
-                    boolean isLegendary = entry.getKey() instanceof LegendaryTrait || extraLegendaryIds.contains(id);
+                    boolean isLegendary = LegendaryTraitClassifier.isLegendary(entry.getKey());
                     if (isLegendary && !protectedIds.contains(id) && entry.getValue() > 0) {
                         legendaries.add(entry);
                     }
