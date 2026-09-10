@@ -43,12 +43,17 @@ public class L2HHealthOverlay implements IGuiOverlay {
 	private static long renderFrameToken;
 	private static long precomputedFrameToken = -1L;
 
-	record HudState(boolean hudActive, boolean hideBossBars) {}
+	record HudState(boolean showTraits, boolean showHealth, boolean hideBossBars) {
+		boolean hudActive() {
+			return showHealth;
+		}
+	}
 
 	static HudState l2fix$resolveHudState(boolean hasValidTarget,
 			boolean bossEventsActive, boolean hideHudWithBossbar) {
-		boolean showCustomHud = hasValidTarget && !(hideHudWithBossbar && bossEventsActive);
-		return new HudState(showCustomHud, showCustomHud);
+		boolean showTraits = hasValidTarget;
+		boolean showHealth = hasValidTarget && !(hideHudWithBossbar && bossEventsActive);
+		return new HudState(showTraits, showHealth, showHealth);
 	}
 
 	private static final int BAR_H = 3;
@@ -119,7 +124,7 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		hudActive = state.hudActive();
 		hideBossBars = state.hideBossBars();
 		trackedEntityId = state.hudActive() ? target.get().getId() : -1;
-		if (state.hudActive()) renderHealthBar(g, target.get());
+		if (state.showTraits()) renderTargetHud(g, target.get(), state);
 	}
 
 	public static void beginRenderFrame() {
@@ -197,22 +202,11 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		return blockHit.getType() == HitResult.Type.MISS ? reachVec : blockHit.getLocation();
 	}
 
-	private void renderHealthBar(GuiGraphics g, LivingEntity entity) {
+	private void renderTargetHud(GuiGraphics g, LivingEntity entity, HudState state) {
 		MobTraitCap cap = MobTraitCap.HOLDER.get(entity);
 		if (cap == null) return;
 
 		int barW = ClientL2HConfig.CLIENT.hudBarWidth.get();
-		if (barW != cachedBarW) {
-			recomputeGeometry(barW);
-			cachedColor = -1;
-		}
-
-		int color = getDifficultyColor(cap.lv);
-		float grad = ClientL2HConfig.CLIENT.gradientStrength.get().floatValue();
-		if (color != cachedColor || grad != cachedGrad) {
-			recomputeGradient(color, grad, barW);
-		}
-
 		int traitHash = traitFingerprint(cap);
 		boolean romanNumerals = ClientL2HConfig.CLIENT.romanNumerals.get();
 		Set<String> extraLegendaryIds = L2HConfig.getDisplayExtraLegendaryIds();
@@ -231,57 +225,70 @@ public class L2HHealthOverlay implements IGuiOverlay {
 
 		float barX = xOff + screenW / 2f - barW / 2f;
 		float barY = yOff + 27;
-		int bx = (int)(barX * SCALE);
-		int by = (int)(barY * SCALE - INTERNAL_FULL_H / 2);
-
-		float curFrac = entity.getHealth() / entity.getMaxHealth();
-		if (entity.getId() != trackedId) {
-			trackedId = entity.getId();
-			displayFrac = curFrac;
-			actualFrac = curFrac;
-			accumDamage = 0;
-		} else {
-			if (curFrac < actualFrac - 0.001f) {
-				accumDamage += actualFrac - curFrac;
-				lastDamageTime = System.currentTimeMillis();
+		if (state.showHealth()) {
+			if (barW != cachedBarW) {
+				recomputeGeometry(barW);
+				cachedColor = -1;
 			}
-			actualFrac = curFrac;
-			long elapsed = System.currentTimeMillis() - lastDamageTime;
-			if (elapsed > FLASH_MS) {
-				float speed = BASE_DRAIN + accumDamage * DRAIN_SCALE;
-				accumDamage = Math.max(0, accumDamage - speed * (elapsed - FLASH_MS) / 1000f);
+
+			int color = getDifficultyColor(cap.lv);
+			float grad = ClientL2HConfig.CLIENT.gradientStrength.get().floatValue();
+			if (color != cachedColor || grad != cachedGrad) {
+				recomputeGradient(color, grad, barW);
 			}
-			displayFrac = Math.min(1f, actualFrac + accumDamage);
+
+			int bx = (int)(barX * SCALE);
+			int by = (int)(barY * SCALE - INTERNAL_FULL_H / 2);
+
+			float curFrac = entity.getHealth() / entity.getMaxHealth();
+			if (entity.getId() != trackedId) {
+				trackedId = entity.getId();
+				displayFrac = curFrac;
+				actualFrac = curFrac;
+				accumDamage = 0;
+			} else {
+				if (curFrac < actualFrac - 0.001f) {
+					accumDamage += actualFrac - curFrac;
+					lastDamageTime = System.currentTimeMillis();
+				}
+				actualFrac = curFrac;
+				long elapsed = System.currentTimeMillis() - lastDamageTime;
+				if (elapsed > FLASH_MS) {
+					float speed = BASE_DRAIN + accumDamage * DRAIN_SCALE;
+					accumDamage = Math.max(0, accumDamage - speed * (elapsed - FLASH_MS) / 1000f);
+				}
+				displayFrac = Math.min(1f, actualFrac + accumDamage);
+			}
+
+			int actualPx = (int)(actualFrac * barW);
+			int dispPx = (int)(displayFrac * barW);
+
+			var pose = g.pose();
+			pose.pushPose();
+			pose.scale(1f / SCALE, 1f / SCALE, 1f);
+
+			if (dispPx > 0) {
+				fillRun(g, 0, dispPx, bx, by, 0x40000000, SHADOW_DY * SCALE, 0);
+			}
+
+			fillRun(g, 0, barW, bx, by, 0xFF000000, -SCALE, 0);
+			fillRun(g, 0, barW, bx, by, 0xFF000000, 0, SCALE);
+
+			fillColorRun(g, 0, Math.min(actualPx, barW), bx, by, 0);
+			fillColorRun(g, actualPx, Math.min(dispPx, barW), bx, by, 0xFFFFFFFF);
+			fillColorRun(g, Math.max(dispPx, 0), barW, bx, by, 0x80000000);
+
+			int leftTop = by + topOff[0] - SCALE;
+			int leftBot = by + topOff[0] + segH[0] + SCALE;
+			g.fill(bx - SCALE, leftTop, bx, leftBot, 0xFF000000);
+			int rightTop = by + topOff[barW - 1] - SCALE;
+			int rightBot = by + topOff[barW - 1] + segH[barW - 1] + SCALE;
+			g.fill(bx + barW * SCALE, rightTop, bx + (barW + 1) * SCALE, rightBot, 0xFF000000);
+
+			pose.popPose();
+
+			renderHeader(g, entity, cap, barX, barY, barW, screenW, xOff, color);
 		}
-
-		int actualPx = (int)(actualFrac * barW);
-		int dispPx = (int)(displayFrac * barW);
-
-		var pose = g.pose();
-		pose.pushPose();
-		pose.scale(1f / SCALE, 1f / SCALE, 1f);
-
-		if (dispPx > 0) {
-			fillRun(g, 0, dispPx, bx, by, 0x40000000, SHADOW_DY * SCALE, 0);
-		}
-
-		fillRun(g, 0, barW, bx, by, 0xFF000000, -SCALE, 0);
-		fillRun(g, 0, barW, bx, by, 0xFF000000, 0, SCALE);
-
-		fillColorRun(g, 0, Math.min(actualPx, barW), bx, by, 0);
-		fillColorRun(g, actualPx, Math.min(dispPx, barW), bx, by, 0xFFFFFFFF);
-		fillColorRun(g, Math.max(dispPx, 0), barW, bx, by, 0x80000000);
-
-		int leftTop = by + topOff[0] - SCALE;
-		int leftBot = by + topOff[0] + segH[0] + SCALE;
-		g.fill(bx - SCALE, leftTop, bx, leftBot, 0xFF000000);
-		int rightTop = by + topOff[barW - 1] - SCALE;
-		int rightBot = by + topOff[barW - 1] + segH[barW - 1] + SCALE;
-		g.fill(bx + barW * SCALE, rightTop, bx + (barW + 1) * SCALE, rightBot, 0xFF000000);
-
-		pose.popPose();
-
-		renderHeader(g, entity, cap, barX, barY, barW, screenW, xOff, color);
 		renderTraitLines(g, barX, barY, barW, screenW, xOff);
 	}
 

@@ -4,12 +4,15 @@ import com.l2hostility_tweaks.client.config.ClientL2HConfig;
 import com.l2hostility_tweaks.mixin.MixinTestInvoker;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
 import net.minecraft.network.chat.contents.TranslatableContents;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -24,6 +27,90 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class ConfigCacheReloadHandlerTest {
+
+    @Test
+    void hudStateSeparatesTraitsHealthAndVanillaBossSuppression() throws Exception {
+        Class<?> overlay = Class.forName("com.l2hostility_tweaks.client.L2HHealthOverlay");
+        Method resolve = overlay.getDeclaredMethod(
+                "l2fix$resolveHudState", boolean.class, boolean.class, boolean.class);
+        resolve.setAccessible(true);
+        for (boolean valid : new boolean[]{false, true}) {
+            for (boolean boss : new boolean[]{false, true}) {
+                for (boolean preference : new boolean[]{false, true}) {
+                    Object state = resolve.invoke(null, valid, boss, preference);
+                    assertEquals(valid, hudStateFlag(state, "showTraits"),
+                            "traits: valid=" + valid + ", boss=" + boss + ", preference=" + preference);
+                    boolean expectedHealth = valid && !(preference && boss);
+                    assertEquals(expectedHealth, hudStateFlag(state, "showHealth"),
+                            "health: valid=" + valid + ", boss=" + boss + ", preference=" + preference);
+                    assertEquals(expectedHealth, hudStateFlag(state, "hideBossBars"),
+                            "boss: valid=" + valid + ", boss=" + boss + ", preference=" + preference);
+                }
+            }
+        }
+    }
+
+    private static boolean hudStateFlag(Object state, String name) throws Exception {
+        Method accessor = state.getClass().getDeclaredMethod(name);
+        accessor.setAccessible(true);
+        return (boolean) accessor.invoke(state);
+    }
+
+    @Test
+    void traitsOnlyRenderPathSkipsHealthAndHeaderButStillDrawsTraitLines() throws Exception {
+        var owner = MixinTestInvoker.bytecode("com/l2hostility_tweaks/client/L2HHealthOverlay");
+        var publicRender = owner.methods.stream().filter(method -> method.name.equals("render"))
+                .findFirst().orElseThrow();
+        MethodInsnNode traitsFlag = findMethodCall(publicRender.instructions.getFirst(), "showTraits");
+        assertNotNull(traitsFlag, "outer render path must branch on showTraits instead of health visibility");
+        AbstractInsnNode traitsBranchInstruction = nextExecutable(traitsFlag);
+        JumpInsnNode traitsBranch = assertInstanceOf(JumpInsnNode.class, traitsBranchInstruction);
+        assertEquals(org.objectweb.asm.Opcodes.IFEQ, traitsBranch.getOpcode());
+        assertTrue(methodCallsUntilReturn(traitsBranch.getNext()).contains("renderTargetHud"));
+
+        var render = owner.methods.stream().filter(method -> method.name.equals("renderTargetHud"))
+                .findFirst().orElseThrow();
+        MethodInsnNode healthFlag = findMethodCall(render.instructions.getFirst(), "showHealth");
+        assertNotNull(healthFlag, "render path must branch on showHealth");
+        AbstractInsnNode branchInstruction = nextExecutable(healthFlag);
+        JumpInsnNode branch = assertInstanceOf(JumpInsnNode.class, branchInstruction);
+        assertEquals(org.objectweb.asm.Opcodes.IFEQ, branch.getOpcode());
+
+        List<String> traitsOnlyCalls = methodCallsUntilReturn(branch.label);
+        assertTrue(traitsOnlyCalls.contains("renderTraitLines"));
+        assertFalse(traitsOnlyCalls.contains("renderHeader"));
+        assertFalse(traitsOnlyCalls.contains("fillRun"));
+
+        List<String> healthCalls = methodCallsUntilReturn(branch.getNext());
+        assertTrue(healthCalls.contains("renderHeader"));
+        assertTrue(healthCalls.contains("renderTraitLines"));
+        assertTrue(healthCalls.contains("fillRun"));
+    }
+
+    private static MethodInsnNode findMethodCall(AbstractInsnNode start, String name) {
+        for (AbstractInsnNode instruction = start; instruction != null;
+             instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode call && call.name.equals(name)) return call;
+        }
+        return null;
+    }
+
+    private static AbstractInsnNode nextExecutable(AbstractInsnNode instruction) {
+        do {
+            instruction = instruction.getNext();
+        } while (instruction != null && instruction.getOpcode() < 0);
+        return instruction;
+    }
+
+    private static List<String> methodCallsUntilReturn(AbstractInsnNode start) {
+        List<String> calls = new ArrayList<>();
+        for (AbstractInsnNode instruction = start; instruction != null;
+             instruction = instruction.getNext()) {
+            if (instruction instanceof MethodInsnNode call) calls.add(call.name);
+            if (instruction.getOpcode() == org.objectweb.asm.Opcodes.RETURN) break;
+        }
+        return calls;
+    }
 
     @Test
     void manualSymbolEntrypointsCheckSharedConflictBeforeEarlyReturnsAndMutation() throws Exception {
