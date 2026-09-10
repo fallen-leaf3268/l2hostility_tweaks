@@ -3,11 +3,11 @@ package com.l2hostility_tweaks.client;
 import com.l2hostility_tweaks.client.config.ClientL2HConfig;
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.mixin.BossHealthOverlayAccessor;
+import com.l2hostility_tweaks.util.LegendaryTraitClassifier;
 import com.l2hostility_tweaks.util.RomanNumeral;
 
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
-import dev.xkmc.l2hostility.content.traits.legendary.LegendaryTrait;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.locale.Language;
@@ -219,7 +219,7 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		Language language = Language.getInstance();
 		if (cachedTraitKey == null || !cachedTraitKey.matches(entity.getId(), traitHash, barW,
 				romanNumerals, extraLegendaryIds, language)) {
-			scanTraits(cap, barW, extraLegendaryIds);
+            scanTraits(cap, barW);
 			cachedTraitKey = new TraitCacheKey(entity.getId(), traitHash, barW,
 					romanNumerals, extraLegendaryIds, language);
 		}
@@ -408,7 +408,7 @@ public class L2HHealthOverlay implements IGuiOverlay {
 		return h;
 	}
 
-	private void scanTraits(MobTraitCap cap, int barW, Set<String> extraIds) {
+	private void scanTraits(MobTraitCap cap, int barW) {
 		this.cachedRealityLv = 0;
 		this.cachedRealityIcon = null;
 		this.cachedLegendIcons = new ArrayList<>();
@@ -420,7 +420,7 @@ public class L2HHealthOverlay implements IGuiOverlay {
 				cachedRealityIcon = iconReuse.computeIfAbsent(id,
 						k -> new ItemStack(entry.getKey().asItem()));
 			}
-			if (entry.getKey() instanceof LegendaryTrait || extraIds.contains(id)) {
+			if (LegendaryTraitClassifier.isDisplayLegendary(entry.getKey())) {
 				cachedLegendIcons.add(iconReuse.computeIfAbsent(id,
 						k -> new ItemStack(entry.getKey().asItem())));
 			}

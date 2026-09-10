@@ -181,12 +181,12 @@ class ConfigCacheReloadHandlerTest {
         assertTrue(tooltip.contains("L2HConfig.getDisplayAntiReprintReduction()"));
         assertTrue(tooltip.contains("L2HConfig.getDisplayBottleOfCurseLevel()"));
         assertTrue(mod.contains("LHConfig.COMMON.bottleOfCurseLevel.get()"));
-        assertTrue(hud.contains("L2HConfig.getDisplayExtraLegendaryIds()"));
+        assertTrue(hud.contains("LegendaryTraitClassifier.isDisplayLegendary("));
         assertTrue(screen.contains("L2HConfig.isDisplayPlayerSelfTraitBalanceEnabled()"));
         assertTrue(screen.contains("L2HConfig.getDisplayPlayerSelfTraitBudgetRatio()"));
         assertTrue(screen.contains("L2HConfig.getDisplayPlayerTraitOverrides()"));
         assertTrue(screen.contains("L2HConfig.getDisplayUpgradeCost("));
-        assertTrue(symbol.contains("L2HConfig.getDisplayExtraLegendaryIds()"));
+        assertTrue(symbol.contains("LegendaryTraitClassifier.isDisplayExtraLegendary("));
         assertTrue(symbol.contains("L2HConfig.isDisplayExclusionEnabled()"));
         assertTrue(symbol.contains("L2HConfig.getDisplayExclusionGroups()"));
         assertTrue(symbol.contains("L2HConfig.getDisplayPlayerTraitOverrides()"));

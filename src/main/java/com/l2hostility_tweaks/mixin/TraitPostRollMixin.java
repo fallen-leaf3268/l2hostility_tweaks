@@ -2,12 +2,12 @@ package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.generation.TraitGenerationHelper;
+import com.l2hostility_tweaks.util.LegendaryTraitClassifier;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.config.EntityConfig;
 import dev.xkmc.l2hostility.content.logic.MobDifficultyCollector;
 import dev.xkmc.l2hostility.content.logic.TraitGenerator;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
-import dev.xkmc.l2hostility.content.traits.legendary.LegendaryTrait;
 import net.minecraft.world.entity.LivingEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,9 +68,6 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
 
     @Unique
     private Map<String, int[]> l2fix$perTraitCaps;
-
-    @Unique
-    private Set<String> l2fix$extraLegendaryIds;
 
     @Inject(method = "generateTraits", at = @At("HEAD"), cancellable = true, require = 1)
     private static void l2fix$disableAllTraitGeneration(
@@ -163,7 +160,7 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
         // === Legendary limit ===
         if (L2HConfig.COMMON.legendaryEnabled.get() && capped > 0) {
             String id = trait.getID();
-            boolean isLegendary = trait instanceof LegendaryTrait || l2fix$extraLegendaryIds.contains(id);
+            boolean isLegendary = LegendaryTraitClassifier.isLegendary(trait);
             if (isLegendary && !l2fix$protectedIds.contains(id)) {
                 int diff = l2fix$mobLevel;
                 if (diff < L2HConfig.COMMON.legendaryUnlimited.get()) {
@@ -205,15 +202,13 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
         l2fix$globalLevelCap = L2HConfig.getThreshold(
                 L2HConfig.getLevelThresholds(), l2fix$mobLevel);
         l2fix$perTraitCaps = L2HConfig.getPerTraitThresholds();
-        l2fix$extraLegendaryIds = L2HConfig.getExtraLegendaryIds();
-
-        L2FIX$LOG.debug("[EnsureInit] mobLevel={}, globalLevelCap={}, protectedIds={}, extraLegendaryIds={}",
-                l2fix$mobLevel, l2fix$globalLevelCap, l2fix$protectedIds, l2fix$extraLegendaryIds);
+        L2FIX$LOG.debug("[EnsureInit] mobLevel={}, globalLevelCap={}, protectedIds={}",
+                l2fix$mobLevel, l2fix$globalLevelCap, l2fix$protectedIds);
 
         if (traits != null && L2HConfig.COMMON.legendaryEnabled.get()) {
             for (Map.Entry<MobTrait, Integer> e : traits.entrySet()) {
                 String id = e.getKey().getID();
-                boolean isLegendary = e.getKey() instanceof LegendaryTrait || l2fix$extraLegendaryIds.contains(id);
+                boolean isLegendary = LegendaryTraitClassifier.isLegendary(e.getKey());
                 if (e.getValue() > 0 && isLegendary && !l2fix$protectedIds.contains(id)) {
                     l2fix$nonProtectedLegendaryCount++;
                 }

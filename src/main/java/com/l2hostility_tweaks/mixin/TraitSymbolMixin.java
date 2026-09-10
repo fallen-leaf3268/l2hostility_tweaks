@@ -2,11 +2,11 @@ package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.config.L2HConfig;
 import com.l2hostility_tweaks.util.ImmunityHelper;
+import com.l2hostility_tweaks.util.LegendaryTraitClassifier;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.item.traits.TraitSymbol;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
-import dev.xkmc.l2hostility.content.traits.legendary.LegendaryTrait;
 import dev.xkmc.l2hostility.init.data.LangData;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Registry;
@@ -26,7 +26,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Mixin(value = TraitSymbol.class, remap = false)
 public class TraitSymbolMixin {
@@ -80,15 +79,12 @@ public class TraitSymbolMixin {
 		MobTrait trait = ((TraitSymbol) (Object) this).get();
 		if (trait.isBanned()) return;
 
-		if (!(trait instanceof LegendaryTrait)) {
-			Set<String> extraIds = L2HConfig.getDisplayExtraLegendaryIds();
-			if (!extraIds.isEmpty() && extraIds.contains(trait.getID())) {
-				if (tooltip.size() < 2) {
-					tooltip.add(LangData.TOOLTIP_LEGENDARY.get().withStyle(ChatFormatting.GOLD));
-				} else {
-					tooltip.add(2, LangData.TOOLTIP_LEGENDARY.get().withStyle(ChatFormatting.GOLD));
-				}
-				}
+		if (LegendaryTraitClassifier.isDisplayExtraLegendary(trait)) {
+			if (tooltip.size() < 2) {
+				tooltip.add(LangData.TOOLTIP_LEGENDARY.get().withStyle(ChatFormatting.GOLD));
+			} else {
+				tooltip.add(2, LangData.TOOLTIP_LEGENDARY.get().withStyle(ChatFormatting.GOLD));
+			}
 		}
 
 		if (!L2HConfig.isDisplayPlayerSelfTraitEnabled()) {

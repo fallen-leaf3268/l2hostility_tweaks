@@ -35,12 +35,20 @@ repositories {
     }
 }
 
+configurations {
+    adaptiveLegacyRuntime {
+        canBeConsumed = false
+        transitive = false
+    }
+}
+
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 
     implementation fg.deobf("curse.maven:l2library-620203:5275597")
-    implementation fg.deobf("curse.maven:l2hostility-909207:6497957")
+    implementation fg.deobf("curse.maven:l2hostility-909207:7815389")
+    adaptiveLegacyRuntime "curse.maven:l2hostility-909207:6497957"
     implementation fg.deobf("curse.maven:curios-309927:4834490")
     implementation fg.deobf(files("libs/l2tabs-0.3.3.jar"))
     compileOnly files("libs/kubejs-forge-2001.6.5-build.26.jar")
@@ -58,6 +66,7 @@ dependencies {
     testImplementation files("libs/kubejs-forge-2001.6.5-build.26.jar")
     testImplementation files("libs/[犀牛] rhino-forge-2001.2.3-build.10.jar")
     testImplementation files("libs/architectury-9.2.14-forge.jar")
+    testImplementation files("libs/l2damagetracker-0.4.3.jar")
     testImplementation fg.deobf("mezz.jei:jei-${jei_minecraft_version}-common-api:${jei_version}")
     testImplementation fg.deobf("mezz.jei:jei-${jei_minecraft_version}-forge-api:${jei_version}")
 }
@@ -97,6 +106,20 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.named('test').configure {
     useJUnitPlatform()
+    systemProperty 'l2htweaks.adaptive.expectedHook', 'onDamaged'
+}
+
+tasks.register('testAdaptiveLegacy', Test) {
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = files(configurations.adaptiveLegacyRuntime) + sourceSets.test.runtimeClasspath.filter {
+        !it.name.startsWith('l2hostility-909207-')
+    }
+    filter {
+        includeTestsMatching 'com.l2hostility_tweaks.mixin.AdaptingTraitMixinTest'
+    }
+    systemProperty 'l2htweaks.adaptive.expectedHook', 'onHurtByOthers'
+    shouldRunAfter tasks.named('test')
 }
 
 tasks.register('validateProjectResources') {
@@ -191,6 +214,7 @@ tasks.register('validateProjectResources') {
 
 tasks.named('check').configure {
     dependsOn tasks.named('validateProjectResources')
+    dependsOn tasks.named('testAdaptiveLegacy')
 }
 
 publishMods {
