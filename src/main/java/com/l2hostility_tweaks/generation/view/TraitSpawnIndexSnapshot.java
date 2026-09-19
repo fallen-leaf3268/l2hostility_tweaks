@@ -1,6 +1,7 @@
 package com.l2hostility_tweaks.generation.view;
 
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 import java.util.Objects;
@@ -18,6 +19,7 @@ public record TraitSpawnIndexSnapshot(long revision, List<MobTraitOverview> mobs
             List<PresetTraitView> presets,
             List<PoolTraitView> pool,
             List<BlockedTraitView> blocked,
+            List<MobEquipmentView> equipment,
             List<TraitDynamicConstraint> dynamicConstraints) {
         public MobTraitOverview {
             Objects.requireNonNull(entityId);
@@ -27,7 +29,16 @@ public record TraitSpawnIndexSnapshot(long revision, List<MobTraitOverview> mobs
             presets = List.copyOf(presets);
             pool = List.copyOf(pool);
             blocked = List.copyOf(blocked);
+            equipment = List.copyOf(equipment);
             dynamicConstraints = List.copyOf(dynamicConstraints);
+        }
+
+        public MobTraitOverview(ResourceLocation entityId, int variantIndex, String jeiDisplayName,
+                                List<EntityConfigView> configs, List<PresetTraitView> presets,
+                                List<PoolTraitView> pool, List<BlockedTraitView> blocked,
+                                List<TraitDynamicConstraint> dynamicConstraints) {
+            this(entityId, variantIndex, jeiDisplayName, configs, presets, pool, blocked,
+                    List.of(), dynamicConstraints);
         }
 
         public MobTraitOverview(ResourceLocation entityId, List<EntityConfigView> configs,
@@ -48,6 +59,59 @@ public record TraitSpawnIndexSnapshot(long revision, List<MobTraitOverview> mobs
             if (variantIndex == 0) return entityId;
             return new ResourceLocation(entityId.getNamespace(),
                     entityId.getPath() + "/condition/" + variantIndex);
+        }
+    }
+
+    public enum MobEquipmentCategory {
+        ARMOR,
+        HANDS,
+        CURIOS
+    }
+
+    public record MobEquipmentRuleView(
+            ResourceLocation sourceId,
+            String slot,
+            int minLevel,
+            double poolChance,
+            int weight,
+            int totalWeight,
+            boolean mayBeOverwritten) {
+        public MobEquipmentRuleView {
+            Objects.requireNonNull(slot);
+            if (slot.isBlank()) throw new IllegalArgumentException("slot must not be blank");
+            if (minLevel < 0) throw new IllegalArgumentException("minLevel must not be negative");
+            if (!Double.isFinite(poolChance) || poolChance < 0 || poolChance > 1) {
+                throw new IllegalArgumentException("poolChance must be finite and between 0 and 1");
+            }
+            if (weight <= 0) throw new IllegalArgumentException("weight must be positive");
+            if (totalWeight < weight) throw new IllegalArgumentException("totalWeight must include weight");
+        }
+
+        public double poolSelectionChance() {
+            return (double) weight / totalWeight;
+        }
+
+        public double ruleHitChance() {
+            return poolChance * poolSelectionChance();
+        }
+    }
+
+    public record MobEquipmentView(
+            MobEquipmentCategory category,
+            ItemStack stack,
+            List<MobEquipmentRuleView> rules) {
+        public MobEquipmentView {
+            Objects.requireNonNull(category);
+            Objects.requireNonNull(stack);
+            if (stack.isEmpty()) throw new IllegalArgumentException("stack must not be empty");
+            stack = stack.copy();
+            rules = List.copyOf(rules);
+            if (rules.isEmpty()) throw new IllegalArgumentException("rules must not be empty");
+        }
+
+        @Override
+        public ItemStack stack() {
+            return stack.copy();
         }
     }
 
