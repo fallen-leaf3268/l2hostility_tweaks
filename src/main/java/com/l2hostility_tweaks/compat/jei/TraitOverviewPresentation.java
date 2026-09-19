@@ -54,6 +54,20 @@ public final class TraitOverviewPresentation {
                 .toList();
     }
 
+    public static List<TraitSpawnIndexSnapshot.PoolTraitView> poolForItem(
+            TraitSpawnIndexSnapshot.MobTraitOverview overview, ResourceLocation itemId) {
+        return overview.pool().stream()
+                .filter(pool -> pool.itemId().equals(itemId))
+                .toList();
+    }
+
+    public static List<TraitSpawnIndexSnapshot.BlockedTraitView> blockedForItem(
+            TraitSpawnIndexSnapshot.MobTraitOverview overview, ResourceLocation itemId) {
+        return overview.blocked().stream()
+                .filter(blocked -> blocked.itemId().equals(itemId))
+                .toList();
+    }
+
     private static TraitSpawnIndexSnapshot.PresetTraitView strongerGuaranteedPreset(
             TraitSpawnIndexSnapshot.PresetTraitView first,
             TraitSpawnIndexSnapshot.PresetTraitView second) {

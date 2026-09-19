@@ -95,6 +95,31 @@ class TraitOverviewPresentationTest {
     }
 
     @Test
+    void displayedPoolAndBlockedEntriesFollowTheCurrentlyCycledItem() {
+        var speedyFirst = new TraitSpawnIndexSnapshot.PoolTraitView(
+                id("l2hostility:speedy"), id("l2hostility:speedy"), 10, 0, 1, 3);
+        var adaptive = new TraitSpawnIndexSnapshot.PoolTraitView(
+                id("l2hostility:adaptive"), id("l2hostility:adaptive"), 20, 5, 2, 4);
+        var speedySecond = new TraitSpawnIndexSnapshot.PoolTraitView(
+                id("l2hostility:speedy"), id("l2hostility:speedy"), 30, 10, 3, 5);
+        var growth = new TraitSpawnIndexSnapshot.BlockedTraitView(
+                id("l2hostility:growth"), id("l2hostility:growth"), List.of());
+        var tank = new TraitSpawnIndexSnapshot.BlockedTraitView(
+                id("l2hostility:tank"), id("l2hostility:tank"), List.of());
+        var page = new TraitSpawnIndexSnapshot.MobTraitOverview(id("minecraft:zombie"), List.of(), List.of(),
+                List.of(speedyFirst, adaptive, speedySecond), List.of(growth, tank), List.of());
+
+        assertEquals(List.of(speedyFirst, speedySecond),
+                TraitOverviewPresentation.poolForItem(page, id("l2hostility:speedy")));
+        assertEquals(List.of(adaptive),
+                TraitOverviewPresentation.poolForItem(page, id("l2hostility:adaptive")));
+        assertEquals(List.of(growth),
+                TraitOverviewPresentation.blockedForItem(page, id("l2hostility:growth")));
+        assertEquals(List.of(),
+                TraitOverviewPresentation.blockedForItem(page, id("l2hostility:missing")));
+    }
+
+    @Test
     void sectionTraitIdsAreCompleteAndDeduplicatedInSnapshotOrder() {
         var page = new TraitSpawnIndexSnapshot.MobTraitOverview(id("minecraft:zombie"), List.of(), List.of(),
                 List.of(
