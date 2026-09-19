@@ -3,7 +3,6 @@ package com.l2hostility_tweaks.compat.jei;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
-import mezz.jei.api.gui.ingredient.IRecipeSlotView;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IJeiHelpers;
 import mezz.jei.api.recipe.IFocusGroup;
@@ -20,9 +19,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import dev.xkmc.l2hostility.content.traits.base.MobTrait;
-import dev.xkmc.l2hostility.init.registrate.LHTraits;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -101,28 +97,16 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
         if (shouldRenderPresets(recipe)) {
             builder.addSlot(RecipeIngredientRole.OUTPUT, PRESET_SLOT_X, PRESET_SLOT_Y)
                     .addItemStacks(resolveStacks(presetItemIds))
-                    .setSlotName("presets")
-                    .addTooltipCallback((slot, tooltip) -> {
-                        tooltip.clear();
-                        addPresetTooltip(recipe, slot, tooltip);
-                    });
+                    .setSlotName("presets");
         }
 
         builder.addSlot(RecipeIngredientRole.OUTPUT, POOL_SLOT_X, POOL_SLOT_Y)
                 .addItemStacks(resolveStacks(poolItemIds))
-                .setSlotName("pool")
-                .addTooltipCallback((slot, tooltip) -> {
-                    tooltip.clear();
-                    addPoolTooltip(recipe, slot, tooltip);
-                });
+                .setSlotName("pool");
 
         builder.addSlot(RecipeIngredientRole.RENDER_ONLY, BLOCKED_SLOT_X, BLOCKED_SLOT_Y)
                 .addItemStacks(resolveStacks(blockedItemIds))
-                .setSlotName("blocked")
-                .addTooltipCallback((slot, tooltip) -> {
-                    tooltip.clear();
-                    addBlockedTooltip(recipe, slot, tooltip);
-                });
+                .setSlotName("blocked");
 
     }
 
@@ -219,62 +203,6 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
         }
     }
 
-    private static void addPoolTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe, IRecipeSlotView slot,
-                                       List<Component> tooltip) {
-        displayedItemId(slot).ifPresent(itemId -> {
-            List<TraitSpawnIndexSnapshot.PoolTraitView> pools =
-                    TraitOverviewPresentation.poolForItem(recipe, itemId);
-            if (!pools.isEmpty()) {
-                tooltip.add(traitDescription(pools.get(0).traitId(), null));
-                pools.forEach(pool -> {
-                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.pool_weight", pool.weight()));
-                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.min_level", pool.minLevel()));
-                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.cost", pool.cost()));
-                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.max_rank", pool.maxRank()));
-                });
-            }
-        });
-    }
-
-    private static void addBlockedTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe, IRecipeSlotView slot,
-                                          List<Component> tooltip) {
-        displayedItemId(slot).ifPresent(itemId -> {
-            List<TraitSpawnIndexSnapshot.BlockedTraitView> blockedEntries =
-                    TraitOverviewPresentation.blockedForItem(recipe, itemId);
-            if (!blockedEntries.isEmpty()) {
-                tooltip.add(traitDescription(blockedEntries.get(0).traitId(), null));
-                blockedEntries.stream()
-                        .flatMap(blocked -> TraitOverviewPresentation.blockedReasonKeys(blocked).stream())
-                        .distinct()
-                        .forEach(key -> tooltip.add(Component.translatable(key)
-                                .withStyle(ChatFormatting.DARK_RED)));
-            }
-        });
-    }
-
-    private static void addPresetTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe, IRecipeSlotView slot,
-                                         List<Component> tooltip) {
-        displayedItemId(slot).ifPresent(itemId -> {
-            List<TraitSpawnIndexSnapshot.PresetTraitView> presets =
-                    TraitOverviewPresentation.presetsForItem(recipe, itemId);
-            if (!presets.isEmpty()) {
-                tooltip.add(traitDescription(presets.get(0).traitId(), null));
-                presets.forEach(preset -> {
-                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.preset_chance",
-                            TraitOverviewPresentation.formatPercent(preset.chance())).withStyle(ChatFormatting.AQUA));
-                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.free_rank", preset.freeRank()));
-                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.min_rank", preset.minRank()));
-                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.cap", preset.cap()));
-                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.condition_level", preset.conditionLevel()));
-                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.advancement",
-                            TraitOverviewPresentation.formatNullableId(preset.advancementId())));
-                    String condition = TraitOverviewPresentation.compactConditionJson(preset.conditionJson());
-                    if (!condition.isEmpty()) tooltip.add(Component.translatable("jei.l2hostility_tweaks.condition", condition));
-                });
-            }
-        });
-    }
-
     private static List<ItemStack> resolveStacks(List<ResourceLocation> itemIds) {
         List<ItemStack> stacks = new ArrayList<>();
         itemIds.forEach(itemId -> stack(itemId).ifPresent(stacks::add));
@@ -284,16 +212,6 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
     private static Optional<ItemStack> stack(ResourceLocation itemId) {
         return BuiltInRegistries.ITEM.getOptional(itemId).filter(item -> item != Items.AIR)
                 .map(Item::getDefaultInstance).filter(value -> !value.isEmpty());
-    }
-
-    private static Optional<ResourceLocation> displayedItemId(IRecipeSlotView slot) {
-        return slot.getDisplayedItemStack().map(ItemStack::getItem).map(BuiltInRegistries.ITEM::getKey);
-    }
-
-    private static Component traitDescription(ResourceLocation traitId, Integer rank) {
-        MobTrait trait = LHTraits.TRAITS.get().getValue(traitId);
-        if (trait != null) return trait.getFullDesc(rank);
-        return Component.literal(traitId.toString());
     }
 
     private static void drawCenteredNoShadow(GuiGraphics graphics, Font font, Component text,

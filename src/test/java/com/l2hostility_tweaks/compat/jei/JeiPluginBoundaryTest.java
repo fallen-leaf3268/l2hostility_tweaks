@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -70,6 +71,12 @@ class JeiPluginBoundaryTest {
         assertFalse(source.contains("overrideDisplayedStacks"));
         assertFalse(source.contains("guiGraphics.renderItem(blockedStack"));
         assertFalse(source.contains("currentBlocked("));
+        assertEquals(1, source.split("\\.addTooltipCallback\\(", -1).length - 1);
+        assertFalse(source.contains("addPoolTooltip("));
+        assertFalse(source.contains("addBlockedTooltip("));
+        assertFalse(source.contains("addPresetTooltip("));
+        assertFalse(source.contains("displayedItemId("));
+        assertFalse(source.contains("traitDescription("));
     }
 
     private static String pluginSource() throws IOException {
