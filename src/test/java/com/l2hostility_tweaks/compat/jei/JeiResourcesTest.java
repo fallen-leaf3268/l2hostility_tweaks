@@ -148,6 +148,22 @@ class JeiResourcesTest {
         assertFalse(category.contains("private static void addBlockedTooltip"));
     }
 
+    @Test
+    void overviewAddsThreeCycledEquipmentSlotsBetweenMobAndTraits() throws IOException {
+        String category = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/compat/jei/TraitOverviewCategory.java"));
+
+        assertTrue(category.contains("EQUIPMENT_SLOT_X = 77"));
+        assertTrue(category.contains("ARMOR_SLOT_Y = 12"));
+        assertTrue(category.contains("HANDS_SLOT_Y = 42"));
+        assertTrue(category.contains("CURIOS_SLOT_Y = 72"));
+        assertTrue(category.contains("\"equipment_armor\""));
+        assertTrue(category.contains("\"equipment_hands\""));
+        assertTrue(category.contains("\"equipment_curios\""));
+        assertTrue(category.contains("setSlotName(name)"));
+        assertTrue(category.contains("entry.stack()"));
+    }
+
     private static void assertAppearsInOrder(String source, List<String> fragments) {
         int previous = -1;
         for (String fragment : fragments) {

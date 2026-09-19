@@ -1,6 +1,7 @@
 package com.l2hostility_tweaks.compat.jei;
 
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
+import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.MobEquipmentCategory;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
@@ -34,6 +35,10 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
     static final int MOB_SLOT_Y = 12;
     static final int MOB_RENDERER_WIDTH = 56;
     static final int MOB_RENDERER_HEIGHT = 72;
+    static final int EQUIPMENT_SLOT_X = 77;
+    static final int ARMOR_SLOT_Y = 12;
+    static final int HANDS_SLOT_Y = 42;
+    static final int CURIOS_SLOT_Y = 72;
     static final int RIGHT_COLUMN_CENTER_X = 120;
     static final int POOL_SLOT_X = 112;
     static final int POOL_SLOT_Y = 12;
@@ -93,6 +98,13 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                     tooltip.clear();
                     tooltip.addAll(mobTooltip(recipe));
                 });
+
+        addEquipmentSlot(builder, recipe, MobEquipmentCategory.ARMOR,
+                ARMOR_SLOT_Y, "equipment_armor");
+        addEquipmentSlot(builder, recipe, MobEquipmentCategory.HANDS,
+                HANDS_SLOT_Y, "equipment_hands");
+        addEquipmentSlot(builder, recipe, MobEquipmentCategory.CURIOS,
+                CURIOS_SLOT_Y, "equipment_curios");
 
         if (shouldRenderPresets(recipe)) {
             builder.addSlot(RecipeIngredientRole.OUTPUT, PRESET_SLOT_X, PRESET_SLOT_Y)
@@ -213,6 +225,21 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
         List<ItemStack> stacks = new ArrayList<>();
         itemIds.forEach(itemId -> stack(itemId).ifPresent(stacks::add));
         return stacks;
+    }
+
+    private static void addEquipmentSlot(IRecipeLayoutBuilder builder,
+                                         TraitSpawnIndexSnapshot.MobTraitOverview recipe,
+                                         MobEquipmentCategory category,
+                                         int y, String name) {
+        List<ItemStack> stacks = recipe.equipment().stream()
+                .filter(entry -> entry.category() == category)
+                .map(entry -> entry.stack())
+                .filter(stack -> !stack.isEmpty())
+                .toList();
+        if (stacks.isEmpty()) return;
+        builder.addSlot(RecipeIngredientRole.OUTPUT, EQUIPMENT_SLOT_X, y)
+                .addItemStacks(stacks)
+                .setSlotName(name);
     }
 
     private static Optional<ItemStack> stack(ResourceLocation itemId) {
