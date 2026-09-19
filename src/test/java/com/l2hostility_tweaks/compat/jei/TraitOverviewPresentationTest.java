@@ -152,7 +152,29 @@ class TraitOverviewPresentationTest {
 
         assertFalse(parsed.showIcons());
         assertFalse(parsed.replaceTooltip());
+        assertFalse(parsed.overheadLayout());
         assertEquals(entries, parsed.entries());
+    }
+
+    @Test
+    void overheadTraitListMarkerGroupsAtMostThreeTraitsPerLine() {
+        List<TraitListTooltip.Entry> entries = List.of(
+                new TraitListTooltip.Entry(id("l2hostility:speedy"), 1),
+                new TraitListTooltip.Entry(id("l2hostility:tank"), 2),
+                new TraitListTooltip.Entry(id("l2hostility:fiery"), 3),
+                new TraitListTooltip.Entry(id("l2hostility:poison"), 4),
+                new TraitListTooltip.Entry(id("l2hostility:reflect"), 5),
+                new TraitListTooltip.Entry(id("l2hostility:gravity"), 6),
+                new TraitListTooltip.Entry(id("l2hostility:moonwalk"), 7));
+
+        TraitListTooltip parsed = TraitListTooltip.fromMarker(
+                TraitListTooltip.overheadMarker(entries).getString()).orElseThrow();
+
+        assertTrue(parsed.overheadLayout());
+        assertFalse(parsed.showIcons());
+        assertFalse(parsed.replaceTooltip());
+        assertEquals(entries, parsed.entries());
+        assertEquals(List.of(3, 3, 1), parsed.rows().stream().map(List::size).toList());
     }
 
     @Test
@@ -164,6 +186,7 @@ class TraitOverviewPresentationTest {
 
         assertTrue(parsed.showIcons());
         assertTrue(parsed.replaceTooltip());
+        assertFalse(parsed.overheadLayout());
         assertEquals(traits, parsed.entries().stream().map(TraitListTooltip.Entry::traitId).toList());
     }
 

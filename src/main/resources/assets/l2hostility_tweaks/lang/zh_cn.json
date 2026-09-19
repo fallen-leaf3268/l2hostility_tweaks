@@ -153,6 +153,7 @@
   "jei.l2hostility_tweaks.equipment_selection_chance": "池内选中概率：%s",
   "jei.l2hostility_tweaks.equipment_rule_hit_chance": "本条规则命中概率：%s",
   "jei.l2hostility_tweaks.equipment_may_be_overwritten": "后面的同栏位规则成功时可能覆盖此物品",
+  "jei.l2hostility_tweaks.guaranteed_traits_header": "必定生成词条：",
   "jei.l2hostility_tweaks.free_rank": "免费等级：%s",
   "jei.l2hostility_tweaks.min_rank": "最低等级：%s",
   "jei.l2hostility_tweaks.cap": "受等级上限限制：%s",

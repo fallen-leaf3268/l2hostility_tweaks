@@ -153,6 +153,7 @@
   "jei.l2hostility_tweaks.equipment_selection_chance": "Selection chance within pool: %s",
   "jei.l2hostility_tweaks.equipment_rule_hit_chance": "Rule hit chance: %s",
   "jei.l2hostility_tweaks.equipment_may_be_overwritten": "A later successful rule for this slot may replace this item",
+  "jei.l2hostility_tweaks.guaranteed_traits_header": "Guaranteed traits:",
   "jei.l2hostility_tweaks.free_rank": "Free rank: %s",
   "jei.l2hostility_tweaks.min_rank": "Minimum rank: %s",
   "jei.l2hostility_tweaks.cap": "Subject to rank cap: %s",

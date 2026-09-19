@@ -74,8 +74,17 @@ class JeiResourcesTest {
 
         assertFalse(category.contains("TraitListTooltip.exclusiveMarker"));
         assertFalse(category.contains("TraitListTooltip.marker"));
-        assertFalse(category.contains("TraitOverviewPresentation.guaranteedPresets(recipe)"));
+        assertTrue(category.contains("TraitOverviewPresentation.guaranteedPresets(recipe)"));
+        assertTrue(category.contains("TraitListTooltip.overheadMarker"));
+        assertTrue(category.contains("jei.l2hostility_tweaks.guaranteed_traits_header"));
         assertTrue(category.contains("addConfigTooltip(recipe, tooltip)"));
+        String mobTooltip = category.substring(category.indexOf("private List<Component> mobTooltip"),
+                category.indexOf("private static Component mobTitle"));
+        assertAppearsInOrder(mobTooltip, List.of(
+                "addConfigTooltip(recipe, tooltip)",
+                "TraitOverviewPresentation.guaranteedPresets(recipe)",
+                "jei.l2hostility_tweaks.guaranteed_traits_header",
+                "TraitListTooltip.overheadMarker"));
         assertFalse(category.contains("addPoolTooltip(recipe, slot, tooltip);"));
         assertFalse(category.contains("addBlockedTooltip(recipe, slot, tooltip);"));
         assertFalse(category.contains("addPresetTooltip(recipe, slot, tooltip);"));

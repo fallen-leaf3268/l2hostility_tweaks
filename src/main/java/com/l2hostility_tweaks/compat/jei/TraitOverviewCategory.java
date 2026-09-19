@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.compat.jei;
 
+import com.l2hostility_tweaks.client.TraitListTooltip;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.MobEquipmentCategory;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
@@ -182,6 +183,16 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
         tooltip.add(mobTitle(TraitOverviewPresentation.mobDisplayName(recipe,
                 mobHelper.getDisplayName(new MobIngredient(recipe.entityId()))), recipe));
         addConfigTooltip(recipe, tooltip);
+        List<TraitSpawnIndexSnapshot.PresetTraitView> guaranteed =
+                TraitOverviewPresentation.guaranteedPresets(recipe);
+        if (!guaranteed.isEmpty()) {
+            tooltip.add(Component.translatable("jei.l2hostility_tweaks.guaranteed_traits_header")
+                    .withStyle(ChatFormatting.GOLD));
+            tooltip.add(TraitListTooltip.overheadMarker(guaranteed.stream()
+                    .map(preset -> new TraitListTooltip.Entry(
+                            preset.traitId(), preset.guaranteedRank()))
+                    .toList()));
+        }
         return tooltip;
     }
 
