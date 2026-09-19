@@ -3,7 +3,6 @@ package com.l2hostility_tweaks.compat.jei;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
-import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotView;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IJeiHelpers;
@@ -23,19 +22,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import dev.xkmc.l2hostility.init.registrate.LHTraits;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIndexSnapshot.MobTraitOverview> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger("l2htweaks:jei");
-    private static final AtomicBoolean DISPLAY_OVERRIDE_WARNING = new AtomicBoolean();
     public static final RecipeType<TraitSpawnIndexSnapshot.MobTraitOverview> TYPE = JeiRuntimeBridge.PAGE_TYPE;
     static final ResourceLocation ICON_ITEM_ID = new ResourceLocation("l2hostility", "teleport");
     public static final int WIDTH = 176;
@@ -106,7 +99,7 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                 });
 
         if (shouldRenderPresets(recipe)) {
-            builder.addSlot(RecipeIngredientRole.RENDER_ONLY, PRESET_SLOT_X, PRESET_SLOT_Y)
+            builder.addSlot(RecipeIngredientRole.OUTPUT, PRESET_SLOT_X, PRESET_SLOT_Y)
                     .addItemStacks(resolveStacks(presetItemIds))
                     .setSlotName("presets")
                     .addTooltipCallback((slot, tooltip) -> {
@@ -115,7 +108,7 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                     });
         }
 
-        builder.addSlot(RecipeIngredientRole.RENDER_ONLY, POOL_SLOT_X, POOL_SLOT_Y)
+        builder.addSlot(RecipeIngredientRole.OUTPUT, POOL_SLOT_X, POOL_SLOT_Y)
                 .addItemStacks(resolveStacks(poolItemIds))
                 .setSlotName("pool")
                 .addTooltipCallback((slot, tooltip) -> {
@@ -131,45 +124,6 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                     addBlockedTooltip(recipe, slot, tooltip);
                 });
 
-        builder.addInvisibleIngredients(RecipeIngredientRole.OUTPUT)
-                .addItemStacks(resolveStacks(List.copyOf(
-                        TraitOverviewPresentation.searchableOutputItemIds(recipe))));
-    }
-
-    public void onDisplayedIngredientsUpdate(Object value, List<IRecipeSlotDrawable> recipeSlots,
-                                             IFocusGroup focuses) {
-        if (!(value instanceof TraitSpawnIndexSnapshot.MobTraitOverview recipe)) return;
-        List<ResourceLocation> presetItemIds = recipe.presets().stream()
-                .map(TraitSpawnIndexSnapshot.PresetTraitView::itemId).distinct().toList();
-        List<ResourceLocation> poolItemIds = recipe.pool().stream()
-                .map(TraitSpawnIndexSnapshot.PoolTraitView::itemId).distinct().toList();
-        List<ResourceLocation> blockedItemIds = recipe.blocked().stream()
-                .map(TraitSpawnIndexSnapshot.BlockedTraitView::itemId).distinct().toList();
-        overrideDisplayedStacks(recipeSlots, "pool", poolItemIds);
-        overrideDisplayedStacks(recipeSlots, "blocked", blockedItemIds);
-        overrideDisplayedStacks(recipeSlots, "presets", presetItemIds);
-    }
-
-    private static void overrideDisplayedStacks(List<IRecipeSlotDrawable> recipeSlots, String slotName,
-                                                List<ResourceLocation> itemIds) {
-        if (itemIds.isEmpty()) return;
-        recipeSlots.stream()
-                .filter(slot -> slot.getSlotName().filter(slotName::equals).isPresent())
-                .findFirst()
-                .ifPresent(slot -> applyDisplayOverride(slot, resolveStacks(itemIds)));
-    }
-
-    private static void applyDisplayOverride(IRecipeSlotDrawable slot, List<ItemStack> stacks) {
-        try {
-            Method createOverrides = IRecipeSlotDrawable.class.getMethod("createDisplayOverrides");
-            Object overrides = createOverrides.invoke(slot);
-            Method addItemStacks = createOverrides.getReturnType().getMethod("addItemStacks", List.class);
-            addItemStacks.invoke(overrides, stacks);
-        } catch (ReflectiveOperationException | LinkageError exception) {
-            if (DISPLAY_OVERRIDE_WARNING.compareAndSet(false, true)) {
-                LOGGER.warn("Unable to override JEI trait slot candidates", exception);
-            }
-        }
     }
 
     @Override
