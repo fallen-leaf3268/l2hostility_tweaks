@@ -1,15 +1,12 @@
 package com.l2hostility_tweaks.compat.jei;
 
 import com.mojang.datafixers.util.Either;
+import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
-import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.client.event.RenderTooltipEvent;
 
-import java.lang.ref.ReferenceQueue;
-import java.lang.ref.WeakReference;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -17,25 +14,31 @@ public final class TraitIngredientTooltipRegistry {
 
     private static final String JEI_INGREDIENT_GRID =
             "mezz.jei.common.gui.IngredientGridTooltipComponent";
-    private static final WeakIdentityMap<ItemStack, TraitIngredientTooltipContext> CONTEXTS =
-            new WeakIdentityMap<>();
+    private static final ActivationTracker<ActiveContext> ACTIVE_CONTEXT = new ActivationTracker<>();
 
-    public static void register(ItemStack stack, TraitIngredientTooltipContext context) {
-        Objects.requireNonNull(stack);
-        Objects.requireNonNull(context);
-        CONTEXTS.put(stack, context);
-    }
-
-    public static Optional<TraitIngredientTooltipContext> find(ItemStack stack) {
-        if (stack == null) return Optional.empty();
-        return Optional.ofNullable(CONTEXTS.get(stack));
+    public static void activate(TraitSpawnIndexSnapshot.MobTraitOverview overview,
+                                TraitIngredientTooltipContext.Section section) {
+        ACTIVE_CONTEXT.activate(new ActiveContext(
+                Objects.requireNonNull(overview), Objects.requireNonNull(section)));
     }
 
     public static void appendTooltip(RenderTooltipEvent.GatherComponents event) {
-        if (!Screen.hasShiftDown()) return;
-        Optional<TraitIngredientTooltipContext> context = find(event.getItemStack());
-        if (context.isEmpty() || containsJeiIngredientGrid(event)) return;
-        context.get().tooltipLines().stream()
+        if (containsJeiIngredientGrid(event)) {
+            if (Screen.hasShiftDown()) {
+                ACTIVE_CONTEXT.beginNested();
+            } else {
+                ACTIVE_CONTEXT.clear();
+            }
+            return;
+        }
+        if (!Screen.hasShiftDown()) {
+            ACTIVE_CONTEXT.clear();
+            return;
+        }
+        ActiveContext active = ACTIVE_CONTEXT.take();
+        if (active == null || event.getItemStack().isEmpty()) return;
+        var itemId = BuiltInRegistries.ITEM.getKey(event.getItemStack().getItem());
+        new TraitIngredientTooltipContext(active.section(), active.overview(), itemId).tooltipLines().stream()
                 .map(Either::<net.minecraft.network.chat.FormattedText, TooltipComponent>left)
                 .forEach(event.getTooltipElements()::add);
     }
@@ -58,62 +61,35 @@ public final class TraitIngredientTooltipRegistry {
         return false;
     }
 
-    static final class WeakIdentityMap<K, V> {
+    static final class ActivationTracker<T> {
 
-        private final ReferenceQueue<K> expiredKeys = new ReferenceQueue<>();
-        private final Map<IdentityWeakReference<K>, V> values = new HashMap<>();
+        private T direct;
+        private T nested;
 
-        void put(K key, V value) {
-            removeExpired();
-            values.put(new IdentityWeakReference<>(key, expiredKeys), value);
+        void activate(T value) {
+            direct = Objects.requireNonNull(value);
+            nested = null;
         }
 
-        V get(K key) {
-            removeExpired();
-            return values.get(new IdentityWeakReference<>(key));
+        void beginNested() {
+            nested = direct;
+            direct = null;
+        }
+
+        T take() {
+            T value = direct != null ? direct : nested;
+            clear();
+            return value;
         }
 
         void clear() {
-            values.clear();
-            while (expiredKeys.poll() != null) {
-            }
-        }
-
-        @SuppressWarnings("unchecked")
-        private void removeExpired() {
-            IdentityWeakReference<K> expired;
-            while ((expired = (IdentityWeakReference<K>) expiredKeys.poll()) != null) {
-                values.remove(expired);
-            }
+            direct = null;
+            nested = null;
         }
     }
 
-    private static final class IdentityWeakReference<K> extends WeakReference<K> {
-
-        private final int identityHashCode;
-
-        private IdentityWeakReference(K value) {
-            super(value);
-            identityHashCode = System.identityHashCode(value);
-        }
-
-        private IdentityWeakReference(K value, ReferenceQueue<K> queue) {
-            super(value, queue);
-            identityHashCode = System.identityHashCode(value);
-        }
-
-        @Override
-        public int hashCode() {
-            return identityHashCode;
-        }
-
-        @Override
-        public boolean equals(Object object) {
-            if (this == object) return true;
-            if (!(object instanceof IdentityWeakReference<?> other)) return false;
-            K value = get();
-            return value != null && value == other.get();
-        }
+    private record ActiveContext(TraitSpawnIndexSnapshot.MobTraitOverview overview,
+                                 TraitIngredientTooltipContext.Section section) {
     }
 
     private TraitIngredientTooltipRegistry() {

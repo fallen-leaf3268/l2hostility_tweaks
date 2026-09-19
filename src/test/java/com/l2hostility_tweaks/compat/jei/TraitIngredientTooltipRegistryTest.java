@@ -2,22 +2,41 @@ package com.l2hostility_tweaks.compat.jei;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TraitIngredientTooltipRegistryTest {
 
     @Test
-    void contextsMatchOnlyTheExactRegisteredStackInstance() {
-        var map = new TraitIngredientTooltipRegistry.WeakIdentityMap<Object, String>();
-        Object registered = new String("same value");
-        Object equalButDistinct = new String("same value");
+    void activationSupportsDirectAndNestedIngredientTooltips() {
+        var tracker = new TraitIngredientTooltipRegistry.ActivationTracker<Object>();
+        Object direct = new Object();
+        Object nested = new Object();
 
-        map.put(registered, "context");
+        tracker.activate(direct);
+        assertSame(direct, tracker.take());
+        assertNull(tracker.take());
 
-        assertEquals("context", map.get(registered));
-        assertEquals(null, map.get(equalButDistinct));
+        tracker.activate(nested);
+        tracker.beginNested();
+        assertSame(nested, tracker.take());
+        assertNull(tracker.take());
+    }
+
+    @Test
+    void newerActivationReplacesStaleNestedContext() {
+        var tracker = new TraitIngredientTooltipRegistry.ActivationTracker<Object>();
+        Object stale = new Object();
+        Object current = new Object();
+
+        tracker.activate(stale);
+        tracker.beginNested();
+        tracker.activate(current);
+
+        assertSame(current, tracker.take());
+        assertNull(tracker.take());
     }
 
     @Test

@@ -58,13 +58,13 @@ class JeiPluginBoundaryTest {
         assertTrue(source.contains("addSlot(RecipeIngredientRole.OUTPUT, POOL_SLOT_X, POOL_SLOT_Y)"));
         assertTrue(source.contains("addSlot(RecipeIngredientRole.RENDER_ONLY, BLOCKED_SLOT_X, BLOCKED_SLOT_Y)"));
         assertTrue(source.contains("addSlot(RecipeIngredientRole.OUTPUT, PRESET_SLOT_X, PRESET_SLOT_Y)"));
-        assertTrue(source.contains("addItemStacks(resolveStacks(recipe, " +
-                "TraitIngredientTooltipContext.Section.POOL, poolItemIds))"));
-        assertTrue(source.contains("addItemStacks(resolveStacks(recipe, " +
-                "TraitIngredientTooltipContext.Section.BLOCKED, blockedItemIds))"));
-        assertTrue(source.contains("addItemStacks(resolveStacks(recipe, " +
-                "TraitIngredientTooltipContext.Section.PRESET, presetItemIds))"));
-        assertTrue(source.contains("TraitIngredientTooltipRegistry.register(stack,"));
+        assertTrue(source.contains("addItemStacks(resolveStacks(poolItemIds))"));
+        assertTrue(source.contains("addItemStacks(resolveStacks(blockedItemIds))"));
+        assertTrue(source.contains("addItemStacks(resolveStacks(presetItemIds))"));
+        assertEquals(3, source.split("TraitIngredientTooltipRegistry\\.activate\\(", -1).length - 1);
+        assertTrue(source.contains("TraitIngredientTooltipContext.Section.POOL"));
+        assertTrue(source.contains("TraitIngredientTooltipContext.Section.BLOCKED"));
+        assertTrue(source.contains("TraitIngredientTooltipContext.Section.PRESET"));
         assertTrue(source.contains("setSlotName(\"pool\")"));
         assertTrue(source.contains("setSlotName(\"blocked\")"));
         assertTrue(source.contains("setSlotName(\"presets\")"));
@@ -75,7 +75,7 @@ class JeiPluginBoundaryTest {
         assertFalse(source.contains("overrideDisplayedStacks"));
         assertFalse(source.contains("guiGraphics.renderItem(blockedStack"));
         assertFalse(source.contains("currentBlocked("));
-        assertEquals(1, source.split("\\.addTooltipCallback\\(", -1).length - 1);
+        assertEquals(4, source.split("\\.addTooltipCallback\\(", -1).length - 1);
         assertFalse(source.contains("addPoolTooltip("));
         assertFalse(source.contains("addBlockedTooltip("));
         assertFalse(source.contains("addPresetTooltip("));
