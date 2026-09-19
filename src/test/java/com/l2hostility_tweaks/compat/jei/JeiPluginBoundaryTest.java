@@ -1,5 +1,7 @@
 package com.l2hostility_tweaks.compat.jei;
 
+import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
+import mezz.jei.api.recipe.IFocusGroup;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -50,20 +52,37 @@ class JeiPluginBoundaryTest {
     }
 
     @Test
-    void categoryUsesStandardSlotsWithoutMakingBlockedTraitsSearchableOutputs() throws IOException {
+    void categorySeparatesUnfilteredTraitDisplaySlotsFromSearchableItemOutputs() throws IOException {
         String source = read(Path.of(
                 "src/main/java/com/l2hostility_tweaks/compat/jei/TraitOverviewCategory.java"));
-
         assertTrue(source.contains("addSlot(RecipeIngredientRole.INPUT, MOB_SLOT_X, MOB_SLOT_Y)"));
-        assertTrue(source.contains("addSlot(RecipeIngredientRole.OUTPUT, POOL_SLOT_X, POOL_SLOT_Y)"));
+        assertTrue(source.contains("addSlot(RecipeIngredientRole.RENDER_ONLY, POOL_SLOT_X, POOL_SLOT_Y)"));
         assertTrue(source.contains("addSlot(RecipeIngredientRole.RENDER_ONLY, BLOCKED_SLOT_X, BLOCKED_SLOT_Y)"));
-        assertTrue(source.contains("addSlot(RecipeIngredientRole.OUTPUT, PRESET_SLOT_X, PRESET_SLOT_Y)"));
+        assertTrue(source.contains("addSlot(RecipeIngredientRole.RENDER_ONLY, PRESET_SLOT_X, PRESET_SLOT_Y)"));
+        assertTrue(source.contains("addItemStacks(resolveStacks(poolItemIds))"));
+        assertTrue(source.contains("addItemStacks(resolveStacks(blockedItemIds))"));
+        assertTrue(source.contains("addItemStacks(resolveStacks(presetItemIds))"));
+        assertTrue(source.contains("addInvisibleIngredients(RecipeIngredientRole.OUTPUT)"));
+        assertTrue(source.contains("TraitOverviewPresentation.searchableOutputItemIds(recipe)"));
+        assertTrue(source.contains("public void onDisplayedIngredientsUpdate(Object value"));
+        assertTrue(source.contains("overrideDisplayedStacks(recipeSlots, \"pool\", poolItemIds)"));
+        assertTrue(source.contains("overrideDisplayedStacks(recipeSlots, \"blocked\", blockedItemIds)"));
+        assertTrue(source.contains("overrideDisplayedStacks(recipeSlots, \"presets\", presetItemIds)"));
+        assertTrue(source.contains("getMethod(\"createDisplayOverrides\")"));
         assertTrue(source.contains("setSlotName(\"pool\")"));
         assertTrue(source.contains("setSlotName(\"blocked\")"));
         assertTrue(source.contains("setSlotName(\"presets\")"));
         assertTrue(source.contains("if (shouldRenderPresets(recipe))"));
         assertFalse(source.contains("guiGraphics.renderItem(blockedStack"));
         assertFalse(source.contains("currentBlocked("));
+    }
+
+    @Test
+    void newJeiDisplayCallbackKeepsTheGenericInterfaceErasureDescriptor() throws NoSuchMethodException {
+        TraitOverviewCategory.class.getDeclaredMethod("onDisplayedIngredientsUpdate",
+                Object.class, List.class, IFocusGroup.class);
+        TraitOverviewCategory.class.getDeclaredMethod("applyDisplayOverride",
+                IRecipeSlotDrawable.class, List.class);
     }
 
     private static String pluginSource() throws IOException {
