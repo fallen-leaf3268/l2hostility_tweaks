@@ -96,16 +96,16 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
 
         if (shouldRenderPresets(recipe)) {
             builder.addSlot(RecipeIngredientRole.OUTPUT, PRESET_SLOT_X, PRESET_SLOT_Y)
-                    .addItemStacks(resolveStacks(presetItemIds))
+                    .addItemStacks(resolveStacks(recipe, TraitIngredientTooltipContext.Section.PRESET, presetItemIds))
                     .setSlotName("presets");
         }
 
         builder.addSlot(RecipeIngredientRole.OUTPUT, POOL_SLOT_X, POOL_SLOT_Y)
-                .addItemStacks(resolveStacks(poolItemIds))
+                .addItemStacks(resolveStacks(recipe, TraitIngredientTooltipContext.Section.POOL, poolItemIds))
                 .setSlotName("pool");
 
         builder.addSlot(RecipeIngredientRole.RENDER_ONLY, BLOCKED_SLOT_X, BLOCKED_SLOT_Y)
-                .addItemStacks(resolveStacks(blockedItemIds))
+                .addItemStacks(resolveStacks(recipe, TraitIngredientTooltipContext.Section.BLOCKED, blockedItemIds))
                 .setSlotName("blocked");
 
     }
@@ -203,9 +203,16 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
         }
     }
 
-    private static List<ItemStack> resolveStacks(List<ResourceLocation> itemIds) {
+    private static List<ItemStack> resolveStacks(
+            TraitSpawnIndexSnapshot.MobTraitOverview recipe,
+            TraitIngredientTooltipContext.Section section,
+            List<ResourceLocation> itemIds) {
         List<ItemStack> stacks = new ArrayList<>();
-        itemIds.forEach(itemId -> stack(itemId).ifPresent(stacks::add));
+        itemIds.forEach(itemId -> stack(itemId).ifPresent(stack -> {
+            TraitIngredientTooltipRegistry.register(stack,
+                    new TraitIngredientTooltipContext(section, recipe, itemId));
+            stacks.add(stack);
+        }));
         return stacks;
     }
 

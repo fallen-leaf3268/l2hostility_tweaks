@@ -58,9 +58,13 @@ class JeiPluginBoundaryTest {
         assertTrue(source.contains("addSlot(RecipeIngredientRole.OUTPUT, POOL_SLOT_X, POOL_SLOT_Y)"));
         assertTrue(source.contains("addSlot(RecipeIngredientRole.RENDER_ONLY, BLOCKED_SLOT_X, BLOCKED_SLOT_Y)"));
         assertTrue(source.contains("addSlot(RecipeIngredientRole.OUTPUT, PRESET_SLOT_X, PRESET_SLOT_Y)"));
-        assertTrue(source.contains("addItemStacks(resolveStacks(poolItemIds))"));
-        assertTrue(source.contains("addItemStacks(resolveStacks(blockedItemIds))"));
-        assertTrue(source.contains("addItemStacks(resolveStacks(presetItemIds))"));
+        assertTrue(source.contains("addItemStacks(resolveStacks(recipe, " +
+                "TraitIngredientTooltipContext.Section.POOL, poolItemIds))"));
+        assertTrue(source.contains("addItemStacks(resolveStacks(recipe, " +
+                "TraitIngredientTooltipContext.Section.BLOCKED, blockedItemIds))"));
+        assertTrue(source.contains("addItemStacks(resolveStacks(recipe, " +
+                "TraitIngredientTooltipContext.Section.PRESET, presetItemIds))"));
+        assertTrue(source.contains("TraitIngredientTooltipRegistry.register(stack,"));
         assertTrue(source.contains("setSlotName(\"pool\")"));
         assertTrue(source.contains("setSlotName(\"blocked\")"));
         assertTrue(source.contains("setSlotName(\"presets\")"));
