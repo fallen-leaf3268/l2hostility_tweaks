@@ -79,6 +79,15 @@ class JeiPluginBoundaryTest {
         assertFalse(source.contains("traitDescription("));
     }
 
+    @Test
+    void forgeTooltipEventDelegatesWithoutImportingJeiInternals() throws IOException {
+        String source = read(Path.of(
+                "src/main/java/com/l2hostility_tweaks/client/ClientEventHandler.java"));
+
+        assertTrue(source.contains("TraitIngredientTooltipRegistry.appendTooltip(event)"));
+        assertFalse(source.contains("import mezz.jei"));
+    }
+
     private static String pluginSource() throws IOException {
         return read(Path.of("src/main/java/com/l2hostility_tweaks/compat/jei/L2HTweaksJeiPlugin.java"));
     }
