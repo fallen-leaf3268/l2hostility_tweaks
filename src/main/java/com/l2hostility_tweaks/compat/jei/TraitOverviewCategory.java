@@ -239,7 +239,9 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
         if (stacks.isEmpty()) return;
         builder.addSlot(RecipeIngredientRole.OUTPUT, EQUIPMENT_SLOT_X, y)
                 .addItemStacks(stacks)
-                .setSlotName(name);
+                .setSlotName(name)
+                .addTooltipCallback((slot, tooltip) ->
+                        TraitIngredientTooltipRegistry.activateEquipment(recipe, category));
     }
 
     private static Optional<ItemStack> stack(ResourceLocation itemId) {

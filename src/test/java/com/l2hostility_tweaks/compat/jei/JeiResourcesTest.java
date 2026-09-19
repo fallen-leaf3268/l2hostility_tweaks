@@ -35,7 +35,10 @@ class JeiResourcesTest {
     @Test
     void bothLocalesCoverEveryJeiKeyUsedByTheCategory() throws IOException {
         Set<String> required = new LinkedHashSet<>();
-        for (String file : new String[]{"TraitOverviewCategory.java", "TraitOverviewPresentation.java"}) {
+        for (String file : new String[]{
+                "TraitOverviewCategory.java",
+                "TraitOverviewPresentation.java",
+                "MobEquipmentTooltipContext.java"}) {
             Matcher matcher = KEY.matcher(Files.readString(Path.of(
                     "src/main/java/com/l2hostility_tweaks/compat/jei/" + file)));
             while (matcher.find()) required.add(matcher.group());
@@ -162,6 +165,7 @@ class JeiResourcesTest {
         assertTrue(category.contains("\"equipment_curios\""));
         assertTrue(category.contains("setSlotName(name)"));
         assertTrue(category.contains("entry.stack()"));
+        assertTrue(category.contains("TraitIngredientTooltipRegistry.activateEquipment(recipe, category)"));
     }
 
     private static void assertAppearsInOrder(String source, List<String> fragments) {

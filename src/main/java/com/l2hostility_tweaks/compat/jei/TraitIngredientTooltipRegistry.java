@@ -4,6 +4,7 @@ import com.mojang.datafixers.util.Either;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraftforge.client.event.RenderTooltipEvent;
 
@@ -18,8 +19,13 @@ public final class TraitIngredientTooltipRegistry {
 
     public static void activate(TraitSpawnIndexSnapshot.MobTraitOverview overview,
                                 TraitIngredientTooltipContext.Section section) {
-        ACTIVE_CONTEXT.activate(new ActiveContext(
-                Objects.requireNonNull(overview), Objects.requireNonNull(section)));
+        ACTIVE_CONTEXT.activate(ActiveContext.trait(overview, section));
+    }
+
+    public static void activateEquipment(
+            TraitSpawnIndexSnapshot.MobTraitOverview overview,
+            TraitSpawnIndexSnapshot.MobEquipmentCategory category) {
+        ACTIVE_CONTEXT.activate(ActiveContext.equipment(overview, category));
     }
 
     public static void appendTooltip(RenderTooltipEvent.GatherComponents event) {
@@ -37,8 +43,12 @@ public final class TraitIngredientTooltipRegistry {
         }
         ActiveContext active = ACTIVE_CONTEXT.take();
         if (active == null || event.getItemStack().isEmpty()) return;
-        var itemId = BuiltInRegistries.ITEM.getKey(event.getItemStack().getItem());
-        new TraitIngredientTooltipContext(active.section(), active.overview(), itemId).tooltipLines().stream()
+        var lines = active.equipmentCategory() == null
+                ? new TraitIngredientTooltipContext(active.section(), active.overview(),
+                        BuiltInRegistries.ITEM.getKey(event.getItemStack().getItem())).tooltipLines()
+                : new MobEquipmentTooltipContext(active.overview(), active.equipmentCategory())
+                        .tooltipLines(event.getItemStack().save(new CompoundTag()));
+        lines.stream()
                 .map(Either::<net.minecraft.network.chat.FormattedText, TooltipComponent>left)
                 .forEach(event.getTooltipElements()::add);
     }
@@ -88,8 +98,22 @@ public final class TraitIngredientTooltipRegistry {
         }
     }
 
-    private record ActiveContext(TraitSpawnIndexSnapshot.MobTraitOverview overview,
-                                 TraitIngredientTooltipContext.Section section) {
+    private record ActiveContext(
+            TraitSpawnIndexSnapshot.MobTraitOverview overview,
+            TraitIngredientTooltipContext.Section section,
+            TraitSpawnIndexSnapshot.MobEquipmentCategory equipmentCategory) {
+
+        private static ActiveContext trait(TraitSpawnIndexSnapshot.MobTraitOverview overview,
+                                           TraitIngredientTooltipContext.Section section) {
+            return new ActiveContext(Objects.requireNonNull(overview),
+                    Objects.requireNonNull(section), null);
+        }
+
+        private static ActiveContext equipment(TraitSpawnIndexSnapshot.MobTraitOverview overview,
+                                               TraitSpawnIndexSnapshot.MobEquipmentCategory category) {
+            return new ActiveContext(Objects.requireNonNull(overview), null,
+                    Objects.requireNonNull(category));
+        }
     }
 
     private TraitIngredientTooltipRegistry() {
