@@ -50,17 +50,20 @@ class JeiPluginBoundaryTest {
     }
 
     @Test
-    void categoryRegistersOnlyAllowedTraitsAsSearchableOutputs() throws IOException {
+    void categoryUsesStandardSlotsWithoutMakingBlockedTraitsSearchableOutputs() throws IOException {
         String source = read(Path.of(
                 "src/main/java/com/l2hostility_tweaks/compat/jei/TraitOverviewCategory.java"));
 
         assertTrue(source.contains("addSlot(RecipeIngredientRole.INPUT, MOB_SLOT_X, MOB_SLOT_Y)"));
         assertTrue(source.contains("addSlot(RecipeIngredientRole.OUTPUT, POOL_SLOT_X, POOL_SLOT_Y)"));
+        assertTrue(source.contains("addSlot(RecipeIngredientRole.RENDER_ONLY, BLOCKED_SLOT_X, BLOCKED_SLOT_Y)"));
         assertTrue(source.contains("addSlot(RecipeIngredientRole.OUTPUT, PRESET_SLOT_X, PRESET_SLOT_Y)"));
+        assertTrue(source.contains("setSlotName(\"pool\")"));
+        assertTrue(source.contains("setSlotName(\"blocked\")"));
+        assertTrue(source.contains("setSlotName(\"presets\")"));
         assertTrue(source.contains("if (shouldRenderPresets(recipe))"));
-        assertTrue(source.contains("guiGraphics.renderItem(blockedStack, BLOCKED_SLOT_X, BLOCKED_SLOT_Y)"));
-        assertFalse(source.contains("setSlotName(\"blocked\")"));
-        assertFalse(source.contains("addItemStacks(resolveBlocked"));
+        assertFalse(source.contains("guiGraphics.renderItem(blockedStack"));
+        assertFalse(source.contains("currentBlocked("));
     }
 
     private static String pluginSource() throws IOException {

@@ -61,7 +61,7 @@ class JeiResourcesTest {
     }
 
     @Test
-    void traitOverviewUsesRichCompleteListsAndShadowlessText() throws IOException {
+    void traitOverviewUsesCycledSlotDetailsAndShadowlessText() throws IOException {
         String category = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/compat/jei/TraitOverviewCategory.java"));
         String playerScreen = Files.readString(Path.of(
@@ -69,17 +69,16 @@ class JeiResourcesTest {
         String clientEvents = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/client/ClientEventHandler.java"));
 
-        assertTrue(category.contains("TraitListTooltip.exclusiveMarker(TraitOverviewPresentation.poolTraitIds(recipe))"));
-        assertTrue(category.contains("TraitListTooltip.marker(TraitOverviewPresentation.blockedTraitIds(recipe))"));
-        assertTrue(category.contains("TraitOverviewPresentation.guaranteedPresets(recipe)"));
-        assertTrue(category.contains("TraitOverviewPresentation.guaranteedPresetRank(preset)"));
-        assertTrue(category.contains("TraitListTooltip.textMarker"));
-        assertTrue(category.contains("Component.translatable(\"jei.l2hostility_tweaks.guaranteed_traits\")"));
+        assertFalse(category.contains("TraitListTooltip.exclusiveMarker"));
+        assertFalse(category.contains("TraitListTooltip.marker"));
+        assertFalse(category.contains("TraitOverviewPresentation.guaranteedPresets(recipe)"));
         assertTrue(category.contains("addConfigTooltip(recipe, tooltip)"));
+        assertTrue(category.contains("addPoolTooltip(recipe, slot, tooltip);"));
+        assertTrue(category.contains("addBlockedTooltip(recipe, slot, tooltip);"));
         assertTrue(category.contains("addPresetTooltip(recipe, slot, tooltip);"));
         assertFalse(category.contains("drawCenteredString"));
-        assertFalse(category.contains("addPoolTooltip"));
         assertTrue(category.contains("isInsideMobPreview"));
+        assertFalse(category.contains("currentBlocked("));
         assertFalse(playerScreen.contains("drawCenteredString"));
         assertTrue(clientEvents.contains("event.register(TraitListTooltip.class, TraitListTooltipRenderer::new)"));
         assertTrue(clientEvents.contains("TraitListTooltip.fromMarker"));
@@ -106,7 +105,7 @@ class JeiResourcesTest {
     }
 
     @Test
-    void mobTooltipUsesRequestedConfigOrderAndEndsWithGuaranteedTraits() throws IOException {
+    void mobTooltipUsesRequestedConfigOrderWithoutAggregatePresetTraits() throws IOException {
         String category = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/compat/jei/TraitOverviewCategory.java"));
         String mobTooltip = category.substring(category.indexOf("private List<Component> mobTooltip"),
@@ -114,8 +113,8 @@ class JeiResourcesTest {
         String configTooltip = category.substring(category.indexOf("private static void addConfigTooltip"),
                 category.indexOf("private static void addPresetTooltip"));
 
-        assertTrue(mobTooltip.indexOf("addConfigTooltip(recipe, tooltip)")
-                < mobTooltip.indexOf("addGuaranteedPresetTooltip(recipe, tooltip)"));
+        assertTrue(mobTooltip.contains("addConfigTooltip(recipe, tooltip)"));
+        assertFalse(mobTooltip.contains("addGuaranteedPresetTooltip"));
         assertAppearsInOrder(configTooltip, List.of(
                 "formatEntityConfigPath(config.sourceId())",
                 "jei.l2hostility_tweaks.difficulty_range",
@@ -132,13 +131,15 @@ class JeiResourcesTest {
     }
 
     @Test
-    void presetAndBlockedTooltipsContainOnlyApplicationDetails() throws IOException {
+    void cycledTraitTooltipsContainOnlyCurrentApplicationDetails() throws IOException {
         String category = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/compat/jei/TraitOverviewCategory.java"));
         String setRecipe = category.substring(category.indexOf("public void setRecipe"),
                 category.indexOf("public void draw"));
-        String blockedTooltip = category.substring(category.indexOf("public List<Component> getTooltipStrings"),
-                category.indexOf("public ResourceLocation getRegistryName"));
+        String poolTooltip = section(category, "private static void addPoolTooltip",
+                "private static void addBlockedTooltip");
+        String blockedTooltip = section(category, "private static void addBlockedTooltip",
+                "private static void addPresetTooltip");
         String presetTooltip = category.substring(category.indexOf("private static void addPresetTooltip"),
                 category.indexOf("private static List<ItemStack> resolveStacks"));
 
@@ -146,7 +147,11 @@ class JeiResourcesTest {
         int presetClear = setRecipe.indexOf("tooltip.clear()", presetSlot);
         int presetDetails = setRecipe.indexOf("addPresetTooltip(recipe, slot, tooltip)", presetSlot);
         assertTrue(presetSlot >= 0 && presetClear > presetSlot && presetDetails > presetClear);
+        assertTrue(poolTooltip.contains("TraitOverviewPresentation.poolForItem(recipe, itemId)"));
+        assertTrue(poolTooltip.contains("traitDescription(pools.get(0).traitId(), null)"));
+        assertTrue(poolTooltip.contains("jei.l2hostility_tweaks.pool_weight"));
         assertFalse(blockedTooltip.contains("jei.l2hostility_tweaks.source"));
+        assertTrue(blockedTooltip.contains("TraitOverviewPresentation.blockedForItem(recipe, itemId)"));
         assertTrue(blockedTooltip.contains("TraitOverviewPresentation.blockedReasonKeys(blocked)"));
         int presetName = presetTooltip.indexOf("traitDescription(presets.get(0).traitId(), null)");
         int presetChance = presetTooltip.indexOf("jei.l2hostility_tweaks.preset_chance");
@@ -163,5 +168,13 @@ class JeiResourcesTest {
             assertTrue(current > previous, fragment + " is missing or out of order");
             previous = current;
         }
+    }
+
+    private static String section(String source, String startMarker, String endMarker) {
+        int start = source.indexOf(startMarker);
+        int end = source.indexOf(endMarker);
+        assertTrue(start >= 0, "missing start marker: " + startMarker);
+        assertTrue(end > start, "missing end marker after start: " + endMarker);
+        return source.substring(start, end);
     }
 }

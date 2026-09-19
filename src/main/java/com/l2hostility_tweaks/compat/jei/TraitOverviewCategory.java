@@ -1,6 +1,5 @@
 package com.l2hostility_tweaks.compat.jei;
 
-import com.l2hostility_tweaks.client.TraitListTooltip;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
@@ -48,11 +47,6 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
     static final int PRESET_SLOT_Y = 92;
     static final int CONFIG_TEXT_X = 4;
     static final int DIFFICULTY_TEXT_Y = 112;
-    static final int BLOCKED_HOVER_X = 112;
-    static final int BLOCKED_HOVER_END_X = 128;
-    static final int BLOCKED_HOVER_Y = 52;
-    static final int BLOCKED_HOVER_END_Y = 68;
-
     private final IDrawable background;
     private final IDrawable icon;
     private final MobIngredientRenderer mobRenderer =
@@ -112,8 +106,19 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                 .addItemStacks(resolveStacks(recipe.pool().stream()
                         .map(TraitSpawnIndexSnapshot.PoolTraitView::itemId).distinct().toList()))
                 .setSlotName("pool")
-                .addTooltipCallback((slot, tooltip) -> tooltip.add(
-                        TraitListTooltip.exclusiveMarker(TraitOverviewPresentation.poolTraitIds(recipe))));
+                .addTooltipCallback((slot, tooltip) -> {
+                    tooltip.clear();
+                    addPoolTooltip(recipe, slot, tooltip);
+                });
+
+        builder.addSlot(RecipeIngredientRole.RENDER_ONLY, BLOCKED_SLOT_X, BLOCKED_SLOT_Y)
+                .addItemStacks(resolveStacks(recipe.blocked().stream()
+                        .map(TraitSpawnIndexSnapshot.BlockedTraitView::itemId).distinct().toList()))
+                .setSlotName("blocked")
+                .addTooltipCallback((slot, tooltip) -> {
+                    tooltip.clear();
+                    addBlockedTooltip(recipe, slot, tooltip);
+                });
     }
 
     @Override
@@ -146,28 +151,12 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                     CONFIG_TEXT_X, DIFFICULTY_TEXT_Y, 0xFF777777, false);
         });
 
-        TraitSpawnIndexSnapshot.BlockedTraitView blocked = currentBlocked(recipe);
-        if (blocked != null) {
-            ItemStack blockedStack = stack(blocked.itemId()).orElse(ItemStack.EMPTY);
-            if (!blockedStack.isEmpty()) guiGraphics.renderItem(blockedStack, BLOCKED_SLOT_X, BLOCKED_SLOT_Y);
-        }
     }
 
     @Override
     public List<Component> getTooltipStrings(TraitSpawnIndexSnapshot.MobTraitOverview recipe,
                                              IRecipeSlotsView recipeSlotsView,
                                              double mouseX, double mouseY) {
-        if (mouseX >= BLOCKED_HOVER_X && mouseX < BLOCKED_HOVER_END_X
-                && mouseY >= BLOCKED_HOVER_Y && mouseY < BLOCKED_HOVER_END_Y) {
-            TraitSpawnIndexSnapshot.BlockedTraitView blocked = currentBlocked(recipe);
-            if (blocked == null) return List.of();
-            List<Component> tooltip = new ArrayList<>();
-            tooltip.add(TraitListTooltip.marker(TraitOverviewPresentation.blockedTraitIds(recipe)));
-            tooltip.add(traitDescription(blocked.traitId(), null));
-            TraitOverviewPresentation.blockedReasonKeys(blocked).forEach(key -> tooltip.add(
-                    Component.translatable(key).withStyle(ChatFormatting.DARK_RED)));
-            return tooltip;
-        }
         if (isInsideMobPreview(mouseX, mouseY)) return mobTooltip(recipe);
         return List.of();
     }
@@ -179,25 +168,11 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                 + "/" + pageId.getPath());
     }
 
-    private static void addGuaranteedPresetTooltip(
-            TraitSpawnIndexSnapshot.MobTraitOverview recipe, List<Component> tooltip) {
-        List<TraitListTooltip.Entry> entries = TraitOverviewPresentation.guaranteedPresets(recipe).stream()
-                .map(preset -> new TraitListTooltip.Entry(preset.traitId(),
-                        TraitOverviewPresentation.guaranteedPresetRank(preset)))
-                .toList();
-        if (!entries.isEmpty()) {
-            tooltip.add(Component.translatable("jei.l2hostility_tweaks.guaranteed_traits")
-                    .withStyle(ChatFormatting.AQUA));
-            tooltip.add(TraitListTooltip.textMarker(entries));
-        }
-    }
-
     private List<Component> mobTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe) {
         List<Component> tooltip = new ArrayList<>();
         tooltip.add(mobTitle(TraitOverviewPresentation.mobDisplayName(recipe,
                 mobHelper.getDisplayName(new MobIngredient(recipe.entityId()))), recipe));
         addConfigTooltip(recipe, tooltip);
-        addGuaranteedPresetTooltip(recipe, tooltip);
         return tooltip;
     }
 
@@ -237,6 +212,39 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                     TraitOverviewPresentation.formatPercent(config.applyChance())));
             tooltip.add(Component.translatable("jei.l2hostility_tweaks.preset_only", config.presetTraitsOnly()));
         }
+    }
+
+    private static void addPoolTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe, IRecipeSlotView slot,
+                                       List<Component> tooltip) {
+        displayedItemId(slot).ifPresent(itemId -> {
+            List<TraitSpawnIndexSnapshot.PoolTraitView> pools =
+                    TraitOverviewPresentation.poolForItem(recipe, itemId);
+            if (!pools.isEmpty()) {
+                tooltip.add(traitDescription(pools.get(0).traitId(), null));
+                pools.forEach(pool -> {
+                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.pool_weight", pool.weight()));
+                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.min_level", pool.minLevel()));
+                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.cost", pool.cost()));
+                    tooltip.add(Component.translatable("jei.l2hostility_tweaks.max_rank", pool.maxRank()));
+                });
+            }
+        });
+    }
+
+    private static void addBlockedTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe, IRecipeSlotView slot,
+                                          List<Component> tooltip) {
+        displayedItemId(slot).ifPresent(itemId -> {
+            List<TraitSpawnIndexSnapshot.BlockedTraitView> blockedEntries =
+                    TraitOverviewPresentation.blockedForItem(recipe, itemId);
+            if (!blockedEntries.isEmpty()) {
+                tooltip.add(traitDescription(blockedEntries.get(0).traitId(), null));
+                blockedEntries.stream()
+                        .flatMap(blocked -> TraitOverviewPresentation.blockedReasonKeys(blocked).stream())
+                        .distinct()
+                        .forEach(key -> tooltip.add(Component.translatable(key)
+                                .withStyle(ChatFormatting.DARK_RED)));
+            }
+        });
     }
 
     private static void addPresetTooltip(TraitSpawnIndexSnapshot.MobTraitOverview recipe, IRecipeSlotView slot,
@@ -297,10 +305,4 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                 && mouseY >= MOB_SLOT_Y && mouseY < MOB_SLOT_Y + MOB_RENDERER_HEIGHT;
     }
 
-    private static TraitSpawnIndexSnapshot.BlockedTraitView currentBlocked(
-            TraitSpawnIndexSnapshot.MobTraitOverview recipe) {
-        long tick = Optional.ofNullable(Minecraft.getInstance().level)
-                .map(level -> level.getGameTime() / 40L).orElse(System.currentTimeMillis() / 2000L);
-        return TraitOverviewPresentation.cycle(recipe.blocked(), tick);
-    }
 }

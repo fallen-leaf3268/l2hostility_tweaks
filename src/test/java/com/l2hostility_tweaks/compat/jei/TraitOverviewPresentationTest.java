@@ -334,10 +334,6 @@ class TraitOverviewPresentationTest {
         assertEquals(92, TraitOverviewCategory.PRESET_SLOT_Y);
         assertEquals(4, TraitOverviewCategory.CONFIG_TEXT_X);
         assertEquals(112, TraitOverviewCategory.DIFFICULTY_TEXT_Y);
-        assertEquals(112, TraitOverviewCategory.BLOCKED_HOVER_X);
-        assertEquals(128, TraitOverviewCategory.BLOCKED_HOVER_END_X);
-        assertEquals(52, TraitOverviewCategory.BLOCKED_HOVER_Y);
-        assertEquals(68, TraitOverviewCategory.BLOCKED_HOVER_END_Y);
     }
 
     @Test
