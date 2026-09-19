@@ -8,6 +8,7 @@ import com.l2hostility_tweaks.generation.TraitSpawnIndexBuilder.Settings;
 import com.l2hostility_tweaks.generation.TraitSpawnIndexBuilder.TraitInput;
 import com.l2hostility_tweaks.generation.view.TraitBlockReason;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.EntityConfigView;
+import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.MobEquipmentView;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +20,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TraitSpawnIndexBuilderTest {
+
+    @Test
+    void carriesTheSelectedConfigsEquipmentIntoItsOverviewPage() {
+        EntityConfigView view = view("example:equipment", "", 1, 1, 0);
+        List<MobEquipmentView> equipment = List.of();
+        ConfigInput config = new ConfigInput(id("example:equipment"), "", "",
+                view, Set.of(), List.of(), equipment);
+        EntityInput zombie = entity("minecraft:zombie", false, List.of(config), List.of());
+
+        var page = TraitSpawnIndexBuilder.build(1, inputs(
+                List.of(zombie), List.of(),
+                settings(false, false, false, false, false, List.of()))).mobs().get(0);
+
+        assertEquals(equipment, page.equipment());
+    }
 
     @Test
     void conditionalPageKeepsItsConfiguredJeiDisplayName() {

@@ -111,4 +111,13 @@ class MinecraftTraitSpawnIndexSourceTest {
         assertTrue(source.contains("if (!trait.allow(living)) rejected.add(traitId);"));
         assertTrue(source.contains("Unable to evaluate runtime trait rule"));
     }
+
+    @Test
+    void captureUsesTheParsedEffectiveEntityItemPools() throws IOException {
+        String source = Files.readString(Path.of(
+                "src/main/java/com/l2hostility_tweaks/generation/MinecraftTraitSpawnIndexSource.java"));
+
+        assertTrue(source.contains("MobEquipmentIndex.capture(config, sourceId)"));
+        assertTrue(source.contains("view, blacklist, presets, equipment"));
+    }
 }

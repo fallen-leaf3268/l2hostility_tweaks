@@ -7,6 +7,7 @@ import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.BlockedCon
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.BlockedTraitView;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.EntityConfigView;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.MobTraitOverview;
+import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.MobEquipmentView;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.PoolTraitView;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.PresetTraitView;
 import net.minecraft.resources.ResourceLocation;
@@ -118,10 +119,11 @@ public final class TraitSpawnIndexBuilder {
         pool.sort(Comparator.comparing(PoolTraitView::traitId, ID_ORDER));
         blocked.sort(Comparator.comparing(BlockedTraitView::traitId, ID_ORDER));
         List<EntityConfigView> configs = config == null ? List.of() : List.of(config.view());
+        List<MobEquipmentView> equipment = config == null ? List.of() : config.equipment();
         List<TraitDynamicConstraint> dynamicConstraints = overviewConstraints(traits, settings, config);
         return new BuildResult(new MobTraitOverview(
                 entity.id(), variantIndex, config == null ? "" : config.jeiDisplayName(),
-                configs, presets, pool, blocked, dynamicConstraints), warnings);
+                configs, presets, pool, blocked, equipment, dynamicConstraints), warnings);
     }
 
     private static GuaranteedPreset simulateGuaranteedPreset(
@@ -232,19 +234,26 @@ public final class TraitSpawnIndexBuilder {
 
     public record ConfigInput(ResourceLocation sourceId, String conditionJson, String jeiDisplayName,
                               EntityConfigView view, Set<ResourceLocation> blacklist,
-                              List<PresetInput> presets) {
+                              List<PresetInput> presets, List<MobEquipmentView> equipment) {
         public ConfigInput {
             conditionJson = conditionJson == null ? "" : conditionJson;
             jeiDisplayName = jeiDisplayName == null ? "" : jeiDisplayName;
             Objects.requireNonNull(view);
             blacklist = Set.copyOf(blacklist);
             presets = List.copyOf(presets);
+            equipment = List.copyOf(equipment);
+        }
+
+        public ConfigInput(ResourceLocation sourceId, String conditionJson, String jeiDisplayName,
+                           EntityConfigView view, Set<ResourceLocation> blacklist,
+                           List<PresetInput> presets) {
+            this(sourceId, conditionJson, jeiDisplayName, view, blacklist, presets, List.of());
         }
 
         public ConfigInput(ResourceLocation sourceId, String conditionJson,
                            EntityConfigView view, Set<ResourceLocation> blacklist,
                            List<PresetInput> presets) {
-            this(sourceId, conditionJson, "", view, blacklist, presets);
+            this(sourceId, conditionJson, "", view, blacklist, presets, List.of());
         }
     }
 
