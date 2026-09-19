@@ -93,8 +93,8 @@ public final class TraitOverviewPresentation {
         return guaranteedPresetRank(preset) > 0
                 && (preset.conditionJson() == null || preset.conditionJson().isBlank()
                 || pageConditionSatisfied)
-                && (pageConditionSatisfied || preset.dynamicConstraints().stream()
-                .noneMatch(constraint -> constraint.type().equals("runtime_allow")));
+                && preset.dynamicConstraints().stream()
+                .noneMatch(constraint -> constraint.type().equals("runtime_allow"));
     }
 
     private static <T> List<ResourceLocation> distinctIds(

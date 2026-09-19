@@ -255,6 +255,22 @@ class TraitSpawnIndexBuilderTest {
     }
 
     @Test
+    void probabilisticTraitStageCannotProduceGuaranteedPresetRank() {
+        TraitInput adaptive = trait("l2hostility:adaptive", 20, 1, 1, 2,
+                false, Set.of(), Set.of(), false);
+        ConfigInput config = config("example:source", "",
+                view("example:source", "", 1, 0.75, 0), Set.of(),
+                List.of(preset("l2hostility:adaptive", 1, 1, false, 1, 0, null)));
+
+        var page = TraitSpawnIndexBuilder.build(1, inputs(
+                List.of(entity("minecraft:zombie", false, List.of(config), List.of())),
+                List.of(adaptive), settings(false, false, false, false, false, List.of())))
+                .mobs().get(0);
+
+        assertEquals(0, page.presets().get(0).guaranteedRank());
+    }
+
+    @Test
     void reportsEveryRuntimeGenerationConstraint() {
         TraitInput adaptive = trait("l2hostility:adaptive", 20, 2, 2, 2,
                 false, Set.of(), Set.of(), true);
@@ -354,7 +370,7 @@ class TraitSpawnIndexBuilderTest {
 
         assertEquals(List.of(id("l2hostility:undying"), id("kubejs:evolution")),
                 page.presets().stream().map(entry -> entry.traitId()).toList());
-        assertEquals(Map.of(id("kubejs:evolution"), 2, id("l2hostility:undying"), 1),
+        assertEquals(Map.of(id("kubejs:evolution"), 2, id("l2hostility:undying"), 0),
                 page.presets().stream().collect(java.util.stream.Collectors.toMap(
                         entry -> entry.traitId(), entry -> entry.guaranteedRank())));
     }

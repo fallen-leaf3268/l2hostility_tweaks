@@ -130,7 +130,8 @@ public final class TraitSpawnIndexBuilder {
             PresetInput preset, TraitInput trait, ConfigInput config,
             Map<ResourceLocation, Integer> guaranteedRanks, int remainingBudget) {
         int minimumDifficulty = Math.min(config.view().minDifficulty(), config.view().maxLevel());
-        if (config.view().applyChance() < 1.0D || preset.chance() < 1.0D
+        if (config.view().applyChance() < 1.0D || config.view().traitChance() < 1.0D
+                || preset.chance() < 1.0D || trait.runtimeAllowOverride()
                 || preset.conditionLevel() > minimumDifficulty || preset.advancementId() != null
                 || trait.minLevel() > minimumDifficulty) {
             return new GuaranteedPreset(0, remainingBudget);

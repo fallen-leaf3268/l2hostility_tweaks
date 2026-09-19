@@ -66,7 +66,7 @@ class TraitOverviewPresentationTest {
     }
 
     @Test
-    void conditionalPageTreatsItsOwnNbtConditionAsSatisfied() {
+    void conditionalPageDoesNotTreatRuntimeAllowAsSatisfied() {
         String condition = "{\"nbt\":{\"isApollyon\":1}}";
         var undying = preset(id("l2hostility:undying"), 1, 1, 1.0, 0, null,
                 condition, List.of(new TraitDynamicConstraint(
@@ -75,7 +75,7 @@ class TraitOverviewPresentationTest {
                 id("goety:apostle"), 1, List.of(configWithCondition(condition)),
                 List.of(undying), List.of(), List.of(), List.of());
 
-        assertEquals(List.of(undying), TraitOverviewPresentation.guaranteedPresets(page));
+        assertEquals(List.of(), TraitOverviewPresentation.guaranteedPresets(page));
     }
 
     @Test
