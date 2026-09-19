@@ -130,8 +130,8 @@ public final class TraitSpawnIndexBuilder {
             PresetInput preset, TraitInput trait, ConfigInput config,
             Map<ResourceLocation, Integer> guaranteedRanks, int remainingBudget) {
         int minimumDifficulty = Math.min(config.view().minDifficulty(), config.view().maxLevel());
-        if (config.view().applyChance() < 1.0D || config.view().traitChance() < 1.0D
-                || preset.chance() < 1.0D || trait.runtimeAllowOverride()
+        if (!guaranteesGenerationStage(config) || preset.chance() < 1.0D
+                || trait.runtimeAllowOverride()
                 || preset.conditionLevel() > minimumDifficulty || preset.advancementId() != null
                 || trait.minLevel() > minimumDifficulty) {
             return new GuaranteedPreset(0, remainingBudget);
@@ -145,6 +145,10 @@ public final class TraitSpawnIndexBuilder {
         int guaranteedRank = Math.max(freeRank, paidRank);
         int spent = Math.max(0, guaranteedRank - freeRank) * cost;
         return new GuaranteedPreset(guaranteedRank, remainingBudget - spent);
+    }
+
+    private static boolean guaranteesGenerationStage(ConfigInput config) {
+        return config.view().minDifficulty() > 0 && config.view().suppression() == 0.0D;
     }
 
     private static List<TraitDynamicConstraint> presetConstraints(PresetInput preset, ConfigInput config,

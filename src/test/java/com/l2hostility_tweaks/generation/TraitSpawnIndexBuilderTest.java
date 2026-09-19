@@ -255,11 +255,27 @@ class TraitSpawnIndexBuilderTest {
     }
 
     @Test
-    void probabilisticTraitStageCannotProduceGuaranteedPresetRank() {
+    void fullChanceConfigProducesGuaranteedPresetDespiteConfiguredMultipliers() {
         TraitInput adaptive = trait("l2hostility:adaptive", 20, 1, 1, 2,
                 false, Set.of(), Set.of(), false);
         ConfigInput config = config("example:source", "",
-                view("example:source", "", 1, 0.75, 0), Set.of(),
+                view("example:source", "", 0.25, 0.75, 0), Set.of(),
+                List.of(preset("l2hostility:adaptive", 1, 1, false, 1, 0, null)));
+
+        var page = TraitSpawnIndexBuilder.build(1, inputs(
+                List.of(entity("minecraft:zombie", false, List.of(config), List.of())),
+                List.of(adaptive), settings(false, false, false, false, false, List.of())))
+                .mobs().get(0);
+
+        assertEquals(1, page.presets().get(0).guaranteedRank());
+    }
+
+    @Test
+    void nonFullChanceConfigCannotProvePresetGeneration() {
+        TraitInput adaptive = trait("l2hostility:adaptive", 20, 1, 1, 2,
+                false, Set.of(), Set.of(), false);
+        ConfigInput config = config("example:source", "",
+                view("example:source", "", 1, 1, 0.25), Set.of(),
                 List.of(preset("l2hostility:adaptive", 1, 1, false, 1, 0, null)));
 
         var page = TraitSpawnIndexBuilder.build(1, inputs(
