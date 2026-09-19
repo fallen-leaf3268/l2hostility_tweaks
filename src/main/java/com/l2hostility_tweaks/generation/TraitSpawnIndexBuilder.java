@@ -23,8 +23,6 @@ import java.util.Set;
 public final class TraitSpawnIndexBuilder {
 
     private static final Comparator<ResourceLocation> ID_ORDER = Comparator.comparing(ResourceLocation::toString);
-    private static final Comparator<ResourceLocation> NULLABLE_ID_ORDER = Comparator.nullsFirst(ID_ORDER);
-
     public static TraitSpawnIndexSnapshot build(long revision, Inputs inputs) {
         Objects.requireNonNull(inputs);
         Map<ResourceLocation, TraitInput> traitsById = new HashMap<>();
@@ -83,7 +81,7 @@ public final class TraitSpawnIndexBuilder {
             }
         }
 
-        LinkedHashSet<PresetTraitView> presetSet = new LinkedHashSet<>();
+        List<PresetTraitView> presets = new ArrayList<>();
         Map<ResourceLocation, Integer> guaranteedRanks = new HashMap<>();
         int guaranteedBudget = config == null ? 0
                 : Math.min(config.view().minDifficulty(), config.view().maxLevel());
@@ -110,14 +108,13 @@ public final class TraitSpawnIndexBuilder {
                 if (guaranteed.rank() > 0) {
                     guaranteedRanks.put(preset.traitId(), guaranteed.rank());
                 }
-                presetSet.add(new PresetTraitView(
+                presets.add(new PresetTraitView(
                         preset.traitId(), trait.itemId(), preset.freeRank(), preset.minRank(), preset.cap(),
                         preset.chance(), preset.conditionLevel(), preset.advancementId(), config.sourceId(),
                         config.conditionJson(), guaranteed.rank(), presetConstraints(preset, config, trait)));
             }
         }
 
-        List<PresetTraitView> presets = presetSet.stream().sorted(presetOrder()).toList();
         pool.sort(Comparator.comparing(PoolTraitView::traitId, ID_ORDER));
         blocked.sort(Comparator.comparing(BlockedTraitView::traitId, ID_ORDER));
         List<EntityConfigView> configs = config == null ? List.of() : List.of(config.view());
@@ -198,18 +195,6 @@ public final class TraitSpawnIndexBuilder {
 
     private static TraitDynamicConstraint constraint(String type, String... arguments) {
         return new TraitDynamicConstraint(type, List.of(arguments));
-    }
-
-    private static Comparator<PresetTraitView> presetOrder() {
-        return Comparator.comparing(PresetTraitView::traitId, ID_ORDER)
-                .thenComparingInt(PresetTraitView::freeRank)
-                .thenComparingInt(PresetTraitView::minRank)
-                .thenComparing(PresetTraitView::cap)
-                .thenComparingDouble(PresetTraitView::chance)
-                .thenComparingInt(PresetTraitView::conditionLevel)
-                .thenComparing(PresetTraitView::advancementId, NULLABLE_ID_ORDER)
-                .thenComparing(PresetTraitView::sourceId, NULLABLE_ID_ORDER)
-                .thenComparing(PresetTraitView::conditionJson, Comparator.nullsFirst(String::compareTo));
     }
 
     private static Comparator<TraitDynamicConstraint> dynamicOrder() {

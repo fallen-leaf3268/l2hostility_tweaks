@@ -195,7 +195,7 @@ class TraitSpawnIndexBuilderTest {
     }
 
     @Test
-    void sortsEntitiesAndTraitsDeterministicallyAndDeduplicatesOnlyCompletePresetTuples() {
+    void sortsEntitiesAndTraitsButKeepsEveryPresetInDatapackOrder() {
         TraitInput speedy = trait("l2hostility:speedy", 10, 1, 1, 1,
                 false, Set.of(), Set.of(), false);
         TraitInput adaptive = trait("l2hostility:adaptive", 20, 2, 2, 2,
@@ -216,7 +216,7 @@ class TraitSpawnIndexBuilderTest {
                 snapshot.mobs().stream().map(page -> page.entityId()).toList());
         assertEquals(List.of(id("l2hostility:adaptive"), id("l2hostility:speedy")),
                 snapshot.mobs().get(0).pool().stream().map(entry -> entry.traitId()).toList());
-        assertEquals(List.of(1, 2), snapshot.mobs().get(0).presets().stream()
+        assertEquals(List.of(1, 1, 2), snapshot.mobs().get(0).presets().stream()
                 .map(entry -> entry.freeRank()).toList());
     }
 
@@ -336,7 +336,7 @@ class TraitSpawnIndexBuilderTest {
                 List.of(apostle), List.of(undying, ragnarok, evolution),
                 settings(false, false, false, false, false, List.of()))).mobs().get(1);
 
-        assertEquals(List.of(id("kubejs:evolution"), id("l2hostility:undying")),
+        assertEquals(List.of(id("l2hostility:undying"), id("kubejs:evolution")),
                 page.presets().stream().map(entry -> entry.traitId()).toList());
         assertEquals(Map.of(id("kubejs:evolution"), 2, id("l2hostility:undying"), 1),
                 page.presets().stream().collect(java.util.stream.Collectors.toMap(
