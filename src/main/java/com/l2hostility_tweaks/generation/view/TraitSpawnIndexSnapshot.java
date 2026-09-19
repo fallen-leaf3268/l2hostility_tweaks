@@ -1,5 +1,6 @@
 package com.l2hostility_tweaks.generation.view;
 
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
@@ -98,20 +99,35 @@ public record TraitSpawnIndexSnapshot(long revision, List<MobTraitOverview> mobs
 
     public record MobEquipmentView(
             MobEquipmentCategory category,
-            ItemStack stack,
+            CompoundTag stackTag,
             List<MobEquipmentRuleView> rules) {
         public MobEquipmentView {
             Objects.requireNonNull(category);
-            Objects.requireNonNull(stack);
-            if (stack.isEmpty()) throw new IllegalArgumentException("stack must not be empty");
-            stack = stack.copy();
+            Objects.requireNonNull(stackTag);
+            if (stackTag.isEmpty()) throw new IllegalArgumentException("stackTag must not be empty");
+            stackTag = stackTag.copy();
             rules = List.copyOf(rules);
             if (rules.isEmpty()) throw new IllegalArgumentException("rules must not be empty");
         }
 
         @Override
+        public CompoundTag stackTag() {
+            return stackTag.copy();
+        }
+
+        public MobEquipmentView(MobEquipmentCategory category, ItemStack stack,
+                                List<MobEquipmentRuleView> rules) {
+            this(category, save(stack), rules);
+        }
+
         public ItemStack stack() {
-            return stack.copy();
+            return ItemStack.of(stackTag);
+        }
+
+        private static CompoundTag save(ItemStack stack) {
+            Objects.requireNonNull(stack);
+            if (stack.isEmpty()) throw new IllegalArgumentException("stack must not be empty");
+            return stack.save(new CompoundTag());
         }
     }
 
