@@ -156,7 +156,9 @@ class JeiResourcesTest {
         String category = Files.readString(Path.of(
                 "src/main/java/com/l2hostility_tweaks/compat/jei/TraitOverviewCategory.java"));
 
-        assertTrue(category.contains("EQUIPMENT_SLOT_X = 77"));
+        assertTrue(category.contains("EQUIPMENT_SLOT_X = 62"));
+        assertTrue(category.contains("RIGHT_COLUMN_CENTER_X = 132"));
+        assertTrue(category.contains("TRAIT_TITLE_MAX_WIDTH = 80"));
         assertTrue(category.contains("ARMOR_SLOT_Y = 12"));
         assertTrue(category.contains("HANDS_SLOT_Y = 42"));
         assertTrue(category.contains("CURIOS_SLOT_Y = 72"));
@@ -166,6 +168,9 @@ class JeiResourcesTest {
         assertTrue(category.contains("setSlotName(name)"));
         assertTrue(category.contains("entry.stack()"));
         assertTrue(category.contains("TraitIngredientTooltipRegistry.activateEquipment(recipe, category)"));
+        assertTrue(category.contains("drawScaledCenteredNoShadow"));
+        assertTrue(category.contains("textScale("));
+        assertTrue(category.contains("guiGraphics.drawString(font, Component.translatable(\"jei.l2hostility_tweaks.difficulty_range\""));
     }
 
     private static void assertAppearsInOrder(String source, List<String> fragments) {

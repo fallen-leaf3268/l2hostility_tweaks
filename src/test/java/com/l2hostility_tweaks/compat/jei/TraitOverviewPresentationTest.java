@@ -325,15 +325,27 @@ class TraitOverviewPresentationTest {
         assertEquals(12, TraitOverviewCategory.MOB_SLOT_Y);
         assertEquals(56, TraitOverviewCategory.MOB_RENDERER_WIDTH);
         assertEquals(72, TraitOverviewCategory.MOB_RENDERER_HEIGHT);
-        assertEquals(120, TraitOverviewCategory.RIGHT_COLUMN_CENTER_X);
-        assertEquals(112, TraitOverviewCategory.POOL_SLOT_X);
+        assertEquals(62, TraitOverviewCategory.EQUIPMENT_SLOT_X);
+        assertEquals(132, TraitOverviewCategory.RIGHT_COLUMN_CENTER_X);
+        assertEquals(80, TraitOverviewCategory.TRAIT_TITLE_MAX_WIDTH);
+        assertEquals(123, TraitOverviewCategory.POOL_SLOT_X);
         assertEquals(12, TraitOverviewCategory.POOL_SLOT_Y);
-        assertEquals(112, TraitOverviewCategory.BLOCKED_SLOT_X);
+        assertEquals(123, TraitOverviewCategory.BLOCKED_SLOT_X);
         assertEquals(52, TraitOverviewCategory.BLOCKED_SLOT_Y);
-        assertEquals(112, TraitOverviewCategory.PRESET_SLOT_X);
+        assertEquals(123, TraitOverviewCategory.PRESET_SLOT_X);
         assertEquals(92, TraitOverviewCategory.PRESET_SLOT_Y);
         assertEquals(4, TraitOverviewCategory.CONFIG_TEXT_X);
         assertEquals(112, TraitOverviewCategory.DIFFICULTY_TEXT_Y);
+        assertTrue(TraitOverviewCategory.EQUIPMENT_SLOT_X >=
+                TraitOverviewCategory.MOB_SLOT_X + TraitOverviewCategory.MOB_RENDERER_WIDTH);
+        assertTrue(TraitOverviewCategory.EQUIPMENT_SLOT_X + 18 < TraitOverviewCategory.POOL_SLOT_X);
+    }
+
+    @Test
+    void categoryScalesOnlyTextThatExceedsItsPixelBudget() {
+        assertEquals(1.0F, TraitOverviewCategory.textScale(40, 80));
+        assertEquals(1.0F, TraitOverviewCategory.textScale(80, 80));
+        assertEquals(0.5F, TraitOverviewCategory.textScale(160, 80));
     }
 
     @Test

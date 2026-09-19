@@ -35,16 +35,17 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
     static final int MOB_SLOT_Y = 12;
     static final int MOB_RENDERER_WIDTH = 56;
     static final int MOB_RENDERER_HEIGHT = 72;
-    static final int EQUIPMENT_SLOT_X = 77;
+    static final int EQUIPMENT_SLOT_X = 62;
     static final int ARMOR_SLOT_Y = 12;
     static final int HANDS_SLOT_Y = 42;
     static final int CURIOS_SLOT_Y = 72;
-    static final int RIGHT_COLUMN_CENTER_X = 120;
-    static final int POOL_SLOT_X = 112;
+    static final int RIGHT_COLUMN_CENTER_X = 132;
+    static final int TRAIT_TITLE_MAX_WIDTH = 80;
+    static final int POOL_SLOT_X = 123;
     static final int POOL_SLOT_Y = 12;
-    static final int BLOCKED_SLOT_X = 112;
+    static final int BLOCKED_SLOT_X = 123;
     static final int BLOCKED_SLOT_Y = 52;
-    static final int PRESET_SLOT_X = 112;
+    static final int PRESET_SLOT_X = 123;
     static final int PRESET_SLOT_Y = 92;
     static final int CONFIG_TEXT_X = 4;
     static final int DIFFICULTY_TEXT_Y = 112;
@@ -138,18 +139,19 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
         TraitOverviewPresentation.Counts counts = TraitOverviewPresentation.counts(recipe);
         String entityName = TraitOverviewPresentation.mobDisplayName(recipe,
                 mobHelper.getDisplayName(new MobIngredient(recipe.entityId())));
-        Component entityTitle = compactMobTitle(font, entityName, recipe);
-        drawCenteredNoShadow(guiGraphics, font, entityTitle, MOB_CENTER_X, 0, 0xFF555555);
-        drawCenteredNoShadow(guiGraphics, font,
+        Component entityTitle = mobTitle(entityName, recipe);
+        drawScaledCenteredNoShadow(guiGraphics, font, entityTitle,
+                MOB_CENTER_X, 0, MOB_RENDERER_WIDTH, 0xFF555555);
+        drawScaledCenteredNoShadow(guiGraphics, font,
                 Component.translatable("jei.l2hostility_tweaks.pool", counts.pool()),
-                RIGHT_COLUMN_CENTER_X, 0, 0xFF555555);
-        drawCenteredNoShadow(guiGraphics, font,
+                RIGHT_COLUMN_CENTER_X, 0, TRAIT_TITLE_MAX_WIDTH, 0xFF555555);
+        drawScaledCenteredNoShadow(guiGraphics, font,
                 Component.translatable("jei.l2hostility_tweaks.blocked", counts.blocked()),
-                RIGHT_COLUMN_CENTER_X, 40, 0xFF555555);
+                RIGHT_COLUMN_CENTER_X, 40, TRAIT_TITLE_MAX_WIDTH, 0xFF555555);
         if (shouldRenderPresets(recipe)) {
-            drawCenteredNoShadow(guiGraphics, font,
+            drawScaledCenteredNoShadow(guiGraphics, font,
                     Component.translatable("jei.l2hostility_tweaks.preset", counts.presets()),
-                    RIGHT_COLUMN_CENTER_X, 80, 0xFF555555);
+                    RIGHT_COLUMN_CENTER_X, 80, TRAIT_TITLE_MAX_WIDTH, 0xFF555555);
         }
         recipe.configs().stream().findFirst().ifPresent(config -> {
             TraitOverviewPresentation.DifficultyRange range = TraitOverviewPresentation.difficultyRange(config);
@@ -181,17 +183,6 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                 mobHelper.getDisplayName(new MobIngredient(recipe.entityId()))), recipe));
         addConfigTooltip(recipe, tooltip);
         return tooltip;
-    }
-
-    private static Component compactMobTitle(Font font, String entityName,
-                                             TraitSpawnIndexSnapshot.MobTraitOverview recipe) {
-        String key = TraitOverviewPresentation.mobVariantTitleKey(recipe);
-        if (key.isEmpty()) {
-            return Component.literal(font.plainSubstrByWidth(entityName, MOB_RENDERER_WIDTH));
-        }
-        String suffix = Component.translatable(key, "").getString();
-        int nameWidth = Math.max(0, MOB_RENDERER_WIDTH - font.width(suffix));
-        return Component.literal(font.plainSubstrByWidth(entityName, nameWidth) + suffix);
     }
 
     private static Component mobTitle(String entityName,
@@ -249,9 +240,21 @@ public final class TraitOverviewCategory implements IRecipeCategory<TraitSpawnIn
                 .map(Item::getDefaultInstance).filter(value -> !value.isEmpty());
     }
 
-    private static void drawCenteredNoShadow(GuiGraphics graphics, Font font, Component text,
-                                             int centerX, int y, int color) {
-        graphics.drawString(font, text, centerX - font.width(text) / 2, y, color, false);
+    private static void drawScaledCenteredNoShadow(GuiGraphics graphics, Font font, Component text,
+                                                   int centerX, int y, int maxWidth, int color) {
+        int width = font.width(text);
+        float scale = textScale(width, maxWidth);
+        var pose = graphics.pose();
+        pose.pushPose();
+        pose.translate(centerX, y + (font.lineHeight - font.lineHeight * scale) * 0.5F, 0);
+        pose.scale(scale, scale, 1.0F);
+        graphics.drawString(font, text, -width / 2, 0, color, false);
+        pose.popPose();
+    }
+
+    static float textScale(int naturalWidth, int maxWidth) {
+        if (naturalWidth <= 0 || maxWidth <= 0 || naturalWidth <= maxWidth) return 1.0F;
+        return (float) maxWidth / naturalWidth;
     }
 
     static boolean shouldRenderPresets(TraitSpawnIndexSnapshot.MobTraitOverview recipe) {
