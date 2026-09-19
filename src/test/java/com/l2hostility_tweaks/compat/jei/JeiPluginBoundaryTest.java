@@ -75,7 +75,7 @@ class JeiPluginBoundaryTest {
         assertFalse(source.contains("overrideDisplayedStacks"));
         assertFalse(source.contains("guiGraphics.renderItem(blockedStack"));
         assertFalse(source.contains("currentBlocked("));
-        assertEquals(4, source.split("\\.addTooltipCallback\\(", -1).length - 1);
+        assertEquals(5, source.split("\\.addTooltipCallback\\(", -1).length - 1);
         assertFalse(source.contains("addPoolTooltip("));
         assertFalse(source.contains("addBlockedTooltip("));
         assertFalse(source.contains("addPresetTooltip("));
