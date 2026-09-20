@@ -10,6 +10,7 @@ import com.l2hostility_tweaks.generation.TraitSpawnIndexBuilder.PresetInput;
 import com.l2hostility_tweaks.generation.TraitSpawnIndexBuilder.Settings;
 import com.l2hostility_tweaks.generation.TraitSpawnIndexBuilder.TraitInput;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.EntityConfigView;
+import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.MobEquipmentView;
 import com.l2hostility_tweaks.util.EntityConfigDisplayData;
 import com.l2hostility_tweaks.util.EntityConfigNbtData;
 import dev.xkmc.l2hostility.content.config.EntityConfig;
@@ -120,7 +121,9 @@ public final class MinecraftTraitSpawnIndexSource {
                     condition == null ? 0 : condition.lv(),
                     condition == null ? null : condition.id()));
         }
-        return new ConfigInput(sourceId, conditionJson, jeiDisplayName, view, blacklist, presets);
+        List<MobEquipmentView> equipment = MobEquipmentIndex.capture(config, sourceId);
+        return new ConfigInput(sourceId, conditionJson, jeiDisplayName,
+                view, blacklist, presets, equipment);
     }
 
     private static boolean isConditional(EntityConfig.Config config) {

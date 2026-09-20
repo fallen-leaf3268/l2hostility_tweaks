@@ -56,6 +56,31 @@ public class TraitSpawnIndexCodecTest {
     }
 
     @Test
+    void roundTripsFullEquipmentStackTagAndGenerationRules() {
+        CompoundTag stack = new CompoundTag();
+        stack.putString("id", "example:datapack_blade");
+        stack.putByte("Count", (byte) 1);
+        CompoundTag itemData = new CompoundTag();
+        itemData.putString("variant", "charged");
+        stack.put("tag", itemData);
+        var rule = new TraitSpawnIndexSnapshot.MobEquipmentRuleView(
+                id("example:mob"), "equipment/mainhand", 80, 0.5, 2, 10, true);
+        var equipment = new TraitSpawnIndexSnapshot.MobEquipmentView(
+                TraitSpawnIndexSnapshot.MobEquipmentCategory.HANDS, stack, List.of(rule));
+        var mob = new TraitSpawnIndexSnapshot.MobTraitOverview(
+                id("minecraft:zombie"), 0, "", List.of(), List.of(), List.of(), List.of(),
+                List.of(equipment), List.of());
+        TraitSpawnIndexSnapshot expected = new TraitSpawnIndexSnapshot(14, List.of(mob), 0);
+
+        TraitSpawnIndexSnapshot decoded = TraitSpawnIndexCodec.decode(
+                TraitSpawnIndexCodec.encode(expected));
+
+        assertEquals(expected, decoded);
+        assertEquals("charged", decoded.mobs().get(0).equipment().get(0)
+                .stackTag().getCompound("tag").getString("variant"));
+    }
+
+    @Test
     void rejectsOversizedMobListBeforeAllocation() {
         CompoundTag root = new CompoundTag();
         root.putLong("revision", 1);

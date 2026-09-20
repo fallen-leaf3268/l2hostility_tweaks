@@ -2,10 +2,12 @@ package com.l2hostility_tweaks.client;
 
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import dev.xkmc.l2hostility.init.registrate.LHTraits;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
@@ -19,7 +21,9 @@ public final class TraitListTooltipRenderer implements ClientTooltipComponent {
     private static final int COLUMN_GAP = 6;
 
     private final List<RenderEntry> entries;
+    private final List<Component> overheadRows;
     private final boolean showIcons;
+    private final boolean overheadLayout;
 
     public TraitListTooltipRenderer(TraitListTooltip tooltip) {
         List<RenderEntry> resolved = new ArrayList<>();
@@ -31,15 +35,21 @@ public final class TraitListTooltipRenderer implements ClientTooltipComponent {
         }
         entries = List.copyOf(resolved);
         showIcons = tooltip.showIcons();
+        overheadLayout = tooltip.overheadLayout();
+        overheadRows = overheadLayout ? buildOverheadRows(entries) : List.of();
     }
 
     @Override
     public int getHeight() {
+        if (overheadLayout) return overheadRows.size() * 11;
         return Math.min(entries.size(), ROWS_PER_COLUMN) * rowHeight();
     }
 
     @Override
     public int getWidth(Font font) {
+        if (overheadLayout) {
+            return overheadRows.stream().mapToInt(font::width).max().orElse(0);
+        }
         int columns = columnCount();
         int width = 0;
         for (int column = 0; column < columns; column++) {
@@ -51,6 +61,13 @@ public final class TraitListTooltipRenderer implements ClientTooltipComponent {
 
     @Override
     public void renderImage(Font font, int x, int y, GuiGraphics guiGraphics) {
+        if (overheadLayout) {
+            for (int index = 0; index < overheadRows.size(); index++) {
+                guiGraphics.drawString(font, overheadRows.get(index), x, y + index * 11,
+                        0xFFFFFFFF, false);
+            }
+            return;
+        }
         int columnX = x;
         for (int column = 0; column < columnCount(); column++) {
             int start = column * ROWS_PER_COLUMN;
@@ -87,6 +104,22 @@ public final class TraitListTooltipRenderer implements ClientTooltipComponent {
 
     private int rowHeight() {
         return showIcons ? ROW_HEIGHT : 11;
+    }
+
+    private static List<Component> buildOverheadRows(List<RenderEntry> entries) {
+        List<Component> rows = new ArrayList<>();
+        for (int start = 0; start < entries.size(); start += 3) {
+            MutableComponent line = Component.empty();
+            int end = Math.min(start + 3, entries.size());
+            for (int index = start; index < end; index++) {
+                if (index > start) {
+                    line.append(Component.literal(" / ").withStyle(ChatFormatting.WHITE));
+                }
+                line.append(entries.get(index).name());
+            }
+            rows.add(line);
+        }
+        return List.copyOf(rows);
     }
 
     private record RenderEntry(ItemStack stack, Component name) {

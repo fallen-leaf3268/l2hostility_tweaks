@@ -7,6 +7,7 @@ import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.BlockedCon
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.BlockedTraitView;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.EntityConfigView;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.MobTraitOverview;
+import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.MobEquipmentView;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.PoolTraitView;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.PresetTraitView;
 import net.minecraft.resources.ResourceLocation;
@@ -23,8 +24,6 @@ import java.util.Set;
 public final class TraitSpawnIndexBuilder {
 
     private static final Comparator<ResourceLocation> ID_ORDER = Comparator.comparing(ResourceLocation::toString);
-    private static final Comparator<ResourceLocation> NULLABLE_ID_ORDER = Comparator.nullsFirst(ID_ORDER);
-
     public static TraitSpawnIndexSnapshot build(long revision, Inputs inputs) {
         Objects.requireNonNull(inputs);
         Map<ResourceLocation, TraitInput> traitsById = new HashMap<>();
@@ -83,7 +82,7 @@ public final class TraitSpawnIndexBuilder {
             }
         }
 
-        LinkedHashSet<PresetTraitView> presetSet = new LinkedHashSet<>();
+        List<PresetTraitView> presets = new ArrayList<>();
         Map<ResourceLocation, Integer> guaranteedRanks = new HashMap<>();
         int guaranteedBudget = config == null ? 0
                 : Math.min(config.view().minDifficulty(), config.view().maxLevel());
@@ -110,28 +109,29 @@ public final class TraitSpawnIndexBuilder {
                 if (guaranteed.rank() > 0) {
                     guaranteedRanks.put(preset.traitId(), guaranteed.rank());
                 }
-                presetSet.add(new PresetTraitView(
+                presets.add(new PresetTraitView(
                         preset.traitId(), trait.itemId(), preset.freeRank(), preset.minRank(), preset.cap(),
                         preset.chance(), preset.conditionLevel(), preset.advancementId(), config.sourceId(),
                         config.conditionJson(), guaranteed.rank(), presetConstraints(preset, config, trait)));
             }
         }
 
-        List<PresetTraitView> presets = presetSet.stream().sorted(presetOrder()).toList();
         pool.sort(Comparator.comparing(PoolTraitView::traitId, ID_ORDER));
         blocked.sort(Comparator.comparing(BlockedTraitView::traitId, ID_ORDER));
         List<EntityConfigView> configs = config == null ? List.of() : List.of(config.view());
+        List<MobEquipmentView> equipment = config == null ? List.of() : config.equipment();
         List<TraitDynamicConstraint> dynamicConstraints = overviewConstraints(traits, settings, config);
         return new BuildResult(new MobTraitOverview(
                 entity.id(), variantIndex, config == null ? "" : config.jeiDisplayName(),
-                configs, presets, pool, blocked, dynamicConstraints), warnings);
+                configs, presets, pool, blocked, equipment, dynamicConstraints), warnings);
     }
 
     private static GuaranteedPreset simulateGuaranteedPreset(
             PresetInput preset, TraitInput trait, ConfigInput config,
             Map<ResourceLocation, Integer> guaranteedRanks, int remainingBudget) {
         int minimumDifficulty = Math.min(config.view().minDifficulty(), config.view().maxLevel());
-        if (config.view().applyChance() < 1.0D || preset.chance() < 1.0D
+        if (!guaranteesGenerationStage(config) || preset.chance() < 1.0D
+                || trait.runtimeAllowOverride()
                 || preset.conditionLevel() > minimumDifficulty || preset.advancementId() != null
                 || trait.minLevel() > minimumDifficulty) {
             return new GuaranteedPreset(0, remainingBudget);
@@ -145,6 +145,10 @@ public final class TraitSpawnIndexBuilder {
         int guaranteedRank = Math.max(freeRank, paidRank);
         int spent = Math.max(0, guaranteedRank - freeRank) * cost;
         return new GuaranteedPreset(guaranteedRank, remainingBudget - spent);
+    }
+
+    private static boolean guaranteesGenerationStage(ConfigInput config) {
+        return config.view().minDifficulty() > 0 && config.view().suppression() == 0.0D;
     }
 
     private static List<TraitDynamicConstraint> presetConstraints(PresetInput preset, ConfigInput config,
@@ -200,18 +204,6 @@ public final class TraitSpawnIndexBuilder {
         return new TraitDynamicConstraint(type, List.of(arguments));
     }
 
-    private static Comparator<PresetTraitView> presetOrder() {
-        return Comparator.comparing(PresetTraitView::traitId, ID_ORDER)
-                .thenComparingInt(PresetTraitView::freeRank)
-                .thenComparingInt(PresetTraitView::minRank)
-                .thenComparing(PresetTraitView::cap)
-                .thenComparingDouble(PresetTraitView::chance)
-                .thenComparingInt(PresetTraitView::conditionLevel)
-                .thenComparing(PresetTraitView::advancementId, NULLABLE_ID_ORDER)
-                .thenComparing(PresetTraitView::sourceId, NULLABLE_ID_ORDER)
-                .thenComparing(PresetTraitView::conditionJson, Comparator.nullsFirst(String::compareTo));
-    }
-
     private static Comparator<TraitDynamicConstraint> dynamicOrder() {
         return Comparator.comparing(TraitDynamicConstraint::type)
                 .thenComparing(value -> String.join("\u0000", value.arguments()));
@@ -247,19 +239,26 @@ public final class TraitSpawnIndexBuilder {
 
     public record ConfigInput(ResourceLocation sourceId, String conditionJson, String jeiDisplayName,
                               EntityConfigView view, Set<ResourceLocation> blacklist,
-                              List<PresetInput> presets) {
+                              List<PresetInput> presets, List<MobEquipmentView> equipment) {
         public ConfigInput {
             conditionJson = conditionJson == null ? "" : conditionJson;
             jeiDisplayName = jeiDisplayName == null ? "" : jeiDisplayName;
             Objects.requireNonNull(view);
             blacklist = Set.copyOf(blacklist);
             presets = List.copyOf(presets);
+            equipment = List.copyOf(equipment);
+        }
+
+        public ConfigInput(ResourceLocation sourceId, String conditionJson, String jeiDisplayName,
+                           EntityConfigView view, Set<ResourceLocation> blacklist,
+                           List<PresetInput> presets) {
+            this(sourceId, conditionJson, jeiDisplayName, view, blacklist, presets, List.of());
         }
 
         public ConfigInput(ResourceLocation sourceId, String conditionJson,
                            EntityConfigView view, Set<ResourceLocation> blacklist,
                            List<PresetInput> presets) {
-            this(sourceId, conditionJson, "", view, blacklist, presets);
+            this(sourceId, conditionJson, "", view, blacklist, presets, List.of());
         }
     }
 

@@ -66,7 +66,7 @@ class TraitOverviewPresentationTest {
     }
 
     @Test
-    void conditionalPageTreatsItsOwnNbtConditionAsSatisfied() {
+    void conditionalPageDoesNotTreatRuntimeAllowAsSatisfied() {
         String condition = "{\"nbt\":{\"isApollyon\":1}}";
         var undying = preset(id("l2hostility:undying"), 1, 1, 1.0, 0, null,
                 condition, List.of(new TraitDynamicConstraint(
@@ -75,7 +75,7 @@ class TraitOverviewPresentationTest {
                 id("goety:apostle"), 1, List.of(configWithCondition(condition)),
                 List.of(undying), List.of(), List.of(), List.of());
 
-        assertEquals(List.of(undying), TraitOverviewPresentation.guaranteedPresets(page));
+        assertEquals(List.of(), TraitOverviewPresentation.guaranteedPresets(page));
     }
 
     @Test
@@ -92,6 +92,31 @@ class TraitOverviewPresentationTest {
                 TraitOverviewPresentation.presetsForItem(page, id("l2hostility:speedy")));
         assertEquals(List.of(),
                 TraitOverviewPresentation.presetsForItem(page, id("l2hostility:missing")));
+    }
+
+    @Test
+    void displayedPoolAndBlockedEntriesFollowTheCurrentlyCycledItem() {
+        var speedyFirst = new TraitSpawnIndexSnapshot.PoolTraitView(
+                id("l2hostility:speedy"), id("l2hostility:speedy"), 10, 0, 1, 3);
+        var adaptive = new TraitSpawnIndexSnapshot.PoolTraitView(
+                id("l2hostility:adaptive"), id("l2hostility:adaptive"), 20, 5, 2, 4);
+        var speedySecond = new TraitSpawnIndexSnapshot.PoolTraitView(
+                id("l2hostility:speedy"), id("l2hostility:speedy"), 30, 10, 3, 5);
+        var growth = new TraitSpawnIndexSnapshot.BlockedTraitView(
+                id("l2hostility:growth"), id("l2hostility:growth"), List.of());
+        var tank = new TraitSpawnIndexSnapshot.BlockedTraitView(
+                id("l2hostility:tank"), id("l2hostility:tank"), List.of());
+        var page = new TraitSpawnIndexSnapshot.MobTraitOverview(id("minecraft:zombie"), List.of(), List.of(),
+                List.of(speedyFirst, adaptive, speedySecond), List.of(growth, tank), List.of());
+
+        assertEquals(List.of(speedyFirst, speedySecond),
+                TraitOverviewPresentation.poolForItem(page, id("l2hostility:speedy")));
+        assertEquals(List.of(adaptive),
+                TraitOverviewPresentation.poolForItem(page, id("l2hostility:adaptive")));
+        assertEquals(List.of(growth),
+                TraitOverviewPresentation.blockedForItem(page, id("l2hostility:growth")));
+        assertEquals(List.of(),
+                TraitOverviewPresentation.blockedForItem(page, id("l2hostility:missing")));
     }
 
     @Test
@@ -127,7 +152,29 @@ class TraitOverviewPresentationTest {
 
         assertFalse(parsed.showIcons());
         assertFalse(parsed.replaceTooltip());
+        assertFalse(parsed.overheadLayout());
         assertEquals(entries, parsed.entries());
+    }
+
+    @Test
+    void overheadTraitListMarkerGroupsAtMostThreeTraitsPerLine() {
+        List<TraitListTooltip.Entry> entries = List.of(
+                new TraitListTooltip.Entry(id("l2hostility:speedy"), 1),
+                new TraitListTooltip.Entry(id("l2hostility:tank"), 2),
+                new TraitListTooltip.Entry(id("l2hostility:fiery"), 3),
+                new TraitListTooltip.Entry(id("l2hostility:poison"), 4),
+                new TraitListTooltip.Entry(id("l2hostility:reflect"), 5),
+                new TraitListTooltip.Entry(id("l2hostility:gravity"), 6),
+                new TraitListTooltip.Entry(id("l2hostility:moonwalk"), 7));
+
+        TraitListTooltip parsed = TraitListTooltip.fromMarker(
+                TraitListTooltip.overheadMarker(entries).getString()).orElseThrow();
+
+        assertTrue(parsed.overheadLayout());
+        assertFalse(parsed.showIcons());
+        assertFalse(parsed.replaceTooltip());
+        assertEquals(entries, parsed.entries());
+        assertEquals(List.of(3, 3, 1), parsed.rows().stream().map(List::size).toList());
     }
 
     @Test
@@ -139,6 +186,7 @@ class TraitOverviewPresentationTest {
 
         assertTrue(parsed.showIcons());
         assertTrue(parsed.replaceTooltip());
+        assertFalse(parsed.overheadLayout());
         assertEquals(traits, parsed.entries().stream().map(TraitListTooltip.Entry::traitId).toList());
     }
 
@@ -300,19 +348,27 @@ class TraitOverviewPresentationTest {
         assertEquals(12, TraitOverviewCategory.MOB_SLOT_Y);
         assertEquals(56, TraitOverviewCategory.MOB_RENDERER_WIDTH);
         assertEquals(72, TraitOverviewCategory.MOB_RENDERER_HEIGHT);
-        assertEquals(120, TraitOverviewCategory.RIGHT_COLUMN_CENTER_X);
-        assertEquals(112, TraitOverviewCategory.POOL_SLOT_X);
+        assertEquals(62, TraitOverviewCategory.EQUIPMENT_SLOT_X);
+        assertEquals(132, TraitOverviewCategory.RIGHT_COLUMN_CENTER_X);
+        assertEquals(80, TraitOverviewCategory.TRAIT_TITLE_MAX_WIDTH);
+        assertEquals(123, TraitOverviewCategory.POOL_SLOT_X);
         assertEquals(12, TraitOverviewCategory.POOL_SLOT_Y);
-        assertEquals(112, TraitOverviewCategory.BLOCKED_SLOT_X);
+        assertEquals(123, TraitOverviewCategory.BLOCKED_SLOT_X);
         assertEquals(52, TraitOverviewCategory.BLOCKED_SLOT_Y);
-        assertEquals(112, TraitOverviewCategory.PRESET_SLOT_X);
+        assertEquals(123, TraitOverviewCategory.PRESET_SLOT_X);
         assertEquals(92, TraitOverviewCategory.PRESET_SLOT_Y);
         assertEquals(4, TraitOverviewCategory.CONFIG_TEXT_X);
         assertEquals(112, TraitOverviewCategory.DIFFICULTY_TEXT_Y);
-        assertEquals(112, TraitOverviewCategory.BLOCKED_HOVER_X);
-        assertEquals(128, TraitOverviewCategory.BLOCKED_HOVER_END_X);
-        assertEquals(52, TraitOverviewCategory.BLOCKED_HOVER_Y);
-        assertEquals(68, TraitOverviewCategory.BLOCKED_HOVER_END_Y);
+        assertTrue(TraitOverviewCategory.EQUIPMENT_SLOT_X >=
+                TraitOverviewCategory.MOB_SLOT_X + TraitOverviewCategory.MOB_RENDERER_WIDTH);
+        assertTrue(TraitOverviewCategory.EQUIPMENT_SLOT_X + 18 < TraitOverviewCategory.POOL_SLOT_X);
+    }
+
+    @Test
+    void categoryScalesOnlyTextThatExceedsItsPixelBudget() {
+        assertEquals(1.0F, TraitOverviewCategory.textScale(40, 80));
+        assertEquals(1.0F, TraitOverviewCategory.textScale(80, 80));
+        assertEquals(0.5F, TraitOverviewCategory.textScale(160, 80));
     }
 
     @Test

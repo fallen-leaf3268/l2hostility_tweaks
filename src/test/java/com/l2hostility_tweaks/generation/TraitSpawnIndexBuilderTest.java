@@ -8,6 +8,7 @@ import com.l2hostility_tweaks.generation.TraitSpawnIndexBuilder.Settings;
 import com.l2hostility_tweaks.generation.TraitSpawnIndexBuilder.TraitInput;
 import com.l2hostility_tweaks.generation.view.TraitBlockReason;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.EntityConfigView;
+import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.MobEquipmentView;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +20,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TraitSpawnIndexBuilderTest {
+
+    @Test
+    void carriesTheSelectedConfigsEquipmentIntoItsOverviewPage() {
+        EntityConfigView view = view("example:equipment", "", 1, 1, 0);
+        List<MobEquipmentView> equipment = List.of();
+        ConfigInput config = new ConfigInput(id("example:equipment"), "", "",
+                view, Set.of(), List.of(), equipment);
+        EntityInput zombie = entity("minecraft:zombie", false, List.of(config), List.of());
+
+        var page = TraitSpawnIndexBuilder.build(1, inputs(
+                List.of(zombie), List.of(),
+                settings(false, false, false, false, false, List.of()))).mobs().get(0);
+
+        assertEquals(equipment, page.equipment());
+    }
 
     @Test
     void conditionalPageKeepsItsConfiguredJeiDisplayName() {
@@ -195,7 +211,7 @@ class TraitSpawnIndexBuilderTest {
     }
 
     @Test
-    void sortsEntitiesAndTraitsDeterministicallyAndDeduplicatesOnlyCompletePresetTuples() {
+    void sortsEntitiesAndTraitsButKeepsEveryPresetInDatapackOrder() {
         TraitInput speedy = trait("l2hostility:speedy", 10, 1, 1, 1,
                 false, Set.of(), Set.of(), false);
         TraitInput adaptive = trait("l2hostility:adaptive", 20, 2, 2, 2,
@@ -216,7 +232,7 @@ class TraitSpawnIndexBuilderTest {
                 snapshot.mobs().stream().map(page -> page.entityId()).toList());
         assertEquals(List.of(id("l2hostility:adaptive"), id("l2hostility:speedy")),
                 snapshot.mobs().get(0).pool().stream().map(entry -> entry.traitId()).toList());
-        assertEquals(List.of(1, 2), snapshot.mobs().get(0).presets().stream()
+        assertEquals(List.of(1, 1, 2), snapshot.mobs().get(0).presets().stream()
                 .map(entry -> entry.freeRank()).toList());
     }
 
@@ -236,6 +252,38 @@ class TraitSpawnIndexBuilderTest {
         assertEquals(1.0, page.presets().get(0).chance());
         assertEquals(0.25, page.configs().get(0).applyChance());
         assertEquals(0.75, page.configs().get(0).traitChance());
+    }
+
+    @Test
+    void fullChanceConfigProducesGuaranteedPresetDespiteConfiguredMultipliers() {
+        TraitInput adaptive = trait("l2hostility:adaptive", 20, 1, 1, 2,
+                false, Set.of(), Set.of(), false);
+        ConfigInput config = config("example:source", "",
+                view("example:source", "", 0.25, 0.75, 0), Set.of(),
+                List.of(preset("l2hostility:adaptive", 1, 1, false, 1, 0, null)));
+
+        var page = TraitSpawnIndexBuilder.build(1, inputs(
+                List.of(entity("minecraft:zombie", false, List.of(config), List.of())),
+                List.of(adaptive), settings(false, false, false, false, false, List.of())))
+                .mobs().get(0);
+
+        assertEquals(1, page.presets().get(0).guaranteedRank());
+    }
+
+    @Test
+    void nonFullChanceConfigCannotProvePresetGeneration() {
+        TraitInput adaptive = trait("l2hostility:adaptive", 20, 1, 1, 2,
+                false, Set.of(), Set.of(), false);
+        ConfigInput config = config("example:source", "",
+                view("example:source", "", 1, 1, 0.25), Set.of(),
+                List.of(preset("l2hostility:adaptive", 1, 1, false, 1, 0, null)));
+
+        var page = TraitSpawnIndexBuilder.build(1, inputs(
+                List.of(entity("minecraft:zombie", false, List.of(config), List.of())),
+                List.of(adaptive), settings(false, false, false, false, false, List.of())))
+                .mobs().get(0);
+
+        assertEquals(0, page.presets().get(0).guaranteedRank());
     }
 
     @Test
@@ -336,9 +384,9 @@ class TraitSpawnIndexBuilderTest {
                 List.of(apostle), List.of(undying, ragnarok, evolution),
                 settings(false, false, false, false, false, List.of()))).mobs().get(1);
 
-        assertEquals(List.of(id("kubejs:evolution"), id("l2hostility:undying")),
+        assertEquals(List.of(id("l2hostility:undying"), id("kubejs:evolution")),
                 page.presets().stream().map(entry -> entry.traitId()).toList());
-        assertEquals(Map.of(id("kubejs:evolution"), 2, id("l2hostility:undying"), 1),
+        assertEquals(Map.of(id("kubejs:evolution"), 2, id("l2hostility:undying"), 0),
                 page.presets().stream().collect(java.util.stream.Collectors.toMap(
                         entry -> entry.traitId(), entry -> entry.guaranteedRank())));
     }

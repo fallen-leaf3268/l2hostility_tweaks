@@ -54,6 +54,20 @@ public final class TraitOverviewPresentation {
                 .toList();
     }
 
+    public static List<TraitSpawnIndexSnapshot.PoolTraitView> poolForItem(
+            TraitSpawnIndexSnapshot.MobTraitOverview overview, ResourceLocation itemId) {
+        return overview.pool().stream()
+                .filter(pool -> pool.itemId().equals(itemId))
+                .toList();
+    }
+
+    public static List<TraitSpawnIndexSnapshot.BlockedTraitView> blockedForItem(
+            TraitSpawnIndexSnapshot.MobTraitOverview overview, ResourceLocation itemId) {
+        return overview.blocked().stream()
+                .filter(blocked -> blocked.itemId().equals(itemId))
+                .toList();
+    }
+
     private static TraitSpawnIndexSnapshot.PresetTraitView strongerGuaranteedPreset(
             TraitSpawnIndexSnapshot.PresetTraitView first,
             TraitSpawnIndexSnapshot.PresetTraitView second) {
@@ -79,8 +93,8 @@ public final class TraitOverviewPresentation {
         return guaranteedPresetRank(preset) > 0
                 && (preset.conditionJson() == null || preset.conditionJson().isBlank()
                 || pageConditionSatisfied)
-                && (pageConditionSatisfied || preset.dynamicConstraints().stream()
-                .noneMatch(constraint -> constraint.type().equals("runtime_allow")));
+                && preset.dynamicConstraints().stream()
+                .noneMatch(constraint -> constraint.type().equals("runtime_allow"));
     }
 
     private static <T> List<ResourceLocation> distinctIds(
