@@ -1,9 +1,9 @@
 package com.l2hostility_tweaks.mixin;
 
 import com.l2hostility_tweaks.config.L2HConfig;
-import com.l2hostility_tweaks.generation.TraitGenerationHelper;
 import com.l2hostility_tweaks.init.L2HTweaksLang;
 import com.l2hostility_tweaks.util.ImmunityHelper;
+import com.l2hostility_tweaks.util.PlayerTraitRules;
 import com.l2hostility_tweaks.util.TraitCostHelper;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
@@ -25,9 +25,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.Collection;
-import java.util.HashMap;
-
 @Mixin(Item.class)
 public class TraitSymbolSelfUseMixin {
 
@@ -47,26 +44,10 @@ public class TraitSymbolSelfUseMixin {
 
 		MobTraitCap cap = MobTraitCap.HOLDER.get(player);
 		MobTrait trait = traitSymbol.get();
-		if (L2HConfig.isExclusionEnabled()) {
-			var existing = new HashMap<String, Integer>();
-			for (var entry : cap.traits.entrySet()) {
-				existing.put(entry.getKey().getID(), entry.getValue());
-			}
-			String conflict = TraitGenerationHelper.findExclusionConflict(
-					trait.getID(), existing, L2HConfig.getExclusionGroups());
-			if (conflict != null) {
-				if (player instanceof ServerPlayer sp) {
-					MobTrait other = cap.traits.keySet().stream()
-							.filter(existingTrait -> existingTrait.getID().equals(conflict))
-							.findFirst().orElse(null);
-					sp.sendSystemMessage(L2HTweaksLang.translate(
-							L2HTweaksLang.SELF_TRAIT_MUTUAL_EXCLUSION, trait.getDesc(),
-							other != null ? other.getDesc() : net.minecraft.network.chat.Component.literal(conflict))
-							.withStyle(ChatFormatting.RED), true);
-				}
-				cir.setReturnValue(InteractionResultHolder.fail(stack));
-				return;
-			}
+		if (trait.isBanned()) {
+			player.displayClientMessage(LangData.MSG_ERR_DISALLOW.get().withStyle(ChatFormatting.RED), true);
+			cir.setReturnValue(InteractionResultHolder.fail(stack));
+			return;
 		}
 
 		if (ImmunityHelper.isSelfBlacklisted(trait)) {
@@ -77,21 +58,8 @@ public class TraitSymbolSelfUseMixin {
 			return;
 		}
 
-		var override = L2HConfig.getPlayerTraitOverrides().get(trait.getID());
-		Integer rawLevel = cap.traits.get(trait);
-		int currentLevel = rawLevel != null ? Math.abs(rawLevel) : 0;
-
-		int maxTraits = L2HConfig.getPlayerMaxTraits();
-		if (maxTraits >= 0) {
-			int currentCount = l2fix$projectedTraitCount(cap.traits.values(), rawLevel);
-			if (currentCount > maxTraits) {
-				if (player instanceof ServerPlayer sp) {
-					sp.sendSystemMessage(L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_MAX_COUNT, maxTraits).withStyle(ChatFormatting.RED), true);
-				}
-				cir.setReturnValue(InteractionResultHolder.fail(stack));
-				return;
-			}
-		}
+		Integer rawLevel = PlayerTraitRules.getEffectiveTraitLevel(cap, trait);
+		int currentLevel = rawLevel != null ? TraitCostHelper.normalizeStoredLevel(rawLevel) : 0;
 
 		if (l2fix$isAtMaxLevel(rawLevel, trait.getMaxLevel())) {
 			if (player instanceof ServerPlayer sp) {
@@ -101,35 +69,12 @@ public class TraitSymbolSelfUseMixin {
 			return;
 		}
 
-		if (L2HConfig.isPlayerSelfTraitBalanceEnabled()) {
-			int playerLevel = PlayerDifficulty.HOLDER.isProper(player)
-					? PlayerDifficulty.HOLDER.get(player).getLevel().getLevel() : 0;
-
-			int minLevel = override != null ? override.minLevel() : trait.getConfig().min_level;
-			if (playerLevel < minLevel) {
-				if (player instanceof ServerPlayer sp) {
-					sp.sendSystemMessage(L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_MIN_LEVEL, minLevel, trait.getDesc(), playerLevel).withStyle(ChatFormatting.RED), true);
-				}
-				cir.setReturnValue(InteractionResultHolder.fail(stack));
-				return;
-			}
-
-			int budget = (int) (playerLevel * L2HConfig.getPlayerSelfTraitBudgetRatio());
-			int usedCost = 0;
-			for (var entry : cap.traits.entrySet()) {
-				var entryOverride = L2HConfig.getPlayerTraitOverrides().get(entry.getKey().getID());
-				int entryCost = entryOverride != null ? entryOverride.cost() : entry.getKey().getConfig().cost;
-				usedCost += entryCost * Math.abs(entry.getValue());
-			}
-			int nextCost = override != null ? override.cost() : trait.getConfig().cost;
-
-			if (usedCost + nextCost > budget) {
-				if (player instanceof ServerPlayer sp) {
-					sp.sendSystemMessage(L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_BUDGET_EXCEEDED, trait.getDesc(), usedCost + nextCost, budget).withStyle(ChatFormatting.RED), true);
-				}
-				cir.setReturnValue(InteractionResultHolder.fail(stack));
-				return;
-			}
+		int val = currentLevel + 1;
+		var addition = PlayerTraitRules.checkAddition(player, cap, trait, val, false);
+		if (!addition.allowed()) {
+			l2fix$reportRejection(player, cap, trait, addition);
+			cir.setReturnValue(InteractionResultHolder.fail(stack));
+			return;
 		}
 
 		int cost = L2HConfig.getUpgradeCost(currentLevel, stack.getMaxStackSize());
@@ -152,12 +97,10 @@ public class TraitSymbolSelfUseMixin {
 
 		float oldHealth = player.getHealth();
 		float oldMax = player.getMaxHealth();
+		PlayerTraitRules.discardPendingTrait(cap, trait);
 		TraitDisableHelper.clearSealData(player.getPersistentData(), trait.getID());
 		player.getPersistentData().remove("l2htweaks_disabled_" + trait.getID());
-		int val = cap.traits.compute(trait, (k, v) -> {
-			int base = (v == null) ? 0 : Math.abs(v);
-			return Math.min(base + 1, trait.getMaxLevel());
-		});
+		cap.traits.put(trait, val);
 		trait.initialize(player, val);
 		trait.postInit(player, val);
 		cap.syncToClient(player);
@@ -168,17 +111,10 @@ public class TraitSymbolSelfUseMixin {
 			sp.sendSystemMessage(L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_ADDED, trait.getDesc(), val, cost).withStyle(ChatFormatting.GREEN), true);
 			CriteriaTriggers.CONSUME_ITEM.trigger(sp, stack);
 			if (L2HConfig.isPlayerSelfTraitBalanceEnabled()) {
-				int playerLevel = PlayerDifficulty.HOLDER.isProper(player)
-						? PlayerDifficulty.HOLDER.get(player).getLevel().getLevel() : 0;
-				int budget = (int) (playerLevel * L2HConfig.getPlayerSelfTraitBudgetRatio());
-				int usedCost = 0;
-				for (var entry : cap.traits.entrySet()) {
-					var entryOverride = L2HConfig.getPlayerTraitOverrides().get(entry.getKey().getID());
-					int entryCost = entryOverride != null ? entryOverride.cost() : entry.getKey().getConfig().cost;
-					usedCost += entryCost * Math.abs(entry.getValue());
-				}
-				int minLevel = override != null ? override.minLevel() : trait.getConfig().min_level;
-				sp.sendSystemMessage(L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_COST_INFO, trait.getDesc(), usedCost, budget, minLevel).withStyle(ChatFormatting.GREEN), true);
+				var total = PlayerTraitRules.checkAddition(player, cap, trait, val, false);
+				sp.sendSystemMessage(L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_COST_INFO,
+						trait.getDesc(), total.usedCost(), total.budget(), total.minLevel())
+						.withStyle(ChatFormatting.GREEN), true);
 			}
 		}
 		if (!player.getAbilities().instabuild) {
@@ -189,12 +125,27 @@ public class TraitSymbolSelfUseMixin {
 	}
 
 	private static boolean l2fix$isAtMaxLevel(Integer rawLevel, int maxLevel) {
-		return rawLevel != null && Math.abs(rawLevel) >= maxLevel;
+		return rawLevel != null && Math.abs((long) rawLevel) >= maxLevel;
 	}
 
-	private static int l2fix$projectedTraitCount(Collection<Integer> levels, Integer targetRawLevel) {
-		int count = (int) levels.stream().filter(value -> value != null && value != 0).count();
-		return targetRawLevel == null || targetRawLevel == 0 ? count + 1 : count;
+	private static void l2fix$reportRejection(Player player, MobTraitCap cap, MobTrait trait,
+	                                         PlayerTraitRules.Result result) {
+		var message = switch (result.reason()) {
+			case EXCLUSION -> {
+				MobTrait other = cap.traits.keySet().stream()
+						.filter(candidate -> candidate.getID().equals(result.conflict())).findFirst().orElse(null);
+				yield L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_MUTUAL_EXCLUSION,
+						trait.getDesc(), other == null ? net.minecraft.network.chat.Component.literal(result.conflict()) : other.getDesc());
+			}
+			case MAX_TRAITS -> L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_MAX_COUNT, L2HConfig.getPlayerMaxTraits());
+			case MIN_LEVEL -> L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_MIN_LEVEL,
+					result.minLevel(), trait.getDesc(), PlayerDifficulty.HOLDER.isProper(player)
+							? PlayerDifficulty.HOLDER.get(player).getLevel().getLevel() : 0);
+			case BUDGET -> L2HTweaksLang.translate(L2HTweaksLang.SELF_TRAIT_BUDGET_EXCEEDED,
+					trait.getDesc(), result.usedCost(), result.budget());
+			default -> LangData.MSG_ERR_DISALLOW.get();
+		};
+		player.displayClientMessage(message.withStyle(ChatFormatting.RED), true);
 	}
 
 }

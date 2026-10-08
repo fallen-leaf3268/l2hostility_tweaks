@@ -66,32 +66,6 @@ public class DimensionBreakerItem extends Item {
 				: EntityImmunityCache.DimensionBreakerState.EMPTY;
 	}
 
-	@Nullable
-	public static ItemStack findEquipped(LivingEntity entity) {
-		for (EquipmentSlot slot : EquipmentSlot.values()) {
-			ItemStack stack = entity.getItemBySlot(slot);
-			if (stack.getItem() instanceof DimensionBreakerItem) {
-				return stack;
-			}
-		}
-		try {
-			return CuriosApi.getCuriosInventory(entity).resolve().map(handler -> {
-				for (var stacksHandler : handler.getCurios().values()) {
-					var stacks = stacksHandler.getStacks();
-					for (int i = 0; i < stacks.getSlots(); i++) {
-						ItemStack stack = stacks.getStackInSlot(i);
-						if (stack.getItem() instanceof DimensionBreakerItem) {
-							return stack;
-						}
-					}
-				}
-				return ItemStack.EMPTY;
-			}).orElse(ItemStack.EMPTY);
-		} catch (Exception ignored) {
-			return ItemStack.EMPTY;
-		}
-	}
-
 	public static boolean isProtectMode(ItemStack stack) {
 		return stack.hasTag() && stack.getOrCreateTag().getBoolean(TAG_PROTECT);
 	}

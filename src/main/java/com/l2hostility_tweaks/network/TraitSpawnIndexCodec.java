@@ -79,6 +79,8 @@ public final class TraitSpawnIndexCodec {
             tag.putInt("poolCount", mob.pool().size());
             tag.put("blocked", writeBlocked(mob.blocked(), counter));
             tag.putInt("blockedCount", mob.blocked().size());
+            tag.put("equipment", writeEquipment(mob.equipment(), counter));
+            tag.putInt("equipmentCount", mob.equipment().size());
             tag.put("dynamicConstraints", writeConstraints(mob.dynamicConstraints(), counter));
             tag.putInt("constraintCount", mob.dynamicConstraints().size());
             tags.add(tag);
@@ -98,10 +100,84 @@ public final class TraitSpawnIndexCodec {
                 checkedList(tag, "pool", "poolCount", MAX_TRAITS_PER_MOB, counter, Tag.TAG_COMPOUND), counter);
         List<TraitSpawnIndexSnapshot.BlockedTraitView> blocked = readBlocked(
                 checkedList(tag, "blocked", "blockedCount", MAX_TRAITS_PER_MOB, counter, Tag.TAG_COMPOUND), counter);
+        List<TraitSpawnIndexSnapshot.MobEquipmentView> equipment = readEquipment(
+                checkedList(tag, "equipment", "equipmentCount", MAX_TRAITS_PER_MOB,
+                        counter, Tag.TAG_COMPOUND), counter);
         List<TraitDynamicConstraint> constraints = readConstraints(
                 checkedList(tag, "dynamicConstraints", "constraintCount", MAX_CONSTRAINTS, counter, Tag.TAG_COMPOUND), counter);
         return new TraitSpawnIndexSnapshot.MobTraitOverview(
-                entityId, variantIndex, jeiDisplayName, configs, presets, pool, blocked, constraints);
+                entityId, variantIndex, jeiDisplayName, configs, presets, pool, blocked,
+                equipment, constraints);
+    }
+
+    private static ListTag writeEquipment(List<TraitSpawnIndexSnapshot.MobEquipmentView> equipment,
+                                          Counter counter) {
+        checkSize(equipment, MAX_TRAITS_PER_MOB, "equipment", counter);
+        ListTag tags = new ListTag();
+        for (TraitSpawnIndexSnapshot.MobEquipmentView entry : equipment) {
+            CompoundTag tag = new CompoundTag();
+            tag.putString("category", checkedString(entry.category().name(), "equipment category"));
+            tag.put("stack", entry.stackTag());
+            tag.put("rules", writeEquipmentRules(entry.rules(), counter));
+            tag.putInt("ruleCount", entry.rules().size());
+            tags.add(tag);
+        }
+        return tags;
+    }
+
+    private static List<TraitSpawnIndexSnapshot.MobEquipmentView> readEquipment(
+            ListTag tags, Counter counter) {
+        List<TraitSpawnIndexSnapshot.MobEquipmentView> equipment = new ArrayList<>(tags.size());
+        for (int i = 0; i < tags.size(); i++) {
+            CompoundTag tag = requiredCompound(tags, i, "equipment");
+            TraitSpawnIndexSnapshot.MobEquipmentCategory category;
+            try {
+                category = TraitSpawnIndexSnapshot.MobEquipmentCategory.valueOf(
+                        requiredString(tag, "category"));
+            } catch (IllegalArgumentException exception) {
+                throw new IllegalArgumentException("Invalid equipment category", exception);
+            }
+            CompoundTag stackTag = requiredCompound(tag, "stack");
+            if (stackTag.isEmpty()) throw new IllegalArgumentException("Empty equipment stack tag");
+            List<TraitSpawnIndexSnapshot.MobEquipmentRuleView> rules = readEquipmentRules(
+                    checkedList(tag, "rules", "ruleCount", MAX_TRAITS_PER_MOB,
+                            counter, Tag.TAG_COMPOUND));
+            equipment.add(new TraitSpawnIndexSnapshot.MobEquipmentView(category, stackTag, rules));
+        }
+        return equipment;
+    }
+
+    private static ListTag writeEquipmentRules(
+            List<TraitSpawnIndexSnapshot.MobEquipmentRuleView> rules, Counter counter) {
+        checkSize(rules, MAX_TRAITS_PER_MOB, "equipment rules", counter);
+        ListTag tags = new ListTag();
+        for (TraitSpawnIndexSnapshot.MobEquipmentRuleView rule : rules) {
+            CompoundTag tag = new CompoundTag();
+            putOptionalId(tag, "sourceId", rule.sourceId());
+            tag.putString("slot", checkedString(rule.slot(), "equipment slot"));
+            putNonnegative(tag, "minLevel", rule.minLevel());
+            putProbability(tag, "poolChance", rule.poolChance());
+            putPositive(tag, "weight", rule.weight());
+            putPositive(tag, "totalWeight", rule.totalWeight());
+            tag.putBoolean("mayBeOverwritten", rule.mayBeOverwritten());
+            tags.add(tag);
+        }
+        return tags;
+    }
+
+    private static List<TraitSpawnIndexSnapshot.MobEquipmentRuleView> readEquipmentRules(
+            ListTag tags) {
+        List<TraitSpawnIndexSnapshot.MobEquipmentRuleView> rules = new ArrayList<>(tags.size());
+        for (int i = 0; i < tags.size(); i++) {
+            CompoundTag tag = requiredCompound(tags, i, "equipment rules");
+            int weight = requiredPositive(tag, "weight");
+            int totalWeight = requiredPositive(tag, "totalWeight");
+            rules.add(new TraitSpawnIndexSnapshot.MobEquipmentRuleView(
+                    optionalId(tag, "sourceId"), requiredString(tag, "slot"),
+                    requiredNonnegative(tag, "minLevel"), requiredProbability(tag, "poolChance"),
+                    weight, totalWeight, requiredBoolean(tag, "mayBeOverwritten")));
+        }
+        return rules;
     }
 
     private static ListTag writeConfigs(List<TraitSpawnIndexSnapshot.EntityConfigView> configs, Counter counter) {
@@ -324,6 +400,13 @@ public final class TraitSpawnIndexCodec {
         return compound;
     }
 
+    private static CompoundTag requiredCompound(CompoundTag owner, String key) {
+        if (!owner.contains(key, Tag.TAG_COMPOUND)) {
+            throw new IllegalArgumentException("Missing compound: " + key);
+        }
+        return owner.getCompound(key).copy();
+    }
+
     private static String requiredString(ListTag tags, int index, String name) {
         Tag tag = tags.get(index);
         if (!(tag instanceof StringTag string)) throw new IllegalArgumentException("Invalid " + name + " entry");
@@ -394,6 +477,17 @@ public final class TraitSpawnIndexCodec {
     private static void putNonnegative(CompoundTag owner, String key, int value) {
         validateNonnegative(value, key);
         owner.putInt(key, value);
+    }
+
+    private static void putPositive(CompoundTag owner, String key, int value) {
+        if (value <= 0) throw new IllegalArgumentException(key + " must be positive");
+        owner.putInt(key, value);
+    }
+
+    private static int requiredPositive(CompoundTag owner, String key) {
+        int value = requiredNonnegative(owner, key);
+        if (value == 0) throw new IllegalArgumentException(key + " must be positive");
+        return value;
     }
 
     private static void putMaxTraitCount(CompoundTag owner, int value) {

@@ -5,10 +5,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public record TraitListTooltip(List<Entry> entries, boolean showIcons, boolean replaceTooltip)
+public record TraitListTooltip(List<Entry> entries, boolean showIcons, boolean replaceTooltip,
+                               boolean overheadLayout)
         implements TooltipComponent {
 
     private static final String MARKER_PREFIX = "\u0000l2ht_trait_list:";
@@ -29,6 +31,10 @@ public record TraitListTooltip(List<Entry> entries, boolean showIcons, boolean r
         return encodedMarker(entries, 't');
     }
 
+    public static Component overheadMarker(List<Entry> entries) {
+        return encodedMarker(entries, 'h');
+    }
+
     public static Optional<TraitListTooltip> fromMarker(String text) {
         if (!text.startsWith(MARKER_PREFIX)) return Optional.empty();
         String encoded = text.substring(MARKER_PREFIX.length());
@@ -36,16 +42,27 @@ public record TraitListTooltip(List<Entry> entries, boolean showIcons, boolean r
         char mode = encoded.charAt(0);
         boolean showIcons = mode == 'i' || mode == 'x';
         boolean replaceTooltip = mode == 'x';
-        if (!showIcons && mode != 't') return Optional.empty();
+        boolean overheadLayout = mode == 'h';
+        if (!showIcons && mode != 't' && !overheadLayout) return Optional.empty();
         String entriesText = encoded.substring(2);
         if (entriesText.isEmpty()) {
-            return Optional.of(new TraitListTooltip(List.of(), showIcons, replaceTooltip));
+            return Optional.of(new TraitListTooltip(
+                    List.of(), showIcons, replaceTooltip, overheadLayout));
         }
         List<Entry> entries = Arrays.stream(entriesText.split(","))
                 .map(TraitListTooltip::parseEntry)
                 .flatMap(Optional::stream)
                 .toList();
-        return Optional.of(new TraitListTooltip(entries, showIcons, replaceTooltip));
+        return Optional.of(new TraitListTooltip(entries, showIcons, replaceTooltip, overheadLayout));
+    }
+
+    public List<List<Entry>> rows() {
+        if (!overheadLayout) return entries.stream().map(List::of).toList();
+        List<List<Entry>> rows = new ArrayList<>();
+        for (int start = 0; start < entries.size(); start += 3) {
+            rows.add(List.copyOf(entries.subList(start, Math.min(start + 3, entries.size()))));
+        }
+        return List.copyOf(rows);
     }
 
     private static Component encodedMarker(List<Entry> entries, char mode) {

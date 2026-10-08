@@ -50,6 +50,8 @@
         "TraitManagerMixin",
         "KillerAuraTraitMixin",
         "DrainTraitMixin",
+        "DrainPlayerTraitMixin",
+        "MobTraitPendingAccessor",
         "EnvyLootModifierMixin",
 
         "TraitAdderWandMixin",

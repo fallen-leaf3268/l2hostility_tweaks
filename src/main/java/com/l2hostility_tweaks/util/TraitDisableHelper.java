@@ -277,8 +277,7 @@ public class TraitDisableHelper {
 				maxResurrections);
 	}
 
-	public static boolean isUndyingLimitExhausted(int maxResurrections, int currentCount,
-			int sealDuration) {
+	public static boolean isUndyingLimitExhausted(int maxResurrections, int currentCount) {
 		return maxResurrections >= 0 && currentCount >= maxResurrections;
 	}
 

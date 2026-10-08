@@ -7,6 +7,7 @@ import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.BlockedCon
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.BlockedTraitView;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.EntityConfigView;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.MobTraitOverview;
+import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.MobEquipmentView;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.PoolTraitView;
 import com.l2hostility_tweaks.generation.view.TraitSpawnIndexSnapshot.PresetTraitView;
 import net.minecraft.resources.ResourceLocation;
@@ -23,7 +24,6 @@ import java.util.Set;
 public final class TraitSpawnIndexBuilder {
 
     private static final Comparator<ResourceLocation> ID_ORDER = Comparator.comparing(ResourceLocation::toString);
-    private static final Comparator<ResourceLocation> NULLABLE_ID_ORDER = Comparator.nullsFirst(ID_ORDER);
 
     public static TraitSpawnIndexSnapshot build(long revision, Inputs inputs) {
         Objects.requireNonNull(inputs);
@@ -61,6 +61,7 @@ public final class TraitSpawnIndexBuilder {
                                            Settings settings) {
         List<PoolTraitView> pool = new ArrayList<>();
         List<BlockedTraitView> blocked = new ArrayList<>();
+        Set<ResourceLocation> possibleTraits = new LinkedHashSet<>();
         Set<ResourceLocation> entityConfigBlacklist = entityAllowConfig == null
                 ? Set.of() : entityAllowConfig.blacklist();
 
@@ -77,14 +78,19 @@ public final class TraitSpawnIndexBuilder {
             if (reasons.isEmpty()) {
                 pool.add(new PoolTraitView(trait.traitId(), trait.itemId(), trait.weight(),
                         trait.minLevel(), trait.cost(), trait.maxRank()));
+                if (trait.maxRank() > 0
+                        && (config == null || trait.minLevel() <= config.view().maxLevel())) {
+                    possibleTraits.add(trait.traitId());
+                }
             } else {
                 contexts.add(new BlockedContextView(config == null ? null : config.sourceId(), reasons));
                 blocked.add(new BlockedTraitView(trait.traitId(), trait.itemId(), contexts));
             }
         }
 
-        LinkedHashSet<PresetTraitView> presetSet = new LinkedHashSet<>();
+        List<PresetTraitView> presetEntries = new ArrayList<>();
         Map<ResourceLocation, Integer> guaranteedRanks = new HashMap<>();
+        Map<ResourceLocation, PresetBudgetState> presetBudgets = new HashMap<>();
         int guaranteedBudget = config == null ? 0
                 : Math.min(config.view().minDifficulty(), config.view().maxLevel());
         int warnings = 0;
@@ -104,47 +110,79 @@ public final class TraitSpawnIndexBuilder {
                         config.view().presetTraitsOnly(),
                         settings.disableRandom(), settings.disableAll(), settings.disableMobLevel()));
                 if (!reasons.isEmpty()) continue;
+                if (trait.maxRank() > 0 && Math.max(preset.freeRank(), preset.minRank()) > 0
+                        && preset.conditionLevel() <= config.view().maxLevel()
+                        && trait.minLevel() <= config.view().maxLevel()) {
+                    possibleTraits.add(trait.traitId());
+                }
                 GuaranteedPreset guaranteed = simulateGuaranteedPreset(
-                        preset, trait, config, guaranteedRanks, guaranteedBudget);
+                        preset, trait, config, guaranteedRanks,
+                        presetBudgets.computeIfAbsent(preset.traitId(), ignored -> new PresetBudgetState()),
+                        guaranteedBudget);
                 guaranteedBudget = guaranteed.remainingBudget();
                 if (guaranteed.rank() > 0) {
                     guaranteedRanks.put(preset.traitId(), guaranteed.rank());
                 }
-                presetSet.add(new PresetTraitView(
+                presetEntries.add(new PresetTraitView(
                         preset.traitId(), trait.itemId(), preset.freeRank(), preset.minRank(), preset.cap(),
                         preset.chance(), preset.conditionLevel(), preset.advancementId(), config.sourceId(),
                         config.conditionJson(), guaranteed.rank(), presetConstraints(preset, config, trait)));
             }
         }
 
-        List<PresetTraitView> presets = presetSet.stream().sorted(presetOrder()).toList();
+        Set<ResourceLocation> possiblyExcluded = new LinkedHashSet<>();
+        for (List<ResourceLocation> group : settings.exclusions()) {
+            if (group.stream().filter(possibleTraits::contains).distinct().limit(2).count() > 1) {
+                possiblyExcluded.addAll(group);
+            }
+        }
+        List<PresetTraitView> presets = presetEntries.stream()
+                .map(preset -> preset.guaranteedRank() > 0 && possiblyExcluded.contains(preset.traitId())
+                        ? withoutGuarantee(preset) : preset)
+                .toList();
         pool.sort(Comparator.comparing(PoolTraitView::traitId, ID_ORDER));
         blocked.sort(Comparator.comparing(BlockedTraitView::traitId, ID_ORDER));
         List<EntityConfigView> configs = config == null ? List.of() : List.of(config.view());
+        List<MobEquipmentView> equipment = config == null ? List.of() : config.equipment();
         List<TraitDynamicConstraint> dynamicConstraints = overviewConstraints(traits, settings, config);
         return new BuildResult(new MobTraitOverview(
                 entity.id(), variantIndex, config == null ? "" : config.jeiDisplayName(),
-                configs, presets, pool, blocked, dynamicConstraints), warnings);
+                configs, presets, pool, blocked, equipment, dynamicConstraints), warnings);
     }
 
     private static GuaranteedPreset simulateGuaranteedPreset(
             PresetInput preset, TraitInput trait, ConfigInput config,
-            Map<ResourceLocation, Integer> guaranteedRanks, int remainingBudget) {
+            Map<ResourceLocation, Integer> guaranteedRanks,
+            PresetBudgetState budgetState, int remainingBudget) {
         int minimumDifficulty = Math.min(config.view().minDifficulty(), config.view().maxLevel());
-        if (config.view().applyChance() < 1.0D || preset.chance() < 1.0D
-                || preset.conditionLevel() > minimumDifficulty || preset.advancementId() != null
-                || trait.minLevel() > minimumDifficulty) {
+        if (!guaranteesGenerationStage(config)
+                || preset.conditionLevel() > config.view().maxLevel()
+                || trait.minLevel() > config.view().maxLevel()) {
             return new GuaranteedPreset(0, remainingBudget);
         }
+        boolean guaranteedExecution = preset.chance() >= 1.0D && !trait.runtimeAllowOverride()
+                && preset.conditionLevel() <= minimumDifficulty && preset.advancementId() == null
+                && trait.minLevel() <= minimumDifficulty;
         int maxRank = Math.max(0, trait.maxRank());
         int previousRank = guaranteedRanks.getOrDefault(preset.traitId(), 0);
         int freeRank = Math.min(maxRank, Math.max(previousRank, preset.freeRank()));
         int targetRank = Math.min(maxRank, Math.max(freeRank, preset.minRank()));
         int cost = Math.max(1, trait.cost());
-        int paidRank = Math.min(targetRank, freeRank + remainingBudget / cost);
-        int guaranteedRank = Math.max(freeRank, paidRank);
-        int spent = Math.max(0, guaranteedRank - freeRank) * cost;
+        int paidRank = (int) Math.min(targetRank, (long) freeRank + remainingBudget / cost);
+        int guaranteedRank = guaranteedExecution ? Math.max(freeRank, paidRank) : 0;
+        int spent = budgetState.reserve(preset, maxRank, cost, guaranteedExecution, remainingBudget);
         return new GuaranteedPreset(guaranteedRank, remainingBudget - spent);
+    }
+
+    private static PresetTraitView withoutGuarantee(PresetTraitView preset) {
+        return new PresetTraitView(
+                preset.traitId(), preset.itemId(), preset.freeRank(), preset.minRank(), preset.cap(),
+                preset.chance(), preset.conditionLevel(), preset.advancementId(), preset.sourceId(),
+                preset.conditionJson(), 0, preset.dynamicConstraints());
+    }
+
+    private static boolean guaranteesGenerationStage(ConfigInput config) {
+        return config.view().minDifficulty() > 0 && config.view().suppression() == 0.0D;
     }
 
     private static List<TraitDynamicConstraint> presetConstraints(PresetInput preset, ConfigInput config,
@@ -200,18 +238,6 @@ public final class TraitSpawnIndexBuilder {
         return new TraitDynamicConstraint(type, List.of(arguments));
     }
 
-    private static Comparator<PresetTraitView> presetOrder() {
-        return Comparator.comparing(PresetTraitView::traitId, ID_ORDER)
-                .thenComparingInt(PresetTraitView::freeRank)
-                .thenComparingInt(PresetTraitView::minRank)
-                .thenComparing(PresetTraitView::cap)
-                .thenComparingDouble(PresetTraitView::chance)
-                .thenComparingInt(PresetTraitView::conditionLevel)
-                .thenComparing(PresetTraitView::advancementId, NULLABLE_ID_ORDER)
-                .thenComparing(PresetTraitView::sourceId, NULLABLE_ID_ORDER)
-                .thenComparing(PresetTraitView::conditionJson, Comparator.nullsFirst(String::compareTo));
-    }
-
     private static Comparator<TraitDynamicConstraint> dynamicOrder() {
         return Comparator.comparing(TraitDynamicConstraint::type)
                 .thenComparing(value -> String.join("\u0000", value.arguments()));
@@ -220,6 +246,28 @@ public final class TraitSpawnIndexBuilder {
     private record BuildResult(MobTraitOverview overview, int warningCount) {}
 
     private record GuaranteedPreset(int rank, int remainingBudget) {}
+
+    private static final class PresetBudgetState {
+        private Map<Integer, Long> maximumSpentByRank = new HashMap<>(Map.of(0, 0L));
+        private long maximumSpent;
+
+        private int reserve(PresetInput preset, int maxRank, int cost,
+                            boolean guaranteedExecution, int remainingBudget) {
+            Map<Integer, Long> next = guaranteedExecution ? new HashMap<>()
+                    : new HashMap<>(maximumSpentByRank);
+            for (var entry : maximumSpentByRank.entrySet()) {
+                int freeRank = Math.min(maxRank, Math.max(entry.getKey(), preset.freeRank()));
+                int targetRank = Math.min(maxRank, Math.max(freeRank, preset.minRank()));
+                long spent = entry.getValue() + ((long) targetRank - freeRank) * cost;
+                next.merge(targetRank, spent, Math::max);
+            }
+            long nextMaximum = next.values().stream().mapToLong(Long::longValue).max().orElse(0L);
+            long additional = nextMaximum - maximumSpent;
+            maximumSpentByRank = next;
+            maximumSpent = nextMaximum;
+            return (int) Math.min(remainingBudget, additional);
+        }
+    }
 
     public record Inputs(List<EntityInput> entities, List<TraitInput> traits, Settings settings) {
         public Inputs {
@@ -247,19 +295,26 @@ public final class TraitSpawnIndexBuilder {
 
     public record ConfigInput(ResourceLocation sourceId, String conditionJson, String jeiDisplayName,
                               EntityConfigView view, Set<ResourceLocation> blacklist,
-                              List<PresetInput> presets) {
+                              List<PresetInput> presets, List<MobEquipmentView> equipment) {
         public ConfigInput {
             conditionJson = conditionJson == null ? "" : conditionJson;
             jeiDisplayName = jeiDisplayName == null ? "" : jeiDisplayName;
             Objects.requireNonNull(view);
             blacklist = Set.copyOf(blacklist);
             presets = List.copyOf(presets);
+            equipment = List.copyOf(equipment);
+        }
+
+        public ConfigInput(ResourceLocation sourceId, String conditionJson, String jeiDisplayName,
+                           EntityConfigView view, Set<ResourceLocation> blacklist,
+                           List<PresetInput> presets) {
+            this(sourceId, conditionJson, jeiDisplayName, view, blacklist, presets, List.of());
         }
 
         public ConfigInput(ResourceLocation sourceId, String conditionJson,
                            EntityConfigView view, Set<ResourceLocation> blacklist,
                            List<PresetInput> presets) {
-            this(sourceId, conditionJson, "", view, blacklist, presets);
+            this(sourceId, conditionJson, "", view, blacklist, presets, List.of());
         }
     }
 

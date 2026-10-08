@@ -5,6 +5,7 @@ import com.l2hostility_tweaks.generation.TraitGenerationHelper;
 import com.l2hostility_tweaks.init.L2HTweaksLang;
 import com.l2hostility_tweaks.util.ImmunityHelper;
 import com.l2hostility_tweaks.util.LegendaryTraitClassifier;
+import com.l2hostility_tweaks.util.PlayerTraitRules;
 import com.l2hostility_tweaks.util.TraitDisableHelper;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.item.traits.TraitSymbol;
@@ -22,6 +23,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -32,6 +34,11 @@ import java.util.List;
 
 @Mixin(value = TraitSymbol.class, remap = false)
 public class TraitSymbolMixin {
+
+    @Shadow
+    private static boolean allow(Player player, MobTrait trait, LivingEntity target) {
+        throw new AssertionError();
+    }
 
 	private static Registry<MobTrait> getTraitRegistry() {
 		return TraitDisableHelper.getTraitRegistry();
@@ -46,7 +53,7 @@ public class TraitSymbolMixin {
 
 		MobTraitCap cap = MobTraitCap.HOLDER.get(target);
 		MobTrait trait = ((TraitSymbol) (Object) this).get();
-		if (L2HConfig.isExclusionEnabled()) {
+		if (!(target instanceof Player) && L2HConfig.isExclusionEnabled()) {
 			var existing = new HashMap<String, Integer>();
 			for (var entry : cap.traits.entrySet()) {
 				existing.put(entry.getKey().getID(), entry.getValue());
@@ -62,9 +69,24 @@ public class TraitSymbolMixin {
 			}
 		}
 		Integer raw = cap.traits.get(trait);
-		if (raw == null || raw >= 0) return;
+		if (raw == null || raw >= 0) {
+			if (target instanceof Player targetPlayer) {
+				int next = raw == null ? 1 : raw == Integer.MAX_VALUE ? Integer.MAX_VALUE : raw + 1;
+				var addition = PlayerTraitRules.checkAddition(targetPlayer, cap, trait, next, false);
+				if (!addition.allowed()) {
+					player.displayClientMessage(LangData.MSG_ERR_DISALLOW.get().withStyle(ChatFormatting.RED), true);
+					cir.setReturnValue(InteractionResult.FAIL);
+				}
+			}
+			return;
+		}
+		if (!allow(player, trait, target)) {
+			player.displayClientMessage(LangData.MSG_ERR_DISALLOW.get().withStyle(ChatFormatting.RED), true);
+			cir.setReturnValue(InteractionResult.FAIL);
+			return;
+		}
 
-		int abs = Math.abs(raw);
+		long abs = Math.abs((long) raw);
 			if (abs >= trait.getMaxLevel()) {
 				if (player instanceof net.minecraft.server.level.ServerPlayer sp) {
 					sp.sendSystemMessage(LangData.MSG_ERR_MAX.get().withStyle(net.minecraft.ChatFormatting.RED), true);
@@ -72,9 +94,19 @@ public class TraitSymbolMixin {
 				cir.setReturnValue(InteractionResult.FAIL);
 				return;
 			}
+		int nextLevel = (int) abs + 1;
+		if (target instanceof Player targetPlayer) {
+			var addition = PlayerTraitRules.checkAddition(targetPlayer, cap, trait, nextLevel, false);
+			if (!addition.allowed()) {
+				player.displayClientMessage(LangData.MSG_ERR_DISALLOW.get().withStyle(ChatFormatting.RED), true);
+				cir.setReturnValue(InteractionResult.FAIL);
+				return;
+			}
+			PlayerTraitRules.discardPendingTrait(cap, trait);
+		}
 		float oldHealth = target.getHealth();
 		float oldMaxHealth = target.getMaxHealth();
-		int next = -(abs + 1);
+		int next = -nextLevel;
 		TraitDisableHelper.syncSealedLevelData(target.getPersistentData(), trait.getID(), next);
 		cap.traits.put(trait, next);
 		trait.initialize(target, 0);
@@ -84,6 +116,18 @@ public class TraitSymbolMixin {
 			stack.shrink(1);
 		}
 		cir.setReturnValue(InteractionResult.SUCCESS);
+	}
+
+	@Inject(method = "interactLivingEntity", at = @At(value = "INVOKE",
+			target = "Ljava/util/LinkedHashMap;compute(Ljava/lang/Object;Ljava/util/function/BiFunction;)Ljava/lang/Object;",
+			remap = false), remap = true, require = 1)
+	private void l2fix$discardReplacedPlayerPending(ItemStack stack, Player player, LivingEntity target,
+	                                                InteractionHand hand,
+	                                                org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<InteractionResult> cir) {
+		if (!(target instanceof Player)) return;
+		MobTraitCap cap = MobTraitCap.HOLDER.get(target);
+		MobTrait trait = ((TraitSymbol) (Object) this).get();
+		PlayerTraitRules.discardPendingTrait(cap, trait);
 	}
 
 	private static float l2fix$scaledHealth(float oldHealth, float oldMaxHealth, float newMaxHealth) {

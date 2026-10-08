@@ -4,6 +4,7 @@ import com.mojang.datafixers.util.Either;
 import com.l2hostility_tweaks.L2HostilityFix;
 import com.l2hostility_tweaks.content.TraitUnloaderWand;
 import com.l2hostility_tweaks.config.L2HConfig;
+import com.l2hostility_tweaks.compat.jei.TraitIngredientTooltipRegistry;
 import com.l2hostility_tweaks.network.NetworkHandler;
 import dev.xkmc.l2tabs.tabs.core.TabRegistry;
 import dev.xkmc.l2tabs.tabs.core.TabToken;
@@ -83,6 +84,7 @@ public class ClientEventHandler {
 
 		@SubscribeEvent
 		public static void expandTraitListTooltips(RenderTooltipEvent.GatherComponents event) {
+			TraitIngredientTooltipRegistry.appendTooltip(event);
 			var elements = event.getTooltipElements();
 			for (int index = 0; index < elements.size(); index++) {
 				var text = elements.get(index).left();

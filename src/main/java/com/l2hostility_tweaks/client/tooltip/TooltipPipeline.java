@@ -160,29 +160,26 @@ public final class TooltipPipeline {
         if (tag == null) {
             return;
         }
-        List<Integer> storedSlots = storedPocketSlotIndices(tag);
-        if (storedSlots.isEmpty()) return;
+        List<StoredPocketItem> storedItems = storedPocketItems(tag);
+        if (storedItems.isEmpty()) return;
 
         int sealedItemLine = findTranslationLine(tooltip, SEALED_ITEM_TOOLTIP);
+        int insertAt;
         if (sealedItemLine >= 0) {
-            int insertAt = Math.min(sealedItemLine + 2, tooltip.size());
-            addExtraPocketSlots(tag, storedSlots, tooltip, insertAt);
-            return;
+            insertAt = Math.min(sealedItemLine + 2, tooltip.size());
+        } else {
+            int descriptionLine = findTranslationLine(tooltip, RESTORATION_POCKET_DESCRIPTION);
+            insertAt = descriptionLine >= 0 ? descriptionLine + 1 : tooltip.size();
+            tooltip.add(insertAt++, LangData.TOOLTIP_SEAL_DATA.get().withStyle(ChatFormatting.GRAY));
         }
-
-        int descriptionLine = findTranslationLine(tooltip, RESTORATION_POCKET_DESCRIPTION);
-        int insertAt = descriptionLine >= 0 ? descriptionLine + 1 : tooltip.size();
-        tooltip.add(insertAt++, LangData.TOOLTIP_SEAL_DATA.get().withStyle(ChatFormatting.GRAY));
-        for (int slot : storedSlots) {
-            insertAt = addStoredItem(tag, pocketSlotKey(slot), tooltip, insertAt);
+        for (StoredPocketItem stored : storedItems) {
+            if (sealedItemLine < 0 || stored.slot() > 0) {
+                tooltip.add(insertAt++, stored.stack().getHoverName());
+            }
         }
     }
 
-    static boolean hasStoredPocketContents(CompoundTag tag) {
-        return !storedPocketSlotIndices(tag).isEmpty();
-    }
-
-    static List<Integer> storedPocketSlotIndices(CompoundTag tag) {
+    static List<StoredPocketItem> storedPocketItems(CompoundTag tag) {
         TreeSet<Integer> candidates = new TreeSet<>();
         if (tag.contains("UnsealRoot", Tag.TAG_COMPOUND)) candidates.add(0);
         for (String key : tag.getAllKeys()) {
@@ -193,40 +190,23 @@ public final class TooltipPipeline {
             } catch (NumberFormatException ignored) {
             }
         }
-        List<Integer> stored = new ArrayList<>();
+        List<StoredPocketItem> stored = new ArrayList<>();
         for (int index : candidates) {
             CompoundTag slot = tag.getCompound(pocketSlotKey(index));
-            if (slot.contains(SealedItem.DATA, Tag.TAG_COMPOUND)
-                    && !ItemStack.of(slot.getCompound(SealedItem.DATA)).isEmpty()) {
-                stored.add(index);
+            if (!slot.contains(SealedItem.DATA, Tag.TAG_COMPOUND)) continue;
+            ItemStack item = ItemStack.of(slot.getCompound(SealedItem.DATA));
+            if (!item.isEmpty()) {
+                stored.add(new StoredPocketItem(index, item));
             }
         }
         return List.copyOf(stored);
     }
 
-    private static void addExtraPocketSlots(CompoundTag tag, List<Integer> storedSlots,
-                                            List<Component> tooltip, int insertAt) {
-        for (int slot : storedSlots) {
-            if (slot > 0) {
-                insertAt = addStoredItem(tag, pocketSlotKey(slot), tooltip, insertAt);
-            }
-        }
+    record StoredPocketItem(int slot, ItemStack stack) {
     }
 
     private static String pocketSlotKey(int index) {
         return index == 0 ? "UnsealRoot" : "UnsealRoot_" + index;
-    }
-
-    private static int addStoredItem(CompoundTag tag, String key,
-                                     List<Component> tooltip, int insertAt) {
-        if (!tag.contains(key, Tag.TAG_COMPOUND)) {
-            return insertAt;
-        }
-        ItemStack stored = ItemStack.of(tag.getCompound(key).getCompound(SealedItem.DATA));
-        if (!stored.isEmpty()) {
-            tooltip.add(insertAt++, stored.getHoverName());
-        }
-        return insertAt;
     }
 
     private static int findTranslationLine(List<Component> tooltip, String key) {

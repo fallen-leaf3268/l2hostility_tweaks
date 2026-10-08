@@ -44,8 +44,9 @@ public abstract class MobTraitCapTickMixin {
 		com.l2hostility_tweaks.util.TraitDisableHelper.maintainSealState(mob);
 	}
 
-	@Redirect(method = "tick", at = @At(value = "INVOKE", target = "Ldev/xkmc/l2hostility/content/traits/base/MobTrait;tick(Lnet/minecraft/world/entity/LivingEntity;I)V"), remap = false)
-	public void l2fix$skipPlayerTraitTick(MobTrait trait, LivingEntity entity, int level) {
+	@Redirect(method = "lambda$tick$4(Lnet/minecraft/world/entity/LivingEntity;Ldev/xkmc/l2hostility/content/traits/base/MobTrait;Ljava/lang/Integer;)V",
+			at = @At(value = "INVOKE", target = "Ldev/xkmc/l2hostility/content/traits/base/MobTrait;tick(Lnet/minecraft/world/entity/LivingEntity;I)V"), remap = false, require = 1)
+	private static void l2fix$skipPlayerTraitTick(MobTrait trait, LivingEntity entity, int level) {
 		if (!ImmunityHelper.isImmuneToTraitTick(entity, trait)) {
 			trait.tick(entity, level);
 		}

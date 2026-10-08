@@ -65,14 +65,14 @@ public class PocketOfRestorationMixin {
 		return v != null ? v : 0;
 	}
 
-	@Redirect(method = "curioTick", remap = false,
-			at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/ItemStack;hurtAndBreak(ILnet/minecraft/world/entity/LivingEntity;Ljava/util/function/Consumer;)V"))
+	@Redirect(method = "curioTick", remap = false, require = 1,
+			at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/ItemStack;hurtAndBreak(ILnet/minecraft/world/entity/LivingEntity;Ljava/util/function/Consumer;)V", remap = true))
 	private void l2fix$extraDurability(ItemStack stack, int amount, LivingEntity entity, Consumer<LivingEntity> callback) {
 		stack.hurtAndBreak(amount * (1 + l2fix$abyss()), entity, callback);
 	}
 
-	@Redirect(method = "curioTick", remap = false,
-			at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/ItemStack;getDamageValue()I"))
+	@Redirect(method = "curioTick", remap = false, require = 1,
+			at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/ItemStack;getDamageValue()I", remap = true))
 	private int l2fix$adjustGuard(ItemStack stack) {
 		return stack.getDamageValue() + l2fix$abyss();
 	}

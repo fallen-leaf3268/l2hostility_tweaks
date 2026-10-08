@@ -9,6 +9,7 @@ import com.l2hostility_tweaks.util.RomanNumeral;
 import dev.xkmc.l2hostility.content.capability.mob.MobTraitCap;
 import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import net.minecraft.client.Minecraft;
+import net.minecraft.Util;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
@@ -58,20 +59,13 @@ public class L2HHealthOverlay implements IGuiOverlay {
 
 	private static final int BAR_H = 3;
 	private static final int SCALE = 24;
-	private static final long FLASH_MS = 400;
-	private static final float BASE_DRAIN = 0.3f;
-	private static final float DRAIN_SCALE = 2.5f;
 	private static final int SHADOW_DY = 2;
 	private static final int ICON_SZ = 9;
 	private static final int ICON_GAP = 1;
 	private static final int INTERNAL_FULL_H = BAR_H * SCALE;
 	private static final double DISPLAY_RADIUS = BAR_H / 2.0;
 
-	private int trackedId = -1;
-	private float displayFrac = 1f;
-	private float actualFrac = 1f;
-	private float accumDamage;
-	private long lastDamageTime;
+	private final DamageTrailAnimation damageTrailAnimation = new DamageTrailAnimation();
 
 	private int cachedBarW = -1;
 	private int[] segH;
@@ -240,25 +234,9 @@ public class L2HHealthOverlay implements IGuiOverlay {
 			int bx = (int)(barX * SCALE);
 			int by = (int)(barY * SCALE - INTERNAL_FULL_H / 2);
 
-			float curFrac = entity.getHealth() / entity.getMaxHealth();
-			if (entity.getId() != trackedId) {
-				trackedId = entity.getId();
-				displayFrac = curFrac;
-				actualFrac = curFrac;
-				accumDamage = 0;
-			} else {
-				if (curFrac < actualFrac - 0.001f) {
-					accumDamage += actualFrac - curFrac;
-					lastDamageTime = System.currentTimeMillis();
-				}
-				actualFrac = curFrac;
-				long elapsed = System.currentTimeMillis() - lastDamageTime;
-				if (elapsed > FLASH_MS) {
-					float speed = BASE_DRAIN + accumDamage * DRAIN_SCALE;
-					accumDamage = Math.max(0, accumDamage - speed * (elapsed - FLASH_MS) / 1000f);
-				}
-				displayFrac = Math.min(1f, actualFrac + accumDamage);
-			}
+			float actualFrac = entity.getHealth() / entity.getMaxHealth();
+			float displayFrac = damageTrailAnimation.update(
+					entity.getId(), actualFrac, Util.getMillis());
 
 			int actualPx = (int)(actualFrac * barW);
 			int dispPx = (int)(displayFrac * barW);

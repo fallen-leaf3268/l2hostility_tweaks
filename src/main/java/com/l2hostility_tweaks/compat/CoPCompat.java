@@ -1,8 +1,6 @@
 package com.l2hostility_tweaks.compat;
 
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 
 import net.minecraftforge.event.entity.EntityAttributeModificationEvent;
@@ -21,14 +19,9 @@ public class CoPCompat {
 				new ResourceLocation("curseofpandora", "reality_index"));
 		if (attr == null) return;
 
-		for (var entry : ForgeRegistries.ENTITY_TYPES.getEntries()) {
-			EntityType<?> type = entry.getValue();
-			if (type.getBaseClass() != null
-					&& LivingEntity.class.isAssignableFrom(type.getBaseClass())) {
-				@SuppressWarnings("unchecked")
-				EntityType<? extends LivingEntity> livingType =
-						(EntityType<? extends LivingEntity>) type;
-				event.add(livingType, attr);
+		for (var type : event.getTypes()) {
+			if (!event.has(type, attr)) {
+				event.add(type, attr);
 			}
 		}
 	}
