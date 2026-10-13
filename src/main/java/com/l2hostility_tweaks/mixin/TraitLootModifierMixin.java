@@ -7,11 +7,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-/**
- * TraitLootModifier 中有两处依赖 hasTrait/getTraitLevel，
- * 封印词条的 value 为负数，hasTrait 返回 false 且 getTraitLevel 返回负值，
- * 导致封印词条无法掉落。
- */
 @Mixin(value = TraitLootModifier.class, remap = false)
 public class TraitLootModifierMixin {
 

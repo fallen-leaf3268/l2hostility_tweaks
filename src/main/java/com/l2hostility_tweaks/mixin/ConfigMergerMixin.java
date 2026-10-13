@@ -84,7 +84,6 @@ public class ConfigMergerMixin {
         Map<ResourceLocation, Map<Integer, ConfigEntry>> store = new LinkedHashMap<>();
         int totalFound = 0;
 
-        // Use listResources — exactly how SimpleJsonResourceReloadListener finds JSON files
         var resourceManager = server.getResourceManager();
         if (resourceManager == null) return new LinkedHashMap<>();
         Map<ResourceLocation, Resource> found = resourceManager
@@ -95,8 +94,6 @@ public class ConfigMergerMixin {
         for (Map.Entry<ResourceLocation, Resource> entry : found.entrySet()) {
             ResourceLocation id = entry.getKey();
 
-            // Convert listResources key to L2Serial config ID:
-            // "goety:l2hostility_config/entity/apo.json" → "goety:apo"
             String path = id.getPath();
             String stripped = path.substring("l2hostility_config/entity/".length());
             if (stripped.endsWith(".json")) stripped = stripped.substring(0, stripped.length() - 5);

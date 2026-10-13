@@ -13,12 +13,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-/**
- * 拦截 MobTraitCap.getTitle() 中对 getFullDesc 的调用。
- * 封印词条（value < 0）：灰色+删除线。
- * 非封印词条：保留原本颜色和等级格式。
- * 不调用原 getFullDesc 以避免递归。
- */
 @Mixin(value = MobTraitCap.class, remap = false)
 public class GetTitleMixin {
 

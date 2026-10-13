@@ -8,10 +8,6 @@ import dev.xkmc.l2hostility.content.traits.base.MobTrait;
 import net.minecraft.world.damagesource.DamageSource;
 import java.util.function.DoubleSupplier;
 
-/**
- * 封印词条（value < 0）不参与 modifyBonusDamage 伤害加成。
- * 非正等级直接返回 1，避免调用词条伤害逻辑。
- */
 @Mixin(value = LHAttackListener.class, remap = false)
 public class LHAttackListenerMixin {
 

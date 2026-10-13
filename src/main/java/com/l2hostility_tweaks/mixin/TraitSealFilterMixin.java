@@ -9,9 +9,6 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import java.util.LinkedHashMap;
 import java.util.function.BiConsumer;
 
-/**
- * 封印词条（v <= 0）不参与 tick/postInit/traitEvent。
- */
 @Mixin(value = MobTraitCap.class, remap = false)
 public class TraitSealFilterMixin {
 

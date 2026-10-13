@@ -7,10 +7,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * 拦截 TraitManager.fill()，当 disable_mob_level 开启时返回 0，
- * 阻止生物获得难度等级、血量缩放和词条生成。
- */
 @Mixin(value = TraitManager.class, remap = false)
 public class TraitManagerMixin {
 

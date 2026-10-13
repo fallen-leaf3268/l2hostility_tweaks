@@ -5,7 +5,6 @@ import net.minecraft.network.chat.MutableComponent;
 
 public class L2HTweaksLang {
 
-	// === 玩家自我词条 ===
 	public static final String SELF_TRAIT_MAX_COUNT = "message.l2hostility_tweaks.self_trait_max_count";
 	public static final String SELF_TRAIT_BLACKLISTED = "message.l2hostility_tweaks.self_trait_blacklisted";
 	public static final String SELF_TRAIT_MIN_LEVEL = "message.l2hostility_tweaks.self_trait_min_level";
@@ -15,22 +14,18 @@ public class L2HTweaksLang {
 	public static final String SELF_TRAIT_ADDED = "message.l2hostility_tweaks.self_trait_added";
 	public static final String SELF_TRAIT_NOT_ENOUGH_ITEMS = "message.l2hostility_tweaks.self_trait_not_enough_items";
 
-	// === 生物词条限制 ===
 	public static final String MOB_TRAIT_MIN_LEVEL = "message.l2hostility_tweaks.mob_trait_min_level";
 	public static final String MOB_TRAIT_BUDGET_EXCEEDED = "message.l2hostility_tweaks.mob_trait_budget_exceeded";
 	public static final String MOB_TRAIT_COST_INFO = "message.l2hostility_tweaks.mob_trait_cost_info";
 
-	// === 难度界面 ===
 	public static final String LEVEL_CAP_UNLIMITED = "info.l2hostility_tweaks.level_cap_unlimited";
 	public static final String LEVEL_CAP = "info.l2hostility_tweaks.level_cap";
 	public static final String LEGENDARY_UNLIMITED = "info.l2hostility_tweaks.legendary_unlimited";
 	public static final String LEGENDARY_PRESET = "info.l2hostility_tweaks.legendary_preset";
 	public static final String LEGENDARY_COUNT = "info.l2hostility_tweaks.legendary_count";
 
-	// === 扭曲之魂 ===
 	public static final String ABRAHADABRA_MINION_TOOLTIP = "tooltip.l2hostility_tweaks.abrahadabra_minion";
 
-	// === 词条卸载工具 ===
 	public static final String UNLOADER_TOOLTIP = "tooltip.l2hostility_tweaks.trait_unloader";
 	public static final String UNLOADER_MODE = "tooltip.l2hostility_tweaks.unloader_mode";
 	public static final String UNLOADER_MODE_CHANGED = "message.l2hostility_tweaks.unloader_mode_changed";

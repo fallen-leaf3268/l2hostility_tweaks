@@ -47,37 +47,30 @@ public class L2HConfig {
 
     public static class Common {
 
-        // === 复印 ===
         public final ForgeConfigSpec.BooleanValue reprintLinearEnabled;
         public final ForgeConfigSpec.DoubleValue reprintDamageFactor;
         public final ForgeConfigSpec.DoubleValue antiReprintReduction;
 
-        // === 适应 ===
         public final ForgeConfigSpec.BooleanValue adaptiveLinearEnabled;
         public final ForgeConfigSpec.DoubleValue adaptiveReductionPerStack;
         public final ForgeConfigSpec.DoubleValue adaptiveMaxReduction;
 
-        // === 探测目镜 ===
         public final ForgeConfigSpec.BooleanValue detectorGlassesReveal;
         public final ForgeConfigSpec.IntValue detectorGlassesRange;
 
         public final ForgeConfigSpec.DoubleValue walkingBootsMovementSpeedCap;
 
-        // === 旧版防御 ===
         public final ForgeConfigSpec.BooleanValue oldDispell;
         public final ForgeConfigSpec.BooleanValue oldDementor;
 
-        // === 不死 ===
         public final ForgeConfigSpec.IntValue undyingMaxResurrections;
         public final ForgeConfigSpec.IntValue undyingSealDuration;
 
-        // === 等级限制 ===
         public final ForgeConfigSpec.BooleanValue levelCapEnabled;
         public final ForgeConfigSpec.IntValue levelCapUnlimited;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> levelCapThresholds;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> levelCapPerTrait;
 
-        // === 封印词条 ===
         public final ForgeConfigSpec.BooleanValue sealTraitEnabled;
         public final ForgeConfigSpec.IntValue sealDurationMode;
         public final ForgeConfigSpec.IntValue sealDurationLinear;
@@ -93,23 +86,19 @@ public class L2HConfig {
 		public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> drainDurationMaxArray;
 		public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> drainCountArray;
 		public final ForgeConfigSpec.ConfigValue<List<? extends Integer>> dispellCountArray;
-        // === 传奇限制 ===
         public final ForgeConfigSpec.BooleanValue legendaryEnabled;
         public final ForgeConfigSpec.BooleanValue legendaryBypassVanillaGate;
         public final ForgeConfigSpec.IntValue legendaryUnlimited;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> legendaryThresholds;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> extraLegendaryIds;
 
-        // === 词条互斥 ===
         public final ForgeConfigSpec.BooleanValue exclusionEnabled;
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> exclusionGroups;
 
-        // === 词条生成 ===
         public final ForgeConfigSpec.BooleanValue disableNonPresetTraits;
         public final ForgeConfigSpec.BooleanValue disableAllTraits;
         public final ForgeConfigSpec.BooleanValue disableMobLevel;
 
-        // === 玩家词条 ===
         public final ForgeConfigSpec.IntValue playerMaxTraits;
         public final ForgeConfigSpec.BooleanValue playerSelfTraitEnabled;
         public final ForgeConfigSpec.BooleanValue playerSelfTraitBalanceEnabled;
@@ -288,7 +277,6 @@ public class L2HConfig {
         }
     }
 
-    // ==================== 解析 ====================
 
     public static List<int[]> getLevelThresholds() {
         if (parsedLevelThresholds == null) {
@@ -414,7 +402,6 @@ public class L2HConfig {
         return result;
     }
 
-    // ==================== Getters ====================
 
     public static boolean isReprintLinearEnabled() {
         return COMMON.reprintLinearEnabled.get();
@@ -492,7 +479,6 @@ public class L2HConfig {
                 getSealDurationMode(), getSealDurationLinear(), getSealDurationArray(), level);
     }
 
-    // ==================== Ragnarok ====================
 
     public static int getRagnarokCount(int level) {
         List<? extends Integer> arr = COMMON.ragnarokCountArray.get();

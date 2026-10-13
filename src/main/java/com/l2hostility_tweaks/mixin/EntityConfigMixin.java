@@ -58,7 +58,6 @@ public class EntityConfigMixin {
 
     @Inject(method = "postMerge", at = @At("TAIL"))
     private void l2fix$onPostMerge(CallbackInfo ci) {
-        // Collect non-NBT defaults per entity type (for restoration)
         Map<EntityType<?>, EntityConfig.Config> defaultConfigs = new LinkedHashMap<>();
         for (EntityConfig.Config config : list) {
             EntityConfigNbtData data = (EntityConfigNbtData) (Object) config;
@@ -70,7 +69,6 @@ public class EntityConfigMixin {
             }
         }
 
-        // Register NBT configs and remove from simple cache
         for (EntityConfig.Config config : list) {
             EntityConfigNbtData data = (EntityConfigNbtData) (Object) config;
             EntityConfigNbtData.State state = data.l2fix$getNbtConditionState();
@@ -91,7 +89,6 @@ public class EntityConfigMixin {
             }
         }
 
-        // Restore non-NBT configs displaced by NBT overwrites
         for (Map.Entry<EntityType<?>, EntityConfig.Config> entry : defaultConfigs.entrySet()) {
             if (!cache.containsKey(entry.getKey())) {
                 cache.put(entry.getKey(), entry.getValue());

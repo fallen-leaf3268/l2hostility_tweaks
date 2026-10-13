@@ -102,7 +102,6 @@ public class TraitGenerationHelper {
         }
     }
 
-    // ==================== Helpers ====================
 
     public static String findExclusionConflict(String candidateId, Map<String, Integer> existing,
                                                List<ExclusionGroup> groups) {

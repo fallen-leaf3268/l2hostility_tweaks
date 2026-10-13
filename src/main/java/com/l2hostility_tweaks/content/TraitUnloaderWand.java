@@ -47,7 +47,6 @@ public class TraitUnloaderWand extends Item {
 		return TraitWandHelper.prevTrait(mod);
 	}
 
-	// ============ 公开静态卸载方法（NetworkHandler 也调用） ============
 
 	public static void syncCap(Player player, MobTraitCap cap) {
 		cap.syncToClient(player);
@@ -100,7 +99,6 @@ public class TraitUnloaderWand extends Item {
 				trait.getDesc(), absLevel, totalRefund).withStyle(ChatFormatting.GREEN), true);
 	}
 
-	// ============ 实例方法 ============
 
 	public TraitUnloaderWand(Properties properties) {
 		super(properties);

@@ -76,7 +76,6 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
         if (L2HConfig.isDisableAllTraits()) ci.cancel();
     }
 
-    // === 早期拦截：关闭非预设词条（保留 genBase 预设，跳过随机生成） ===
     @Inject(method = "generate", at = @At("HEAD"))
     private void l2fix$interceptGenerate(CallbackInfo ci) {
         if (L2HConfig.isDisableNonPresetTraits()) {
@@ -146,7 +145,6 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
         L2FIX$LOG.debug("[SetRank] trait={}, newRank={}, mobLevel={}, globalLevelCap={}, protectedIds={}",
                 trait.getID(), newRank, l2fix$mobLevel, l2fix$globalLevelCap, l2fix$protectedIds);
 
-        // === Level cap ===
         if (L2HConfig.COMMON.levelCapEnabled.get() && capped > 1) {
             int diff = l2fix$mobLevel;
             if (diff < L2HConfig.COMMON.levelCapUnlimited.get()
@@ -157,7 +155,6 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
             }
         }
 
-        // === Legendary limit ===
         if (L2HConfig.COMMON.legendaryEnabled.get() && capped > 0) {
             String id = trait.getID();
             boolean isLegendary = LegendaryTraitClassifier.isLegendary(trait);
@@ -174,13 +171,11 @@ public class TraitPostRollMixin implements TraitGenerationHelper.PresetState {
             }
         }
 
-        // === Refund budget for reduction ===
         if (capped < newRank) {
             int refund = (newRank - capped) * cost;
             level += refund;
         }
 
-        // === Apply ===
         L2FIX$LOG.debug("[SetRank] FINAL trait={}, newRank={}, capped={}, refund={}, levelAfter={}",
                 trait.getID(), newRank, capped, (capped < newRank ? (newRank - capped) * cost : 0),
                 level);
